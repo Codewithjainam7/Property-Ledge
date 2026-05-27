@@ -1,11 +1,12 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FAQ } from './components/FAQ';
 import { Dashboard } from './components/Dashboard';
 import { PropertyOnboarding } from './components/PropertyOnboarding';
 import { PropertyDetails } from './components/PropertyDetails';
+import { AccountSettings } from './components/AccountSettings';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -451,9 +452,9 @@ function Login() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen relative flex items-center justify-center p-6 bg-[#eff1f3]"
+      className="min-h-screen relative flex items-center justify-center p-6 bg-[#f0f4f8]"
     >
-      <div className="w-full max-w-[500px] p-10 md:p-14 rounded-[32px] relative z-10 shadow-sm border border-[#e2e8f0] bg-[#FCF9F2] text-on-surface">
+      <div className="w-full max-w-[500px] p-10 md:p-14 rounded-[32px] relative z-10 shadow-sm border border-[#e2e8f0] bg-white text-on-surface">
         <div className="flex justify-center mb-10">
           <Link to="/" className="inline-flex items-center gap-2 text-[#356064] hover:text-[#254548] transition-colors mb-2 font-bold text-sm tracking-widest uppercase">
              <ArrowLeft className="w-5 h-5" /> Back to home
@@ -471,7 +472,7 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] placeholder-[#a0aab2] focus:outline-none focus:border-[#356064] focus:ring-1 focus:ring-[#356064] transition-all font-medium"
-              placeholder="you@example.com"
+              placeholder="sarah@propvault.com"
             />
           </div>
           <div>
@@ -497,7 +498,7 @@ function Login() {
 
         <div className="mt-10 pt-8 border-t border-[#d2d6dc] text-center">
           <p className="text-sm text-[#356064] font-medium">
-            Don't have an account? <Link to="/signup" className="text-primary font-bold hover:underline">Start free trial</Link>
+            Don't have an account? <Link to="/signup" className="text-[#356064] font-bold hover:underline">Start free trial</Link>
           </p>
         </div>
       </div>
@@ -509,15 +510,56 @@ function Signup() {
   const [step, setStep] = useState(1);
   const [role, setRole] = useState('');
   const [fname, setFname] = useState('');
+  const [lname, setLname] = useState('');
   const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   
+  const calculateStrength = (pass: string) => {
+    let strength = 0;
+    if (pass.length > 7) strength += 25;
+    if (pass.length > 12) strength += 25;
+    if (pass.match(/[A-Z]/)) strength += 15;
+    if (pass.match(/[0-9]/)) strength += 15;
+    if (pass.match(/[^a-zA-Z0-9]/)) strength += 20;
+    return Math.min(100, strength);
+  };
+
+  const generatePassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
+    let pass = "";
+    for (let i = 0; i < 16; i++) {
+        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(pass);
+    setConfirmPassword(pass);
+    setShowPassword(true);
+  };
+
   const handleNext = (e: FormEvent) => {
     e.preventDefault();
     if (step === 1) {
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return;
+      }
+      setError('');
       setStep(2);
     } else {
-      const newUser = { name: fname || 'New User', email: email || 'user@example.com', role };
+      const newUser = { 
+        name: `${fname} ${lname}`.trim() || 'New User', 
+        email: email || 'user@example.com',
+        mobile,
+        role 
+      };
       const usersStr = localStorage.getItem('users');
       let users = [];
       if (usersStr) users = JSON.parse(usersStr);
@@ -541,45 +583,83 @@ function Signup() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen relative flex items-center justify-center p-6 bg-[#eff1f3]"
+      className="min-h-screen relative flex items-center justify-center p-6 bg-[#f0f4f8]"
     >
-      <div className="w-full max-w-[640px] p-10 md:p-14 rounded-[32px] relative z-10 shadow-sm border border-[#e2e8f0] bg-[#FCF9F2]">
-        <Link to="/" className="inline-flex items-center gap-2 text-[#356064] hover:text-[#254548] transition-colors mb-10 font-bold text-sm tracking-widest uppercase">
-           <ArrowLeft className="w-5 h-5" /> Back to home
+      <div className="w-full max-w-[560px] p-6 sm:p-10 md:p-12 rounded-[32px] shadow-sm border border-[#e2e8f0] bg-white">
+        <Link to="/" className="inline-flex items-center gap-2 text-[#356064] hover:text-[#254548] transition-colors mb-8 font-bold text-xs tracking-widest uppercase">
+           <ArrowLeft className="w-4 h-4" /> Back to home
         </Link>
         
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-4xl md:text-[42px] font-extrabold text-[#333333] mb-3 tracking-tighter">Create your account</h2>
-            <p className="text-lg text-[#356064] font-medium mb-10">Start your 14-day free trial. No credit card required.</p>
-            <form onSubmit={handleNext} className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+            <h2 className="text-[36px] md:text-[40px] font-extrabold text-[#333333] mb-2 tracking-tight leading-tight">Create your account</h2>
+            <p className="text-base text-[#356064] mb-8 font-medium">Start your 14-day free trial. No credit card required.</p>
+            {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100">{error}</div>}
+            <form onSubmit={handleNext} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                  <div>
-                  <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">First name</label>
-                  <input type="text" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
+                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">First name</label>
+                  <input type="text" placeholder="Sarah" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
                  </div>
                  <div>
-                  <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Last name</label>
-                  <input type="text" required className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
+                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Last name</label>
+                  <input type="text" placeholder="Connor" required value={lname} onChange={(e) => setLname(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
                  </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Email address</label>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                 <div>
+                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Email address</label>
+                  <input type="email" placeholder="sarah@propvault.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                 </div>
+                 <div>
+                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Mobile number</label>
+                  <input type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="(555) 123-4567" className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Password</label>
-                <input type="password" required className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                   <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-[11px] font-bold text-[#333333] uppercase tracking-widest">Password</label>
+                        <button type="button" onClick={generatePassword} className="text-[10px] flex items-center font-bold text-[#356064] hover:text-[#254548] uppercase tracking-wider">
+                           <RefreshCw className="w-3 h-3 mr-1" /> Generate
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 pr-10 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6a808f] hover:text-[#333333] transition-colors">
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                   </div>
+                   <div>
+                      <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Confirm Password</label>
+                      <div className="relative">
+                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 pr-10 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                      </div>
+                   </div>
+                </div>
+                {password && (
+                  <div className="mt-2">
+                     <div className="flex justify-between items-center mb-1.5">
+                       <span className="text-[10px] font-bold text-[#6a808f] uppercase tracking-wider">Password Strength</span>
+                       <span className="text-[10px] font-bold text-[#333333]">{calculateStrength(password) < 40 ? 'Weak' : calculateStrength(password) < 80 ? 'Good' : 'Strong'}</span>
+                     </div>
+                     <div className="h-1.5 w-full bg-[#e2e8f0] rounded-full overflow-hidden">
+                       <div className={`h-full transition-all duration-300 ${calculateStrength(password) < 40 ? 'bg-red-500' : calculateStrength(password) < 80 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${calculateStrength(password)}%` }}></div>
+                     </div>
+                  </div>
+                )}
               </div>
-              <button type="submit" className="w-full bg-[#356064] text-white font-bold uppercase tracking-wider rounded-2xl py-5 mt-8 hover:bg-[#254548] transition-all">Continue</button>
+              <button type="submit" className="w-full bg-[#356064] text-white font-bold uppercase tracking-[0.15em] rounded-2xl py-4 mt-8 hover:bg-[#254548] transition-all text-sm">CONTINUE</button>
             </form>
           </motion.div>
         )}
 
         {step === 2 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-on-surface mb-3 tracking-tight">How will you use PropVault?</h2>
-            <p className="text-lg text-on-surface-variant font-medium mb-10">We'll customize your dashboard based on your answer.</p>
+            <h2 className="text-[32px] md:text-[40px] font-extrabold text-[#333333] mb-3 tracking-tight">How will you use PropVault?</h2>
+            <p className="text-base text-[#356064] font-medium mb-10">We'll customize your dashboard based on your answer.</p>
             <div className="space-y-4 mb-10">
               {roles.map((r) => {
                 const Icon = r.icon;
@@ -588,24 +668,24 @@ function Signup() {
                   <div 
                     key={r.id} 
                     onClick={() => setRole(r.id)}
-                    className={`p-6 rounded-[24px] border-2 cursor-pointer transition-all flex items-center gap-5
-                      ${active ? 'border-primary bg-primary-container shadow-md' : 'border-outline-variant hover:border-primary/50 bg-surface/50'}
+                    className={`p-5 md:p-6 rounded-[20px] md:rounded-[24px] border-2 cursor-pointer transition-all flex items-center gap-4 md:gap-5
+                      ${active ? 'border-[#356064] bg-[#eef3f7] shadow-sm' : 'border-[#e2e8f0] hover:border-[#356064]/50 bg-white'}
                     `}
                   >
-                     <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${active ? 'bg-primary text-on-primary shadow-lg' : 'bg-surface-container border border-outline-variant text-on-surface'}`}>
-                        <Icon className="w-7 h-7" />
+                     <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 ${active ? 'bg-[#356064] text-white shadow-md' : 'bg-[#f4f6f8] border border-[#d2d6dc] text-[#333333]'}`}>
+                        <Icon className="w-5 h-5 md:w-6 md:h-6" />
                      </div>
                      <div>
-                        <div className={`text-xl font-extrabold ${active ? 'text-on-primary-container' : 'text-on-surface'}`}>{r.title}</div>
-                        <div className={`text-base font-medium mt-1 ${active ? 'text-on-primary-container/80' : 'text-on-surface-variant'}`}>{r.desc}</div>
+                        <div className={`text-lg md:text-xl font-extrabold ${active ? 'text-[#356064]' : 'text-[#333333]'}`}>{r.title}</div>
+                        <div className={`text-xs md:text-sm font-medium mt-1 ${active ? 'text-[#356064]/80' : 'text-[#6a808f]'}`}>{r.desc}</div>
                      </div>
                   </div>
                 )
               })}
             </div>
             <div className="flex gap-4">
-              <button onClick={() => setStep(1)} className="px-10 py-5 rounded-2xl border-2 border-outline-variant text-on-surface font-bold uppercase tracking-wider hover:bg-surface-container transition-colors">Back</button>
-              <button onClick={handleNext} disabled={!role} className="flex-1 bg-primary text-on-primary font-bold uppercase tracking-wider rounded-2xl py-5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all">Complete Setup</button>
+              <button onClick={() => setStep(1)} className="px-6 md:px-10 py-4 md:py-5 rounded-2xl border-2 border-[#e2e8f0] text-[#333333] font-bold uppercase tracking-wider hover:bg-[#f4f6f8] transition-colors text-xs md:text-sm">Back</button>
+              <button onClick={handleNext} disabled={!role} className="flex-1 bg-[#356064] text-white font-bold uppercase tracking-[0.1em] md:tracking-[0.15em] rounded-2xl py-4 md:py-5 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:bg-[#254548] transition-all text-xs md:text-sm">Complete Setup</button>
             </div>
           </motion.div>
         )}
@@ -626,6 +706,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
         <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
+        <Route path="/dashboard/settings" element={<AccountSettings />} />
       </Routes>
     </AnimatePresence>
   );

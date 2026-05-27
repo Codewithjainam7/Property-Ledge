@@ -140,19 +140,19 @@ body {
 }
 
 .glass-panel {
-  background-color: rgba(255, 249, 238, 0.75);
+  background-color: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--color-outline-variant);
-  box-shadow: 0 16px 40px -8px rgba(159, 65, 34, 0.05), 0 8px 16px -4px rgba(50, 101, 120, 0.05);
+  box-shadow: 0 16px 40px -8px rgba(12, 43, 75, 0.05), 0 8px 16px -4px rgba(50, 101, 120, 0.05);
 }
 
 .glass-panel-heavy {
-  background-color: rgba(255, 249, 238, 0.85);
+  background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--color-surface-container-lowest);
-  box-shadow: 0 24px 48px -12px rgba(159, 65, 34, 0.08);
+  box-shadow: 0 24px 48px -12px rgba(12, 43, 75, 0.08);
 }
 
 @keyframes float {

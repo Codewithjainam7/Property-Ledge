@@ -32,7 +32,7 @@ export function Dashboard() {
 
   return (
     <DashboardLayout>
-        <header className="sticky top-0 z-10 bg-surface/80 backdrop-blur-xl border-b border-outline-variant px-6 md:px-10 py-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <header className="sticky top-0 z-10 bg-surface/80 backdrop-blur-xl border-b border-outline-variant px-4 sm:px-6 md:px-10 py-4 sm:py-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-on-surface">Dashboard Overview</h1>
             <p className="text-sm md:text-base text-on-surface-variant font-medium">Here's what's happening with your properties today.</p>
@@ -49,7 +49,7 @@ export function Dashboard() {
           </div>
         </header>
 
-        <div className="p-6 md:p-10 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto">
           {properties.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 mb-12">
               <div className="bg-[#3c6e71] text-white p-6 md:p-8 rounded-[32px] shadow-sm flex flex-col justify-between">
@@ -103,8 +103,9 @@ export function Dashboard() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {properties.map(p => (
-                 <Link to={`/dashboard/property/${p.id}`} key={p.id} className="bg-white p-6 md:p-8 rounded-[32px] border border-[#e2e8f0] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all group flex flex-col h-full cursor-pointer">
-                    <div className="flex justify-between items-start mb-6">
+                 <div key={p.id} className="bg-white p-6 md:p-8 rounded-[32px] border border-[#e2e8f0] shadow-sm hover:shadow-md transition-all flex flex-col h-full relative group">
+                    <Link to={`/dashboard/property/${p.id}`} className="absolute inset-0 z-0" aria-label="View property details"></Link>
+                    <div className="flex justify-between items-start mb-6 relative z-10 pointer-events-none">
                        <div className="w-12 h-12 md:w-14 md:h-14 bg-[#e2e6e9] rounded-2xl flex items-center justify-center shrink-0">
                          <Building className="w-6 h-6 md:w-7 md:h-7 text-[#6a808f]" />
                        </div>
@@ -118,7 +119,7 @@ export function Dashboard() {
                       <div className="text-sm md:text-sm font-medium text-[#6a808f]">{p.suburb} {p.state} {p.postcode}</div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 pb-2 pt-2 border-t border-[#e2e8f0] border-dashed mt-auto">
+                    <div className="grid grid-cols-2 gap-4 pb-4 pt-2 border-t border-[#e2e8f0] border-dashed mt-auto relative z-10 pointer-events-none">
                       <div>
                         <div className="text-[10px] uppercase tracking-widest font-bold text-[#6a808f] mb-1">Rent Schedule</div>
                         <div className="font-extrabold text-[#333333] text-base md:text-lg">
@@ -130,7 +131,13 @@ export function Dashboard() {
                         <div className="font-bold text-[#356064] text-sm truncate" title={p.tenantName}>{p.tenantName || 'Pending'}</div>
                       </div>
                     </div>
-                 </Link>
+                    
+                    <div className="pt-4 border-t border-[#e2e8f0] mt-4 relative z-20">
+                      <Link to={`/dashboard/property/${p.id}`} className="block text-center w-full bg-[#f8f9fa] border border-[#d2d6dc] text-[#356064] font-bold text-xs py-3 rounded-xl hover:bg-[#e2e6e9] transition-all uppercase tracking-wider">
+                         Manage Property
+                      </Link>
+                    </div>
+                 </div>
               ))}
             </div>
           )}
