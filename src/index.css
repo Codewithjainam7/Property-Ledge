@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-surface: #fff9ee;
+  --color-surface-dim: #dfd9cf;
+  --color-surface-bright: #fff9ee;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f9f3e8;
+  --color-surface-container: #f3ede2;
+  --color-surface-container-high: #ede8dd;
+  --color-surface-container-highest: #e8e2d7;
+  --color-on-surface: #1d1c15;
+  --color-on-surface-variant: #56423c;
+  --color-inverse-surface: #333029;
+  --color-inverse-on-surface: #f6f0e5;
+  --color-outline: #89726b;
+  --color-outline-variant: #ddc0b8;
+  --color-surface-tint: #9f4122;
+  --color-primary: #9f4122;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #ff8a65;
+  --color-on-primary-container: #752305;
+  --color-inverse-primary: #ffb59e;
+  --color-secondary: #556500;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d6ed7a;
+  --color-on-secondary-container: #5a6c00;
+  --color-tertiary: #326578;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #80b1c7;
+  --color-on-tertiary-container: #074457;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-primary-fixed: #ffdbd0;
+  --color-primary-fixed-dim: #ffb59e;
+  --color-on-primary-fixed: #3a0b00;
+  --color-on-primary-fixed-variant: #7f2a0d;
+  --color-secondary-fixed: #d6ed7a;
+  --color-secondary-fixed-dim: #bbd062;
+  --color-on-secondary-fixed: #181e00;
+  --color-on-secondary-fixed-variant: #3f4c00;
+  --color-tertiary-fixed: #bbe9ff;
+  --color-tertiary-fixed-dim: #9ccee4;
+  --color-on-tertiary-fixed: #001f29;
+  --color-on-tertiary-fixed-variant: #154d5f;
+  --color-background: #fff9ee;
+  --color-on-background: #1d1c15;
+  --color-surface-variant: #e8e2d7;
+
+  --spacing-unit: 8px;
+  --spacing-container-padding: 64px;
+  --spacing-gutter: 32px;
+  --spacing-section-gap: 120px;
+  --spacing-card-internal: 40px;
+
+  --radius-sm: 0.5rem;
+  --radius-DEFAULT: 1rem;
+  --radius-md: 1.5rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-full: 9999px;
+}
+
+@utility text-display-xl {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+@utility text-headline-lg {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+@utility text-headline-md {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+@utility text-body-lg {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+@utility text-body-md {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+@utility text-label-caps {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glass-panel {
+  background-color: rgba(255, 249, 238, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: 0 16px 40px -8px rgba(159, 65, 34, 0.05), 0 8px 16px -4px rgba(50, 101, 120, 0.05);
+}
+
+.glass-panel-heavy {
+  background-color: rgba(255, 249, 238, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--color-surface-container-lowest);
+  box-shadow: 0 24px 48px -12px rgba(159, 65, 34, 0.08);
+}
+
