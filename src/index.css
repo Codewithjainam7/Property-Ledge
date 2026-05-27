@@ -6,53 +6,53 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
-  --color-surface: #fff9ee;
-  --color-surface-dim: #dfd9cf;
-  --color-surface-bright: #fff9ee;
+  --color-surface: #ffffff;
+  --color-surface-dim: #d9d9d9;
+  --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f9f3e8;
-  --color-surface-container: #f3ede2;
-  --color-surface-container-high: #ede8dd;
-  --color-surface-container-highest: #e8e2d7;
-  --color-on-surface: #1d1c15;
-  --color-on-surface-variant: #56423c;
-  --color-inverse-surface: #333029;
-  --color-inverse-on-surface: #f6f0e5;
-  --color-outline: #89726b;
-  --color-outline-variant: #ddc0b8;
-  --color-surface-tint: #9f4122;
-  --color-primary: #9f4122;
+  --color-surface-container-low: #f8f8f8;
+  --color-surface-container: #d9d9d9;
+  --color-surface-container-high: #cdcdcd;
+  --color-surface-container-highest: #c0c0c0;
+  --color-on-surface: #353535;
+  --color-on-surface-variant: #284b63;
+  --color-inverse-surface: #353535;
+  --color-inverse-on-surface: #ffffff;
+  --color-outline: #3c6e71;
+  --color-outline-variant: #d9d9d9;
+  --color-surface-tint: #3c6e71;
+  --color-primary: #3c6e71;
   --color-on-primary: #ffffff;
-  --color-primary-container: #ff8a65;
-  --color-on-primary-container: #752305;
-  --color-inverse-primary: #ffb59e;
-  --color-secondary: #556500;
+  --color-primary-container: #284b63;
+  --color-on-primary-container: #ffffff;
+  --color-inverse-primary: #d9d9d9;
+  --color-secondary: #284b63;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #d6ed7a;
-  --color-on-secondary-container: #5a6c00;
-  --color-tertiary: #326578;
+  --color-secondary-container: #d9d9d9;
+  --color-on-secondary-container: #353535;
+  --color-tertiary: #353535;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #80b1c7;
-  --color-on-tertiary-container: #074457;
+  --color-tertiary-container: #d9d9d9;
+  --color-on-tertiary-container: #353535;
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
-  --color-primary-fixed: #ffdbd0;
-  --color-primary-fixed-dim: #ffb59e;
-  --color-on-primary-fixed: #3a0b00;
-  --color-on-primary-fixed-variant: #7f2a0d;
-  --color-secondary-fixed: #d6ed7a;
-  --color-secondary-fixed-dim: #bbd062;
-  --color-on-secondary-fixed: #181e00;
-  --color-on-secondary-fixed-variant: #3f4c00;
-  --color-tertiary-fixed: #bbe9ff;
-  --color-tertiary-fixed-dim: #9ccee4;
-  --color-on-tertiary-fixed: #001f29;
-  --color-on-tertiary-fixed-variant: #154d5f;
-  --color-background: #fff9ee;
-  --color-on-background: #1d1c15;
-  --color-surface-variant: #e8e2d7;
+  --color-primary-fixed: #3c6e71;
+  --color-primary-fixed-dim: #284b63;
+  --color-on-primary-fixed: #ffffff;
+  --color-on-primary-fixed-variant: #ffffff;
+  --color-secondary-fixed: #d9d9d9;
+  --color-secondary-fixed-dim: #c0c0c0;
+  --color-on-secondary-fixed: #353535;
+  --color-on-secondary-fixed-variant: #284b63;
+  --color-tertiary-fixed: #d9d9d9;
+  --color-tertiary-fixed-dim: #c0c0c0;
+  --color-on-tertiary-fixed: #353535;
+  --color-on-tertiary-fixed-variant: #284b63;
+  --color-background: #ffffff;
+  --color-on-background: #353535;
+  --color-surface-variant: #d9d9d9;
 
   --spacing-unit: 8px;
   --spacing-container-padding: 64px;
@@ -107,7 +107,6 @@
 }
 
 body {
-  font-family: var(--font-sans);
   background-color: var(--color-background);
   color: var(--color-on-background);
   -webkit-font-smoothing: antialiased;
@@ -152,5 +151,32 @@ body {
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--color-surface-container-lowest);
   box-shadow: 0 24px 48px -12px rgba(159, 65, 34, 0.08);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.ticker-wrap {
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ticker {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: ticker 30s linear infinite;
+}
+
+@keyframes ticker {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
 
