@@ -8,6 +8,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
+import { motion } from 'framer-motion';
+
 const theme = createTheme({
   palette: {
     primary: {
@@ -80,7 +82,8 @@ export function PropertyOnboarding() {
     if (activeStep === steps.length - 1) {
       // Save property and redirect
       const properties = JSON.parse(localStorage.getItem('properties') || '[]');
-      properties.push({ ...formData, id: Date.now().toString() });
+      const propertyId = Math.floor(100000 + Math.random() * 900000).toString();
+      properties.push({ ...formData, id: Date.now().toString(), propertyId });
       localStorage.setItem('properties', JSON.stringify(properties));
       navigate('/dashboard');
     } else {
@@ -183,7 +186,7 @@ export function PropertyOnboarding() {
               </FormControl>
             </Box>
             <Box sx={{ p: 3, bgcolor: 'rgba(60, 110, 113, 0.05)', borderRadius: 2, border: '1px solid rgba(60, 110, 113, 0.2)' }}>
-              <Typography variant="body2" color="secondary" fontWeight="medium">
+              <Typography variant="body2" color="secondary" sx={{ fontWeight: 'medium' }}>
                 PropVault will automatically generate invoices based on this schedule and send them to the tenant on your behalf.
               </Typography>
             </Box>
@@ -236,26 +239,26 @@ export function PropertyOnboarding() {
       case 3:
         return (
           <Box sx={{ mt: 3, p: 4, bgcolor: '#f8f8f8', borderRadius: 3, border: '1px solid #d9d9d9' }}>
-             <Typography variant="h6" gutterBottom color="primary.main" fontWeight="800" sx={{ mb: 3 }}>
+             <Typography variant="h6" gutterBottom color="primary.main" sx={{ mb: 3, fontWeight: '800' }}>
                Verify Implementation Overview
              </Typography>
              
              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #d9d9d9', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" fontWeight="bold" textTransform="uppercase">Address Location</Typography>
-                 <Typography variant="body1" fontWeight="medium">{formData.address}, {formData.suburb} {formData.state} {formData.postcode}</Typography>
+                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Address Location</Typography>
+                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{formData.address}, {formData.suburb} {formData.state} {formData.postcode}</Typography>
                </Box>
                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #d9d9d9', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" fontWeight="bold" textTransform="uppercase">Property Classification</Typography>
-                 <Typography variant="body1" fontWeight="medium">{formData.propertyType}</Typography>
+                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Property Classification</Typography>
+                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{formData.propertyType}</Typography>
                </Box>
                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #d9d9d9', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" fontWeight="bold" textTransform="uppercase">Automated Rent Schedule</Typography>
-                 <Typography variant="body1" fontWeight="medium">${formData.rentAmount} / {formData.paymentFrequency}</Typography>
+                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Automated Rent Schedule</Typography>
+                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>${formData.rentAmount} / {formData.paymentFrequency}</Typography>
                </Box>
                <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" fontWeight="bold" textTransform="uppercase">Tenant Identity</Typography>
-                 <Typography variant="body1" fontWeight="medium">{formData.tenantName} ({formData.tenantEmail})</Typography>
+                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Tenant Identity</Typography>
+                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{formData.tenantName} ({formData.tenantEmail})</Typography>
                </Box>
              </Box>
           </Box>
@@ -268,8 +271,13 @@ export function PropertyOnboarding() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ minHeight: '100vh', py: 8, px: { xs: 2, sm: 4, md: 8 }, bgcolor: 'background.default' }}>
-        
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen py-8 px-4 sm:px-8 md:px-16"
+        style={{ backgroundColor: '#f8f8f8' }}
+      >
         <Button 
           startIcon={<ArrowLeft size={18} />} 
           onClick={() => navigate('/dashboard')}
@@ -280,7 +288,7 @@ export function PropertyOnboarding() {
 
         <Paper elevation={0} sx={{ maxWidth: 840, mx: 'auto', p: { xs: 4, md: 6 }, borderRadius: 4, border: '1px solid #d9d9d9', boxShadow: '0 24px 48px -12px rgba(60,110,113,0.1)' }}>
           <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Typography variant="h3" component="h1" gutterBottom fontWeight="900" sx={{ letterSpacing: '-0.5px' }}>
+            <Typography variant="h3" component="h1" gutterBottom sx={{ letterSpacing: '-0.5px', fontWeight: '900' }}>
               Add a New Property
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
@@ -318,7 +326,7 @@ export function PropertyOnboarding() {
             </Button>
           </Box>
         </Paper>
-      </Box>
+      </motion.div>
     </ThemeProvider>
   );
 }

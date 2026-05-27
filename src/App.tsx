@@ -1,10 +1,11 @@
 import React, { useState, useEffect, FormEvent } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FAQ } from './components/FAQ';
 import { Dashboard } from './components/Dashboard';
 import { PropertyOnboarding } from './components/PropertyOnboarding';
+import { PropertyDetails } from './components/PropertyDetails';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -16,9 +17,9 @@ function Navigation() {
   }, []);
 
   return (
-    <nav className={`fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl rounded-full border border-outline-variant transition-all duration-300 z-50 flex justify-between items-center px-8 py-3 ${scrolled ? 'bg-surface/80 backdrop-blur-xl shadow-md' : 'bg-surface/40 backdrop-blur-md shadow-sm'}`}>
-      <Link to="/" className="text-2xl font-bold tracking-tighter text-primary flex items-center gap-2">
-        <svg className="h-8 w-8 text-primary" fill="none" height="32" viewBox="0 0 32 32" width="32" xmlns="http://www.w3.org/2000/svg">
+    <nav className={`fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl rounded-full border border-outline-variant transition-all duration-300 z-50 flex justify-between items-center px-4 md:px-8 py-3 ${scrolled ? 'bg-surface/80 backdrop-blur-xl shadow-md' : 'bg-surface/40 backdrop-blur-md shadow-sm'}`}>
+      <Link to="/" className="text-xl md:text-2xl font-bold tracking-tighter text-primary flex items-center gap-2">
+        <svg className="h-6 w-6 md:h-8 md:w-8 text-primary" fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
           <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
           <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
         </svg>
@@ -31,8 +32,8 @@ function Navigation() {
       </div>
       <div className="flex items-center gap-4">
         <Link to="/login" className="text-on-surface-variant hover:text-primary font-bold text-sm hidden sm:block">Log in</Link>
-        <Link to="/signup" className="flex items-center gap-2 bg-primary text-on-primary font-bold uppercase tracking-wider text-xs px-6 py-3 rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-          Start Free Trial <ArrowRight className="w-4 h-4" />
+        <Link to="/signup" className="flex items-center gap-2 bg-primary text-on-primary font-bold uppercase tracking-wider text-[10px] md:text-xs px-4 md:px-6 py-2.5 md:py-3 rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+          Start Free Trial <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
         </Link>
       </div>
     </nav>
@@ -350,7 +351,12 @@ function Footer() {
 
 function LandingPage() {
   return (
-    <div className="min-h-screen">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen"
+    >
       <Navigation />
       <main>
         <Hero />
@@ -409,7 +415,7 @@ function LandingPage() {
         <FinalCTA />
       </main>
       <Footer />
-    </div>
+    </motion.div>
   );
 }
 
@@ -441,57 +447,61 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-6 bg-surface">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-container/20 to-tertiary-container/20 z-0"></div>
-      <div className="glass-panel-heavy w-full max-w-md p-10 rounded-[40px] relative z-10 shadow-2xl border border-outline-variant text-on-surface">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen relative flex items-center justify-center p-6 bg-[#eff1f3]"
+    >
+      <div className="w-full max-w-[500px] p-10 md:p-14 rounded-[32px] relative z-10 shadow-sm border border-[#e2e8f0] bg-[#FCF9F2] text-on-surface">
         <div className="flex justify-center mb-10">
-           <Link to="/" className="w-16 h-16 rounded-[20px] bg-primary flex items-center justify-center shadow-lg shadow-primary/20 hover:-translate-y-1 transition-transform">
-             <Home className="w-8 h-8 text-on-primary" />
-           </Link>
+          <Link to="/" className="inline-flex items-center gap-2 text-[#356064] hover:text-[#254548] transition-colors mb-2 font-bold text-sm tracking-widest uppercase">
+             <ArrowLeft className="w-5 h-5" /> Back to home
+          </Link>
         </div>
-        <h2 className="text-4xl font-extrabold text-center mb-2">Welcome back</h2>
-        <p className="text-center text-on-surface-variant mb-10 font-medium text-lg">Log in to manage your properties</p>
+        <h2 className="text-[32px] font-extrabold text-[#333333] text-center mb-2 tracking-tighter">Welcome back</h2>
+        <p className="text-center text-[#356064] mb-10 font-medium text-lg">Log in to manage your properties</p>
         
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">Email address</label>
+            <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Email address</label>
             <input 
               type="email" 
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+              className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] placeholder-[#a0aab2] focus:outline-none focus:border-[#356064] focus:ring-1 focus:ring-[#356064] transition-all font-medium"
               placeholder="you@example.com"
             />
           </div>
           <div>
              <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-bold text-on-surface uppercase tracking-widest">Password</label>
-                <a href="#" className="text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-widest transition-colors">Forgot password?</a>
+                <label className="block text-xs font-bold text-[#333333] uppercase tracking-widest">Password</label>
+                <a href="#" className="text-xs font-bold text-[#356064] hover:text-[#254548] uppercase tracking-widest transition-colors">Forgot password?</a>
              </div>
             <input 
               type="password" 
               required
-              className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+              className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] placeholder-[#a0aab2] focus:outline-none focus:border-[#356064] focus:ring-1 focus:ring-[#356064] transition-all font-medium"
               placeholder="••••••••"
             />
           </div>
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-primary text-on-primary font-bold uppercase tracking-wider rounded-2xl py-5 mt-8 hover:bg-primary/90 transition-all shadow-lg flex items-center justify-center"
+            className="w-full bg-[#356064] text-white font-bold uppercase tracking-wider rounded-2xl py-5 mt-8 hover:bg-[#254548] transition-all shadow-sm flex items-center justify-center"
           >
-            {loading ? <div className="w-6 h-6 border-4 border-surface border-t-transparent rounded-full animate-spin"></div> : 'Sign In'}
+            {loading ? <div className="w-6 h-6 border-4 border-[#e2e8f0] border-t-white rounded-full animate-spin"></div> : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-10 pt-8 border-t border-outline-variant text-center">
-          <p className="text-base text-on-surface-variant font-medium">
+        <div className="mt-10 pt-8 border-t border-[#d2d6dc] text-center">
+          <p className="text-sm text-[#356064] font-medium">
             Don't have an account? <Link to="/signup" className="text-primary font-bold hover:underline">Start free trial</Link>
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -527,37 +537,41 @@ function Signup() {
   ];
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-6 bg-surface">
-      <div className="absolute inset-0 bg-gradient-to-tr from-tertiary-container/20 to-primary-container/10 z-0"></div>
-      <div className="glass-panel-heavy w-full max-w-2xl p-10 md:p-14 rounded-[40px] relative z-10 shadow-2xl border border-outline-variant text-on-surface">
-        <Link to="/" className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-10 font-bold text-sm tracking-widest uppercase">
-          <ArrowRight className="w-5 h-5 rotate-180" /> Back to home
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen relative flex items-center justify-center p-6 bg-[#eff1f3]"
+    >
+      <div className="w-full max-w-[640px] p-10 md:p-14 rounded-[32px] relative z-10 shadow-sm border border-[#e2e8f0] bg-[#FCF9F2]">
+        <Link to="/" className="inline-flex items-center gap-2 text-[#356064] hover:text-[#254548] transition-colors mb-10 font-bold text-sm tracking-widest uppercase">
+           <ArrowLeft className="w-5 h-5" /> Back to home
         </Link>
         
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-on-surface mb-3 tracking-tight">Create your account</h2>
-            <p className="text-lg text-on-surface-variant font-medium mb-10">Start your 14-day free trial. No credit card required.</p>
+            <h2 className="text-4xl md:text-[42px] font-extrabold text-[#333333] mb-3 tracking-tighter">Create your account</h2>
+            <p className="text-lg text-[#356064] font-medium mb-10">Start your 14-day free trial. No credit card required.</p>
             <form onSubmit={handleNext} className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                  <div>
-                  <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">First name</label>
-                  <input type="text" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
+                  <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">First name</label>
+                  <input type="text" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
                  </div>
                  <div>
-                  <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">Last name</label>
-                  <input type="text" required className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
+                  <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Last name</label>
+                  <input type="text" required className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
                  </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">Email address</label>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
+                <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Email address</label>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">Password</label>
-                <input type="password" required className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
+                <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Password</label>
+                <input type="password" required className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium" />
               </div>
-              <button type="submit" className="w-full bg-primary text-on-primary font-bold uppercase tracking-wider rounded-2xl py-5 mt-8 hover:bg-primary/90 transition-all shadow-lg">Continue</button>
+              <button type="submit" className="w-full bg-[#356064] text-white font-bold uppercase tracking-wider rounded-2xl py-5 mt-8 hover:bg-[#254548] transition-all">Continue</button>
             </form>
           </motion.div>
         )}
@@ -596,20 +610,31 @@ function Signup() {
           </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
+  );
+}
+
+function AppRoutes() {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
+        <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 
 export default function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
-      </Routes>
+      <AppRoutes />
     </Router>
   );
 }
