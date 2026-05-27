@@ -1,7 +1,10 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck, Monitor } from 'lucide-react';
+import { ArrowRight, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FAQ } from './components/FAQ';
+import { Dashboard } from './components/Dashboard';
+import { PropertyOnboarding } from './components/PropertyOnboarding';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -396,12 +399,13 @@ function LandingPage() {
           title="Digital lease signing in seconds."
           desc="Send localized, compliant lease agreements directly to your tenants' phones. Get legally binding digital signatures without printing a single piece of paper."
           bullets={["State-specific lease templates", "Legally binding digital signatures", "Automatic renewal reminders"]}
-          image="https://images.unsplash.com/photo-1450101499163-c8848c66cb85?w=1600&auto=format&fit=crop&q=80"
+          image="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=1600&auto=format&fit=crop&q=80"
           floatingBadge={{ title: "Lease Signed", subtitle: "Smith Family • 12 Months", icon: <ShieldCheck className="w-6 h-6" />, colorClass: "bg-primary-fixed-dim text-on-primary-fixed" }}
         />
 
         <Pricing />
         <Testimonials />
+        <FAQ />
         <FinalCTA />
       </main>
       <Footer />
@@ -412,14 +416,28 @@ function LandingPage() {
 function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
+      
+      const usersStr = localStorage.getItem('users');
+      let users = [];
+      if (usersStr) users = JSON.parse(usersStr);
+      
+      const existing = users.find((u: any) => u.email === email);
+      
+      if (existing) {
+        localStorage.setItem('user', JSON.stringify(existing));
+      } else {
+        localStorage.setItem('user', JSON.stringify({ name: email.split('@')[0], role: 'landlord', email: email }));
+      }
+
       navigate('/dashboard'); 
-    }, 1500);
+    }, 1000);
   };
 
   return (
@@ -440,6 +458,8 @@ function Login() {
             <input 
               type="email" 
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
               placeholder="you@example.com"
             />
@@ -478,12 +498,25 @@ function Login() {
 function Signup() {
   const [step, setStep] = useState(1);
   const [role, setRole] = useState('');
+  const [fname, setFname] = useState('');
+  const [email, setEmail] = useState('');
   const navigate = useNavigate();
   
   const handleNext = (e: FormEvent) => {
     e.preventDefault();
-    if(step === 1) setStep(2);
-    else navigate('/dashboard');
+    if (step === 1) {
+      setStep(2);
+    } else {
+      const newUser = { name: fname || 'New User', email: email || 'user@example.com', role };
+      const usersStr = localStorage.getItem('users');
+      let users = [];
+      if (usersStr) users = JSON.parse(usersStr);
+      users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.setItem('user', JSON.stringify(newUser));
+      
+      navigate('/dashboard');
+    }
   };
 
   const roles = [
@@ -509,7 +542,7 @@ function Signup() {
               <div className="grid grid-cols-2 gap-6">
                  <div>
                   <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">First name</label>
-                  <input type="text" required className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
+                  <input type="text" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
                  </div>
                  <div>
                   <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">Last name</label>
@@ -518,7 +551,7 @@ function Signup() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">Email address</label>
-                <input type="email" required className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-surface border-2 border-outline-variant rounded-2xl px-5 py-4 text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-medium" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-on-surface mb-2 uppercase tracking-widest">Password</label>
@@ -567,19 +600,6 @@ function Signup() {
   );
 }
 
-function DashboardPlaceholder() {
-  return (
-    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6">
-       <div className="glass-panel-heavy p-16 rounded-[48px] text-center shadow-2xl border border-outline-variant max-w-xl w-full">
-         <Monitor className="w-20 h-20 text-primary mx-auto mb-8" />
-         <h1 className="text-5xl font-extrabold mb-4 text-on-surface tracking-tight">Dashboard</h1>
-         <p className="text-xl text-on-surface-variant font-medium mb-12">You are securely logged in to your account. This view will dynamically render based on the role you selected.</p>
-         <Link to="/" className="bg-primary text-on-primary font-bold uppercase tracking-wider rounded-full py-4 px-10 shadow-lg hover:bg-primary/90 transition-all inline-block w-full sm:w-auto">Return to Home</Link>
-       </div>
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <Router>
@@ -587,7 +607,8 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/dashboard" element={<DashboardPlaceholder />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
       </Routes>
     </Router>
   );
