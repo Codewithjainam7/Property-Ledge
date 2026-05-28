@@ -47,11 +47,15 @@ export function FAQ() {
   return (
     <section className="py-32 px-6 relative overflow-hidden">
       <div 
-        className="absolute inset-0 bg-cover bg-center z-0 pointer-events-none"
-        style={{ backgroundImage: `url(${faqBgImage})` }}
+        className="absolute inset-0 bg-cover bg-center z-0 pointer-events-none scale-105"
+        style={{ 
+          backgroundImage: `url(${faqBgImage})`,
+          filter: 'blur(16px) saturate(1.2)',
+          WebkitFilter: 'blur(16px) saturate(1.2)'
+        }}
       />
-      {/* Liquid glass overlay over the background image */}
-      <div className="absolute inset-0 liquid-glass-overlay z-0"></div>
+      {/* Light overlay without nested backdrop-filter */}
+      <div className="absolute inset-0 bg-white/10 z-0"></div>
       
       {/* Soft background ambient glow lights */}
       <div className="absolute top-1/4 left-1/4 -translate-y-1/2 w-72 h-72 rounded-full bg-primary/15 blur-[100px] pointer-events-none z-0"></div>
