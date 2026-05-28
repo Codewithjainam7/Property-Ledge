@@ -472,7 +472,7 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] placeholder-[#a0aab2] focus:outline-none focus:border-[#356064] focus:ring-1 focus:ring-[#356064] transition-all font-medium"
-              placeholder="sarah@propvault.com"
+              placeholder="sarah@gmail.com"
             />
           </div>
           <div>
@@ -609,7 +609,7 @@ function Signup() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                  <div>
                   <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Email address</label>
-                  <input type="email" placeholder="sarah@propvault.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                  <input type="email" placeholder="sarah@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
                  </div>
                  <div>
                   <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Mobile number</label>
