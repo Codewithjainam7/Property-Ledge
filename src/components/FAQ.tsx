@@ -46,9 +46,8 @@ export function FAQ() {
 
   return (
     <section className="py-32 px-6 relative overflow-hidden">
-      {/* Viewport-fixed static background - completely prevents resizing/shifting/zooming when section height changes */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-fixed z-0 pointer-events-none"
+        className="absolute inset-0 bg-cover bg-center z-0 pointer-events-none"
         style={{ backgroundImage: `url(${faqBgImage})` }}
       />
       {/* Liquid glass overlay over the background image */}
