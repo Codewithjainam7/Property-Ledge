@@ -1,8 +1,10 @@
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck, Eye, EyeOff, RefreshCw, Shield, Lock, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Card as MuiCard, CardContent, Avatar as MuiAvatar, Rating as MuiRating, Chip as MuiChip, Box, Typography } from '@mui/material';
 import { FAQ } from './components/FAQ';
+import heroBgImage from './components/hero-bg.png';
 import { Dashboard } from './components/Dashboard';
 import { PropertyOnboarding } from './components/PropertyOnboarding';
 import { PropertyDetails } from './components/PropertyDetails';
@@ -10,75 +12,209 @@ import { AccountSettings } from './components/AccountSettings';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [hoveredLink, setHoveredLink] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScroll > 0) {
+        setScrollProgress((window.scrollY / totalScroll) * 100);
+      }
+    };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const links = [
+    { name: 'Features', href: '#features' },
+    { name: 'Pricing', href: '#pricing' },
+    { name: 'Testimonials', href: '#testimonials' }
+  ];
+
   return (
-    <nav className={`fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl rounded-full border border-outline-variant transition-all duration-300 z-50 flex justify-between items-center px-4 md:px-8 py-3 ${scrolled ? 'bg-surface/80 backdrop-blur-xl shadow-md' : 'bg-surface/40 backdrop-blur-md shadow-sm'}`}>
-      <Link to="/" className="text-xl md:text-2xl font-bold tracking-tighter text-primary flex items-center gap-2">
-        <svg className="h-6 w-6 md:h-8 md:w-8 text-primary" fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
-          <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
-        </svg>
-        PropVault
-      </Link>
-      <div className="hidden md:flex items-center gap-8">
-        <a href="#features" className="text-on-surface-variant hover:text-primary transition-colors text-sm font-bold">Features</a>
-        <a href="#pricing" className="text-on-surface-variant hover:text-primary transition-colors text-sm font-bold">Pricing</a>
-        <a href="#testimonials" className="text-on-surface-variant hover:text-primary transition-colors text-sm font-bold">Testimonials</a>
-      </div>
-      <div className="flex items-center gap-4">
-        <Link to="/login" className="text-on-surface-variant hover:text-primary font-bold text-sm hidden sm:block">Log in</Link>
-        <Link to="/signup" className="flex items-center gap-2 bg-primary text-on-primary font-bold uppercase tracking-wider text-[10px] md:text-xs px-4 md:px-6 py-2.5 md:py-3 rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-          Start Free Trial <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
+    <>
+      {/* Scroll Progress Bar */}
+      <div 
+        className="fixed top-0 left-0 h-[3px] bg-primary z-[60] transition-all duration-100 ease-out shadow-sm glow-primary" 
+        style={{ width: `${scrollProgress}%` }}
+      />
+
+      <nav 
+        className={`fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl rounded-full transition-all duration-500 z-50 flex justify-between items-center px-4 md:px-8 py-2.5 border ${
+          scrolled 
+            ? 'bg-white/80 backdrop-blur-xl border-primary/20 shadow-[0_20px_50px_rgba(60,110,113,0.06),_0_0_20px_rgba(60,110,113,0.03)] scale-[0.99]' 
+            : 'bg-white/35 backdrop-blur-md border-white/40 shadow-sm'
+        } hover:border-primary/30 transition-all duration-300`}
+      >
+        <Link 
+          to="/" 
+          className="text-xl md:text-2xl font-bold tracking-tighter text-primary flex items-center gap-2 group"
+        >
+          <svg 
+            className="h-6 w-6 md:h-8 md:w-8 text-primary transition-transform duration-500 group-hover:rotate-[360deg]" 
+            fill="none" 
+            viewBox="0 0 32 32" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
+            <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
+          </svg>
+          <span className="font-display tracking-tight text-on-surface group-hover:text-primary group-hover:text-glow transition-all duration-300">
+            PropVault
+          </span>
         </Link>
-      </div>
-    </nav>
+
+        {/* Sliding Pill Navigation Links */}
+        <div className="hidden md:flex items-center gap-2 relative">
+          {links.map((link) => (
+            <a
+              key={link.name}
+              href={link.href}
+              onMouseEnter={() => setHoveredLink(link.name)}
+              onMouseLeave={() => setHoveredLink(null)}
+              className="px-4 py-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-bold relative z-10"
+            >
+              {link.name}
+              {hoveredLink === link.name && (
+                <motion.span
+                  layoutId="nav-pill"
+                  className="absolute inset-0 bg-primary/8 border border-primary/10 rounded-full -z-10"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                />
+              )}
+            </a>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Link 
+            to="/login" 
+            className="text-on-surface-variant hover:text-primary font-bold text-sm hidden sm:block transition-colors"
+          >
+            Log in
+          </Link>
+          <Link 
+            to="/signup" 
+            className="relative group overflow-hidden flex items-center gap-2 bg-primary text-on-primary font-bold uppercase tracking-wider text-[10px] md:text-xs px-5 md:px-7 py-3 rounded-full hover:bg-primary/95 transition-all shadow-lg glow-primary"
+          >
+            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+            Start Free Trial <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+      </nav>
+    </>
   );
 }
 
 function Hero() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 25 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { type: 'spring', stiffness: 90, damping: 18 }
+    }
+  };
+
   return (
     <section 
       className="pt-40 pb-20 px-4 flex flex-col items-center justify-center relative overflow-hidden min-h-[90vh]"
     >
+      {/* Background Image with scale and blur to create a solid, edge-to-edge glassmorphic effect */}
       <div 
-        className="absolute inset-0 -z-10 opacity-30" 
-        style={{
-          background: `radial-gradient(1200px circle at 50% 50%, var(--color-primary-container) 0%, var(--color-secondary-container) 40%, transparent 80%), linear-gradient(135deg, rgba(60, 110, 113, 0.1) 0%, rgba(40, 75, 99, 0.1) 100%)`
+        className="absolute inset-0 bg-cover bg-center scale-105 z-0"
+        style={{ 
+          backgroundImage: `url(${heroBgImage})`,
+          filter: 'blur(20px) saturate(1.3)',
+          WebkitFilter: 'blur(20px) saturate(1.3)'
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-tertiary-container/20 via-primary-container/10 to-transparent -z-20"></div>
+      {/* Light semi-transparent overlay to ensure text contrast */}
+      <div className="absolute inset-0 bg-white/30 z-0"></div>
 
-      <div className="max-w-4xl mx-auto text-center flex flex-col items-center relative z-10 w-full mt-10">
-        <div className="inline-flex items-center gap-3 bg-surface-container-lowest/60 backdrop-blur-xl border border-outline-variant rounded-full px-4 py-2 mb-8 shadow-sm">
+      {/* Dynamic Animated Ambient Blobs under the glass layer */}
+      <motion.div 
+        animate={{
+          x: [0, 45, -25, 0],
+          y: [0, -35, 45, 0],
+        }}
+        transition={{
+          duration: 16,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="absolute top-[10%] left-[10%] w-[350px] h-[350px] md:w-[500px] md:h-[500px] rounded-full bg-primary/15 blur-[130px] pointer-events-none z-0"
+      />
+      <motion.div 
+        animate={{
+          x: [0, -55, 35, 0],
+          y: [0, 45, -35, 0],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="absolute bottom-[15%] right-[10%] w-[400px] h-[400px] md:w-[550px] md:h-[550px] rounded-full bg-secondary-container/20 blur-[140px] pointer-events-none z-0"
+      />
+
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-4xl mx-auto text-center flex flex-col items-center relative z-10 w-full mt-10"
+      >
+        <motion.div 
+          variants={itemVariants}
+          className="inline-flex items-center gap-3 bg-surface-container-lowest/60 backdrop-blur-xl border border-outline-variant rounded-full px-4 py-2 mb-8 shadow-sm"
+        >
           <span className="bg-secondary-container text-on-secondary-container text-xs font-bold px-2 py-1 rounded-full uppercase tracking-widest">Update</span>
           <span className="text-on-surface-variant text-sm font-bold pr-2">🇦🇺 Built for Australian Landlords — Now in Open Beta</span>
-        </div>
+        </motion.div>
         
-        <h1 className="text-5xl md:text-7xl lg:text-[88px] font-extrabold tracking-tight leading-[1.05] text-on-surface mb-6">
+        <motion.h1 
+          variants={itemVariants}
+          className="text-5xl md:text-7xl lg:text-[88px] font-extrabold tracking-tight leading-[1.05] text-on-surface mb-6 font-display"
+        >
           Your Rental Properties.<br />
-          <span className="text-primary tracking-tighter">Managed Smarter.</span>
-        </h1>
+          <span className="text-primary tracking-tighter text-glow">Managed Smarter.</span>
+        </motion.h1>
         
-        <p className="text-lg md:text-xl text-on-surface-variant max-w-[640px] mx-auto mb-10 font-medium leading-relaxed">
+        <motion.p 
+          variants={itemVariants}
+          className="text-lg md:text-xl text-on-surface-variant max-w-[640px] mx-auto mb-10 font-medium leading-relaxed"
+        >
           The all-in-one platform for Australian landlords, property managers and agencies. Automated invoices, digital leases, condition reports — without the agency fees.
-        </p>
+        </motion.p>
         
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-14 w-full sm:w-auto">
-          <Link to="/signup" className="bg-primary text-on-primary w-full sm:w-auto text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-xl shadow-primary/20">
+        <motion.div 
+          variants={itemVariants}
+          className="flex flex-col sm:flex-row items-center gap-4 mb-14 w-full sm:w-auto"
+        >
+          <Link to="/signup" className="bg-primary text-on-primary w-full sm:w-auto text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-xl glow-primary">
             Start Free Trial <ArrowRight className="w-5 h-5" />
           </Link>
           <button className="bg-surface border-2 border-outline-variant text-on-surface w-full sm:w-auto text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors shadow-sm">
             <Play className="w-5 h-5" /> Watch Demo
           </button>
-        </div>
+        </motion.div>
         
-        <div className="flex flex-col items-center gap-3">
+        <motion.div 
+          variants={itemVariants}
+          className="flex flex-col items-center gap-3"
+        >
           <div className="flex -space-x-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="w-10 h-10 rounded-full border-2 border-surface overflow-hidden shadow-sm">
@@ -94,11 +230,20 @@ function Hero() {
             </div>
             <span className="text-sm text-on-surface-variant font-bold">Trusted by 2,500+ landlords across Australia</span>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
       
-      <div className="w-full max-w-5xl mx-auto mt-20 relative z-10 perspective-[1000px]">
-        <div className="bg-surface-container-lowest/80 backdrop-blur-2xl rounded-[32px] overflow-hidden border border-outline-variant shadow-[0_32px_64px_rgba(159,65,34,0.1),_0_0_0_1px_rgba(255,255,255,0.3)] transform transition-transform duration-1000">
+      <motion.div 
+        initial={{ opacity: 0, y: 70, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        whileHover={{ y: -8, scale: 1.01 }}
+        transition={{ 
+          default: { duration: 0.8, ease: "easeOut" },
+          whileHover: { type: 'spring', stiffness: 300, damping: 22 }
+        }}
+        className="w-full max-w-5xl mx-auto mt-20 relative z-10 perspective-[1000px] group/hero-img"
+      >
+        <div className="bg-surface-container-lowest/80 backdrop-blur-2xl rounded-[32px] overflow-hidden border border-outline-variant shadow-[0_32px_64px_rgba(159,65,34,0.08),_0_0_0_1px_rgba(255,255,255,0.3)] transition-transform duration-300">
           <div className="h-12 border-b border-outline-variant flex items-center px-6 gap-2 bg-surface-container/50">
             <div className="flex gap-2">
               <div className="w-3.5 h-3.5 rounded-full bg-error"></div>
@@ -123,7 +268,7 @@ function Hero() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -150,43 +295,87 @@ function LogoStrip() {
 function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadge }: any) {
   return (
     <section className="py-24 px-6 overflow-hidden relative">
-      <div className={`max-w-7xl mx-auto glass-panel-heavy rounded-[40px] border border-outline-variant p-10 lg:p-16 flex flex-col ${reversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-16 lg:gap-24 shadow-[0_24px_48px_-12px_rgba(159,65,34,0.06)]`}>
+      {/* Background soft glowing orb for each feature card */}
+      <div 
+        className={`absolute top-1/2 -translate-y-1/2 ${reversed ? 'left-1/4' : 'right-1/4'} w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] pointer-events-none -z-10`} 
+      />
+
+      <motion.div 
+        initial={{ opacity: 0, y: 60 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-120px" }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className={`max-w-7xl mx-auto group bg-gradient-to-br from-white/90 via-white/50 to-[#eef5f8]/40 backdrop-blur-3xl rounded-[40px] border border-white/60 p-8 md:p-12 lg:p-16 flex flex-col ${reversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-12 lg:gap-20 shadow-[0_32px_80px_-20px_rgba(60,110,113,0.08),_0_0_0_1px_rgba(255,255,255,0.4)] hover:shadow-[0_48px_100px_-20px_rgba(60,110,113,0.15),_0_0_0_1px_rgba(255,255,255,0.5)] transition-all duration-700`}
+      >
+        {/* Left Side: Content */}
         <div className="flex-1 space-y-8 z-10 relative">
-          <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container text-xs font-bold uppercase tracking-widest shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/15 text-primary text-xs font-black uppercase tracking-widest shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             {label}
           </div>
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface leading-[1.1]">{title}</h2>
-          <p className="text-lg text-on-surface-variant font-medium leading-relaxed">{desc}</p>
-          <ul className="space-y-4">
+          
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-on-surface leading-[1.1] font-display group-hover:text-primary transition-colors duration-500">
+            {title}
+          </h2>
+          
+          <p className="text-lg text-on-surface-variant font-medium leading-relaxed">
+            {desc}
+          </p>
+          
+          <div className="space-y-4">
             {bullets.map((b: string, i: number) => (
-              <li key={i} className="flex items-start gap-3">
-                <CheckCircle2 className="w-7 h-7 text-primary shrink-0" />
-                <span className="text-on-surface font-semibold text-lg">{b}</span>
-              </li>
+              <motion.div
+                key={i}
+                whileHover={{ x: 8 }}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-white/40 border border-white/40 backdrop-blur-sm shadow-sm transition-all duration-300 hover:bg-white/80 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(60,110,113,0.06)] group/bullet"
+              >
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover/bullet:bg-primary group-hover/bullet:text-white transition-all duration-300 shadow-inner shrink-0">
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </div>
+                <span className="text-[#333333] font-bold text-base md:text-lg tracking-tight leading-none">
+                  {b}
+                </span>
+              </motion.div>
             ))}
-          </ul>
-          <Link to="/signup" className="inline-flex items-center gap-2 text-primary font-bold hover:text-on-surface transition-colors group pt-4 text-lg">
-            Explore feature <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
+          </div>
+          
+          <div className="pt-2">
+            <Link 
+              to="/signup" 
+              className="inline-flex items-center gap-3.5 text-primary font-black hover:text-on-surface transition-colors group/link text-base uppercase tracking-wider"
+            >
+              Explore feature 
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover/link:translate-x-1.5 group-hover/link:bg-primary group-hover/link:text-white transition-all duration-300">
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </Link>
+          </div>
         </div>
+
+        {/* Right Side: Visual */}
         <div className="flex-1 relative w-full lg:w-1/2">
           {floatingBadge && (
-            <div className={`absolute -top-6 ${reversed ? '-left-6' : '-right-6'} z-20 bg-surface-container-lowest/90 backdrop-blur-xl border border-outline-variant shadow-xl p-5 rounded-2xl flex items-center gap-4`}>
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${floatingBadge.colorClass || 'bg-secondary-container text-on-secondary-container'}`}>
+            <div className={`absolute -top-6 ${reversed ? '-left-6' : '-right-6'} z-20 bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-4.5 rounded-2xl flex items-center gap-4 transition-all duration-500 hover:scale-105 animate-float`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-inner ${floatingBadge.colorClass || 'bg-secondary-container text-on-secondary-container'}`}>
                 {floatingBadge.icon || <Check className="w-6 h-6" />}
               </div>
               <div>
-                <div className="text-sm font-extrabold text-on-surface">{floatingBadge.title}</div>
-                <div className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mt-1">{floatingBadge.subtitle}</div>
+                <div className="text-sm font-black text-[#333333] tracking-tight">{floatingBadge.title}</div>
+                <div className="text-[10px] font-black text-primary uppercase tracking-widest mt-0.5">{floatingBadge.subtitle}</div>
               </div>
             </div>
           )}
-          <div className="bg-surface-container rounded-[32px] p-2 relative overflow-hidden aspect-[4/3] border border-outline-variant/50">
-            <img src={image} alt={title} className="w-full h-full object-cover rounded-[28px]" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary-container/20 via-transparent to-transparent"></div>
+          
+          <div className="bg-surface-container rounded-[32px] p-2 relative overflow-hidden aspect-[4/3] border border-outline-variant/40 shadow-lg group-hover:shadow-xl transition-shadow duration-500">
+            <img 
+              src={image} 
+              alt={title} 
+              className="w-full h-full object-cover rounded-[28px] transition-transform duration-750 group-hover:scale-[1.03] group-hover:rotate-[0.5deg]" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary-container/20 via-transparent to-transparent pointer-events-none" />
           </div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -241,108 +430,435 @@ function Pricing() {
 }
 
 function Testimonials() {
-  const testimonials = [
-    { quote: "It completely replaced our agency. What used to cost us 8% of rent now costs $29 a month. The automated rent tracking is flawless.", name: "Sarah Jenkins", role: "Landlord, Brisbane QLD", rating: 5 },
-    { quote: "The EOFY reporting saved me a weekend of matching bank statements. Everything aligns with the ATO categories directly.", name: "Mark T.", role: "Property Investor, Melbourne VIC", rating: 5 },
-    { quote: "Condition reports used to be a nightmare of PDFs and emails. Doing it straight from the phone and getting digital signatures changed the game.", name: "Elena R.", role: "Property Manager, Sydney NSW", rating: 5 },
-    { quote: "Finally, a platform built for the Australian market. The localized lease agreements and default settings save so much time.", name: "David L.", role: "Agency Director, Perth WA", rating: 5 },
-    { quote: "I can see exactly when my tenants have paid, and the automated reminders mean I never have to chase up rent again.", name: "Jessica W.", role: "Landlord, Gold Coast QLD", rating: 5 },
-    { quote: "The tenant portal is so clean. My tenants love being able to see their payment history and easily log maintenance requests.", name: "Tom C.", role: "Self-Managed Landlord, Adelaide SA", rating: 5 }
+  const row1Testimonials = [
+    { 
+      quote: "It completely replaced our agency. What used to cost us 8% of rent now costs $29 a month. The automated rent tracking is flawless.", 
+      name: "Sarah Jenkins", 
+      role: "Landlord, Brisbane QLD", 
+      rating: 5,
+      tag: "Saved $3,400 annually",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
+    },
+    { 
+      quote: "The EOFY reporting saved me a weekend of matching bank statements. Everything aligns with the ATO categories directly.", 
+      name: "Mark T.", 
+      role: "Property Investor, Melbourne VIC", 
+      rating: 5,
+      tag: "3 Properties Managed",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
+    },
+    { 
+      quote: "Condition reports used to be a nightmare of PDFs and emails. Doing it straight from the phone and getting digital signatures changed the game.", 
+      name: "Elena R.", 
+      role: "Property Manager, Sydney NSW", 
+      rating: 5,
+      tag: "Verified Manager",
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150"
+    }
   ];
 
+  const row2Testimonials = [
+    { 
+      quote: "Finally, a platform built for the Australian market. The localized lease agreements and default settings save so much time.", 
+      name: "David L.", 
+      role: "Agency Director, Perth WA", 
+      rating: 5,
+      tag: "ABN Registered",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"
+    },
+    { 
+      quote: "I can see exactly when my tenants have paid, and the automated reminders mean I never have to chase up rent again.", 
+      name: "Jessica W.", 
+      role: "Landlord, Gold Coast QLD", 
+      rating: 5,
+      tag: "Self-Managed",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+    },
+    { 
+      quote: "The tenant portal is so clean. My tenants love being able to see their payment history and easily log maintenance requests.", 
+      name: "Tom C.", 
+      role: "Self-Managed Landlord, Adelaide SA", 
+      rating: 5,
+      tag: "Saved 12 hours monthly",
+      avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150"
+    }
+  ];
+
+  const row1 = [...row1Testimonials, ...row1Testimonials];
+  const row2 = [...row2Testimonials, ...row2Testimonials];
+
   return (
-    <section id="testimonials" className="py-32 px-6">
+    <section id="testimonials" className="py-32 px-6 relative bg-surface-container-low/20 overflow-hidden">
+      {/* Background ambient glow shapes */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[140px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full bg-secondary-container/5 blur-[120px] pointer-events-none z-0"></div>
+
+      <div className="max-w-7xl mx-auto relative z-10 mb-16">
+        
+        {/* Section Header */}
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs uppercase tracking-widest mb-6">
+            <Star className="w-3.5 h-3.5 fill-primary" /> Testimonials
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-on-surface mb-6 font-display">
+            Trusted by landlords nationwide.
+          </h2>
+          <p className="text-lg text-on-surface-variant font-medium leading-relaxed">
+            See how self-managed property owners and investors across Australia are simplifying management and eliminating agency fees.
+          </p>
+        </div>
+      </div>
+
+      {/* Marquee Content Wrap */}
+      <div className="w-full max-w-[100vw] overflow-x-hidden flex flex-col gap-6">
+        
+        {/* Row 1: Scrolling Left */}
+        <div className="marquee-container">
+          <div className="marquee-content animate-marquee-left">
+            {row1.map((t, index) => (
+              <MuiCard
+                key={index}
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.65)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  boxShadow: '0 8px 32px 0 rgba(12, 43, 75, 0.04)',
+                  borderRadius: '24px',
+                  width: { xs: '320px', sm: '380px', md: '420px' },
+                  height: '240px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  flexShrink: 0,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 12px 40px 0 rgba(12, 43, 75, 0.08)',
+                    borderColor: 'rgba(60, 110, 113, 0.3)',
+                    transform: 'translateY(-2px)'
+                  }
+                }}
+              >
+                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    {/* Header: Avatar, Name/Role, Tag */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <MuiAvatar 
+                          src={t.avatar} 
+                          alt={t.name}
+                          variant="rounded" 
+                          sx={{ width: 44, height: 44, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)' }}
+                        />
+                        <Box>
+                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '0.875rem', color: 'var(--color-on-surface)', lineHeight: 1.2 }}>
+                            {t.name}
+                          </Typography>
+                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', mt: 0.5 }}>
+                            {t.role}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <MuiChip 
+                        label={t.tag}
+                        size="small"
+                        sx={{
+                          fontFamily: "'Outfit', sans-serif",
+                          fontWeight: 700,
+                          fontSize: '9px',
+                          height: '22px',
+                          backgroundColor: 'rgba(60, 110, 113, 0.1)',
+                          color: 'var(--color-primary)',
+                          border: '1px solid rgba(60, 110, 113, 0.2)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </Box>
+
+                    {/* Stars */}
+                    <Box sx={{ display: 'flex', mb: 1.5 }}>
+                      <MuiRating value={t.rating} readOnly size="small" sx={{ color: 'var(--color-secondary)' }} />
+                    </Box>
+
+                    {/* Quote */}
+                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--color-on-surface)' }}>
+                      "{t.quote}"
+                    </Typography>
+                  </div>
+
+                  {/* Footer Verified Account */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-outline-variant)', pt: 2, mt: 2 }}>
+                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', opacity: 0.7 }}>
+                      Verified Account
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--color-primary)' }}>
+                      <CheckCircle2 className="w-3.5 h-3.5 fill-primary/10" />
+                      <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Active
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </MuiCard>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2: Scrolling Right */}
+        <div className="marquee-container">
+          <div className="marquee-content animate-marquee-right">
+            {row2.map((t, index) => (
+              <MuiCard
+                key={index}
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.65)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  boxShadow: '0 8px 32px 0 rgba(12, 43, 75, 0.04)',
+                  borderRadius: '24px',
+                  width: { xs: '320px', sm: '380px', md: '420px' },
+                  height: '240px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  flexShrink: 0,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: '0 12px 40px 0 rgba(12, 43, 75, 0.08)',
+                    borderColor: 'rgba(60, 110, 113, 0.3)',
+                    transform: 'translateY(-2px)'
+                  }
+                }}
+              >
+                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    {/* Header: Avatar, Name/Role, Tag */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <MuiAvatar 
+                          src={t.avatar} 
+                          alt={t.name}
+                          variant="rounded" 
+                          sx={{ width: 44, height: 44, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)' }}
+                        />
+                        <Box>
+                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '0.875rem', color: 'var(--color-on-surface)', lineHeight: 1.2 }}>
+                            {t.name}
+                          </Typography>
+                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', mt: 0.5 }}>
+                            {t.role}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <MuiChip 
+                        label={t.tag}
+                        size="small"
+                        sx={{
+                          fontFamily: "'Outfit', sans-serif",
+                          fontWeight: 700,
+                          fontSize: '9px',
+                          height: '22px',
+                          backgroundColor: 'rgba(60, 110, 113, 0.1)',
+                          color: 'var(--color-primary)',
+                          border: '1px solid rgba(60, 110, 113, 0.2)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </Box>
+
+                    {/* Stars */}
+                    <Box sx={{ display: 'flex', mb: 1.5 }}>
+                      <MuiRating value={t.rating} readOnly size="small" sx={{ color: 'var(--color-secondary)' }} />
+                    </Box>
+
+                    {/* Quote */}
+                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--color-on-surface)' }}>
+                      "{t.quote}"
+                    </Typography>
+                  </div>
+
+                  {/* Footer Verified Account */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-outline-variant)', pt: 2, mt: 2 }}>
+                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', opacity: 0.7 }}>
+                      Verified Account
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--color-primary)' }}>
+                      <CheckCircle2 className="w-3.5 h-3.5 fill-primary/10" />
+                      <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Active
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </MuiCard>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+
+function Footer() {
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) {
+      setSubscribed(true);
+      setEmail('');
+    }
+  };
+
+  return (
+    <footer className="pt-32 pb-16 px-6 bg-gradient-to-b from-[#0E2030] to-[#040C12] text-white relative z-10 border-t border-white/5 overflow-hidden">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 left-1/4 -translate-y-1/2 w-96 h-96 rounded-full bg-primary/10 blur-[150px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-secondary-container/10 blur-[120px] pointer-events-none z-0"></div>
+
       <div className="max-w-7xl mx-auto relative z-10">
-        <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-20 text-center">Trusted by landlords everywhere</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map((t, i) => (
-            <div key={i} className="glass-panel p-10 rounded-[32px] flex flex-col hover:-translate-y-1 transition-transform border border-outline-variant shadow-sm bg-surface-container-lowest/50">
-              <div className="flex mb-6 gap-1">
-                {[...Array(t.rating)].map((_, idx) => <Star key={idx} className="w-5 h-5 fill-secondary text-secondary" />)}
-              </div>
-              <p className="text-on-surface font-semibold text-lg leading-relaxed flex-1 mb-8">"{t.quote}"</p>
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full border-2 border-surface overflow-hidden shadow-sm">
-                   <img src={`https://i.pravatar.cc/150?img=${i + 20}`} alt={t.name} className="w-full h-full object-cover" />
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 mb-24">
+          
+          {/* Logo & Intro Brand Column */}
+          <div className="lg:col-span-4 flex flex-col justify-between">
+            <div>
+              <Link to="/" className="text-3xl font-black tracking-tight text-white flex items-center gap-2 mb-6 font-display">
+                <svg className="h-8 w-8 text-primary" fill="none" height="32" viewBox="0 0 32 32" width="32" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
+                  <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
+                </svg>
+                PropVault
+              </Link>
+              <p className="text-white/60 font-semibold max-w-sm mb-8 leading-relaxed text-base">
+                The complete operating system for modern Australian property managers and landlords. Secure, compliant, and zero agency fees.
+              </p>
+            </div>
+            
+            {/* Trust and Australian Owned Badges */}
+            <div className="flex flex-col gap-4">
+              <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 max-w-xs shadow-inner">
+                <span className="text-2xl">🇦🇺</span>
                 <div>
-                  <div className="text-base font-extrabold text-on-surface">{t.name}</div>
-                  <div className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mt-1">{t.role}</div>
+                  <div className="text-[10px] font-black tracking-widest text-primary uppercase">Australian Owned</div>
+                  <div className="text-xs font-bold text-white/90">Proudly Sydney & Melbourne based</div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+          </div>
 
-function FinalCTA() {
-  return (
-    <section className="py-32 px-6 relative overflow-hidden">
-      <div className="max-w-5xl mx-auto text-center relative z-10 glass-panel-heavy border border-outline-variant shadow-xl p-16 md:p-24 rounded-[48px]">
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary-container/30 to-tertiary-container/30 rounded-[48px] z-[-1]"></div>
-        <h2 className="text-5xl md:text-7xl font-extrabold tracking-tight text-on-surface mb-8">Start managing smarter today</h2>
-        <p className="text-xl text-on-surface-variant font-medium mb-12 max-w-2xl mx-auto leading-relaxed">Join thousands of Australian landlords saving time and money on property management.</p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-          <Link to="/signup" className="bg-primary text-on-primary text-lg font-bold uppercase tracking-wider rounded-full px-10 py-5 flex items-center justify-center gap-2 hover:bg-primary/90 transition-opacity shadow-xl shadow-primary/20 w-full sm:w-auto">
-            Start Free Trial <ArrowRight className="w-5 h-5" />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
+          {/* Nav Links Column 1: Product */}
+          <div className="lg:col-span-2">
+            <h4 className="text-white font-black mb-6 text-sm uppercase tracking-wider font-display">Product</h4>
+            <ul className="space-y-4 text-sm text-white/60 font-semibold">
+              <li><a href="#features" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Features</a></li>
+              <li><a href="#pricing" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Pricing</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Integrations</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Changelog</a></li>
+            </ul>
+          </div>
 
-function Footer() {
-  return (
-    <footer className="pt-24 pb-12 px-6 border-t border-outline-variant bg-surface relative z-10">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-12 mb-20">
-          <div className="col-span-2 lg:col-span-2">
-            <Link to="/" className="text-3xl font-extrabold tracking-tight text-primary flex items-center gap-2 mb-6">
-              <svg className="h-8 w-8 text-primary" fill="none" height="32" viewBox="0 0 32 32" width="32" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
-                <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
-              </svg>
-              PropVault
-            </Link>
-            <p className="text-on-surface-variant font-medium max-w-sm mb-8 leading-relaxed text-lg">The complete operating system for modern Australian property managers and landlords.</p>
-          </div>
-          <div>
-            <h4 className="text-on-surface font-extrabold mb-6 text-lg">Product</h4>
-            <ul className="space-y-4 text-base text-on-surface-variant font-medium">
-              <li><a href="#" className="hover:text-primary transition-colors">Features</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Pricing</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Integrations</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Changelog</a></li>
+          {/* Nav Links Column 2: Resources */}
+          <div className="lg:col-span-2">
+            <h4 className="text-white font-black mb-6 text-sm uppercase tracking-wider font-display">Resources</h4>
+            <ul className="space-y-4 text-sm text-white/60 font-semibold">
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Help Center</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Community Forum</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Blog & Updates</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">ATO Guidelines</a></li>
             </ul>
           </div>
-          <div>
-            <h4 className="text-on-surface font-extrabold mb-6 text-lg">Resources</h4>
-            <ul className="space-y-4 text-base text-on-surface-variant font-medium">
-              <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Community</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">ATO Guidelines</a></li>
+
+          {/* Nav Links Column 3: Trust & Compliance */}
+          <div className="lg:col-span-2">
+            <h4 className="text-white font-black mb-6 text-sm uppercase tracking-wider font-display">Compliance</h4>
+            <ul className="space-y-4 text-sm text-white/60 font-semibold">
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Direct Debit Compliance</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Security Protocols</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Privacy Shield</a></li>
+              <li><a href="#" className="hover:text-primary transition-all duration-300 hover:translate-x-1 inline-block">Leasing Standards</a></li>
             </ul>
           </div>
-          <div>
-            <h4 className="text-on-surface font-extrabold mb-6 text-lg">Company</h4>
-            <ul className="space-y-4 text-base text-on-surface-variant font-medium">
-              <li><a href="#" className="hover:text-primary transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Partners</a></li>
-            </ul>
+
+          {/* Newsletter Subscription Column */}
+          <div className="lg:col-span-2">
+            <h4 className="text-white font-black mb-6 text-sm uppercase tracking-wider font-display">Stay Updated</h4>
+            <p className="text-xs text-white/50 font-semibold mb-4 leading-relaxed">
+              Get the latest property regulations, tax tips, and feature updates delivered to your inbox.
+            </p>
+            {subscribed ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-primary/20 border border-primary/30 rounded-2xl p-4 text-center text-xs font-bold text-primary"
+              >
+                ✓ Thanks for subscribing!
+              </motion.div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="flex flex-col gap-3">
+                <div className="relative">
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@email.com.au" 
+                    required
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs font-semibold text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors shadow-inner"
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  className="w-full bg-primary text-on-primary text-xs font-bold uppercase tracking-wider py-3 rounded-2xl hover:bg-primary/95 transition-all shadow-lg glow-primary flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Subscribe <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            )}
           </div>
         </div>
-        <div className="pt-8 border-t border-outline-variant flex flex-col md:flex-row items-center justify-between gap-6 text-sm font-bold text-on-surface-variant uppercase tracking-wider">
-          <p>PropVault Pty Ltd | ABN XX XXX XXX XXX | 🇦🇺 Made in Australia</p>
-          <div className="flex gap-8">
+
+        {/* Security & Payment Badges Area */}
+        <div className="pt-8 pb-12 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="inline-flex items-center gap-2 text-white/40 text-xs font-bold uppercase tracking-widest">
+              <Shield className="w-4 h-4 text-primary" /> Bank-grade 256-bit Security
+            </div>
+            <div className="w-px h-4 bg-white/10 hidden md:block"></div>
+            <div className="inline-flex items-center gap-2 text-white/40 text-xs font-bold uppercase tracking-widest">
+              <Lock className="w-4 h-4 text-primary" /> Encrypted Payments via Stripe
+            </div>
+          </div>
+
+          {/* Payment Card Icons */}
+          <div className="flex items-center gap-4 text-white/30 text-xs font-bold uppercase tracking-widest">
+            <span>Direct Debit</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/20"></span>
+            <span>Visa</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/20"></span>
+            <span>Mastercard</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/20"></span>
+            <span>BPAY</span>
+          </div>
+        </div>
+
+        {/* Legal and Copyright Bottom Bar */}
+        <div className="pt-8 border-t border-white/5 flex flex-col lg:flex-row items-center justify-between gap-6 text-[11px] font-black text-white/40 uppercase tracking-widest">
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+            <p>PropVault Pty Ltd</p>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/15 hidden sm:block"></span>
+            <p>ABN 45 671 289 304</p>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/15 hidden sm:block"></span>
+            <p className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> NSW, VIC, QLD, WA, SA, TAS Compliance Registered</p>
+          </div>
+          
+          <div className="flex items-center gap-6">
             <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+            <span className="w-px h-3 bg-white/10"></span>
+            <span className="text-white/30">© {new Date().getFullYear()} PropVault</span>
           </div>
         </div>
       </div>
@@ -413,7 +929,6 @@ function LandingPage() {
         <Pricing />
         <Testimonials />
         <FAQ />
-        <FinalCTA />
       </main>
       <Footer />
     </motion.div>
@@ -424,26 +939,52 @@ function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  // Default credentials for checking
+  const DEFAULT_USER = {
+    name: 'Sarah Connor',
+    email: 'landlord@gmail.com',
+    password: 'password123',
+    role: 'landlord',
+    mobile: '0412345678'
+  };
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+    
     setTimeout(() => {
       setLoading(false);
       
       const usersStr = localStorage.getItem('users');
       let users = [];
-      if (usersStr) users = JSON.parse(usersStr);
-      
-      const existing = users.find((u: any) => u.email === email);
-      
-      if (existing) {
-        localStorage.setItem('user', JSON.stringify(existing));
-      } else {
-        localStorage.setItem('user', JSON.stringify({ name: email.split('@')[0], role: 'landlord', email: email }));
+      if (usersStr) {
+        try {
+          users = JSON.parse(usersStr);
+        } catch (err) {
+          users = [];
+        }
       }
-
-      navigate('/dashboard'); 
+      
+      // Check against registered users or default fallback credentials
+      let foundUser = null;
+      if (email.toLowerCase() === DEFAULT_USER.email.toLowerCase() && password === DEFAULT_USER.password) {
+        foundUser = DEFAULT_USER;
+      } else {
+        foundUser = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+      }
+      
+      if (foundUser) {
+        // Save user to session (without password)
+        const { password: _, ...userSession } = foundUser;
+        localStorage.setItem('user', JSON.stringify(userSession));
+        navigate('/dashboard');
+      } else {
+        setError('Invalid email or password. Use landlord@gmail.com / password123 or register.');
+      }
     }, 1000);
   };
 
@@ -461,7 +1002,13 @@ function Login() {
           </Link>
         </div>
         <h2 className="text-[32px] font-extrabold text-[#333333] text-center mb-2 tracking-tighter">Welcome back</h2>
-        <p className="text-center text-[#356064] mb-10 font-medium text-lg">Log in to manage your properties</p>
+        <p className="text-center text-[#356064] mb-8 font-medium text-lg">Log in to manage your properties</p>
+        
+        {error && (
+          <div className="p-4 mb-6 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 text-center animate-fade-in">
+            {error}
+          </div>
+        )}
         
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
@@ -483,6 +1030,8 @@ function Login() {
             <input 
               type="password" 
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] placeholder-[#a0aab2] focus:outline-none focus:border-[#356064] focus:ring-1 focus:ring-[#356064] transition-all font-medium"
               placeholder="••••••••"
             />
@@ -558,7 +1107,8 @@ function Signup() {
         name: `${fname} ${lname}`.trim() || 'New User', 
         email: email || 'user@example.com',
         mobile,
-        role 
+        role,
+        password // Save the password for login check
       };
       const usersStr = localStorage.getItem('users');
       let users = [];
