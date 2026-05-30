@@ -54,7 +54,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="md:hidden fixed top-0 w-full bg-[#f8f9fa] border-b border-[#e2e8f0] z-50 px-4 py-4 flex justify-between items-center">
         <Link to="/" className="text-xl font-extrabold tracking-tighter text-[#356064] flex items-center gap-2">
           <Home className="w-6 h-6 rounded-md bg-[#e2e6e9] p-1" />
-          PropVault
+          PropertyLedge
         </Link>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-[#333333]">
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -71,7 +71,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="w-8 h-8 rounded-full bg-[#e2e6e9] flex items-center justify-center">
               <Home className="w-5 h-5 text-[#356064]" />
             </div>
-            PropVault
+            PropertyLedge
           </Link>
         </div>
         

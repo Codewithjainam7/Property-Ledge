@@ -9,7 +9,7 @@ const faqs = [
     category: "RENT COLLECTION",
     number: "01",
     question: "How does the automated rent collection work?",
-    answer: "PropVault generates a recurring invoice which is sent automatically to your tenants. Tenants can easily pay via BPAY or Direct Deposit securely. Using your uploaded transaction files or live bank feeds, PropVault automatically matches and marks invoiced amounts as paid in real-time."
+    answer: "PropertyLedge generates a recurring invoice which is sent automatically to your tenants. Tenants can easily pay via BPAY or Direct Deposit securely. Using your uploaded transaction files or live bank feeds, PropertyLedge automatically matches and marks invoiced amounts as paid in real-time."
   },
   {
     category: "ONBOARDING",
@@ -27,13 +27,13 @@ const faqs = [
     category: "TAX & REPORTS",
     number: "04",
     question: "What happens at tax time (EOFY)?",
-    answer: "PropVault features instant, automated one-click EOFY reporting. It aligns all your property expenses and rental income strictly against standard ATO rental schedules, minimizing accountant errors and maximizing returns."
+    answer: "PropertyLedge features instant, automated one-click EOFY reporting. It aligns all your property expenses and rental income strictly against standard ATO rental schedules, minimizing accountant errors and maximizing returns."
   },
   {
     category: "MULTI-STATE",
     number: "05",
     question: "Can I manage properties across different states?",
-    answer: "Absolutely. When adding a property, selecting its respective territory (e.g. QLD, NSW) ensures PropVault dynamically applies and generates the appropriate state-specific localized leasing rules, documents, and workflows."
+    answer: "Absolutely. When adding a property, selecting its respective territory (e.g. QLD, NSW) ensures PropertyLedge dynamically applies and generates the appropriate state-specific localized leasing rules, documents, and workflows."
   }
 ];
 
@@ -80,7 +80,7 @@ export function FAQ() {
                 className="text-lg text-on-surface-variant font-semibold leading-relaxed"
                 style={{ textShadow: '0 1px 2px rgba(255, 255, 255, 0.6)' }}
               >
-                Everything you need to know about setting up and automating your properties on PropVault.
+                Everything you need to know about setting up and automating your properties on PropertyLedge.
               </p>
             </div>
 
@@ -97,7 +97,7 @@ export function FAQ() {
                     Our team of Australian property specialists is ready to guide you.
                   </p>
                   <a 
-                    href="mailto:support@propvault.com.au" 
+                    href="mailto:support@propertyledge.com.au" 
                     className="inline-flex items-center gap-2 text-xs font-bold text-primary hover:text-primary-container tracking-wider uppercase transition-colors"
                   >
                     Contact Support <ArrowRight className="w-3.5 h-3.5" />

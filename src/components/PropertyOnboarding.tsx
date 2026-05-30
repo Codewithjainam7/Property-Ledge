@@ -187,7 +187,7 @@ export function PropertyOnboarding() {
             </Box>
             <Box sx={{ p: 3, bgcolor: 'rgba(60, 110, 113, 0.05)', borderRadius: 2, border: '1px solid rgba(60, 110, 113, 0.2)' }}>
               <Typography variant="body2" color="secondary" sx={{ fontWeight: 'medium' }}>
-                PropVault will automatically generate invoices based on this schedule and send them to the tenant on your behalf.
+                PropertyLedge will automatically generate invoices based on this schedule and send them to the tenant on your behalf.
               </Typography>
             </Box>
           </Box>

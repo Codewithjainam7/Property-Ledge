@@ -62,7 +62,7 @@ function Navigation() {
             <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
           </svg>
           <span className="font-display tracking-tight text-on-surface group-hover:text-primary group-hover:text-glow transition-all duration-300">
-            PropVault
+            PropertyLedge
           </span>
         </Link>
 
@@ -731,7 +731,7 @@ function Footer() {
                   <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
                   <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
                 </svg>
-                PropVault
+                PropertyLedge
               </Link>
               <p className="text-white/60 font-semibold max-w-sm mb-8 leading-relaxed text-base">
                 The complete operating system for modern Australian property managers and landlords. Secure, compliant, and zero agency fees.
@@ -847,7 +847,7 @@ function Footer() {
         {/* Legal and Copyright Bottom Bar */}
         <div className="pt-8 border-t border-white/5 flex flex-col lg:flex-row items-center justify-between gap-6 text-[11px] font-black text-white/40 uppercase tracking-widest">
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
-            <p>PropVault Pty Ltd</p>
+            <p>PropertyLedge Pty Ltd</p>
             <span className="w-1.5 h-1.5 rounded-full bg-white/15 hidden sm:block"></span>
             <p>ABN 45 671 289 304</p>
             <span className="w-1.5 h-1.5 rounded-full bg-white/15 hidden sm:block"></span>
@@ -858,7 +858,7 @@ function Footer() {
             <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
             <span className="w-px h-3 bg-white/10"></span>
-            <span className="text-white/30">© {new Date().getFullYear()} PropVault</span>
+            <span className="text-white/30">© {new Date().getFullYear()} PropertyLedge</span>
           </div>
         </div>
       </div>
@@ -882,7 +882,7 @@ function LandingPage() {
         <FeatureRow 
           label="INVOICING"
           title="Automate rent collection, perfectly."
-          desc="Set up your rent schedule once. PropVault generates the invoices, emails them to tenants, and tracks payments status automatically. Never chase rent again."
+          desc="Set up your rent schedule once. PropertyLedge generates the invoices, emails them to tenants, and tracks payments status automatically. Never chase rent again."
           bullets={["Automated schedule generation", "BPAY & Direct Deposit instructions", "Smart overdue reminders"]}
           image="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600&auto=format&fit=crop&q=80"
           floatingBadge={{ title: "Rent Paid", subtitle: "INV-00142 • $480.00", icon: <Check className="w-6 h-6 text-primary" />, colorClass: "bg-surface text-primary" }}
@@ -1208,7 +1208,7 @@ function Signup() {
 
         {step === 2 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-[32px] md:text-[40px] font-extrabold text-[#333333] mb-3 tracking-tight">How will you use PropVault?</h2>
+            <h2 className="text-[32px] md:text-[40px] font-extrabold text-[#333333] mb-3 tracking-tight">How will you use PropertyLedge?</h2>
             <p className="text-base text-[#356064] font-medium mb-10">We'll customize your dashboard based on your answer.</p>
             <div className="space-y-4 mb-10">
               {roles.map((r) => {
