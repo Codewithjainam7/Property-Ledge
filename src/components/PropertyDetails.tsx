@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, ArrowUpRight } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 
@@ -9,18 +10,93 @@ export function PropertyDetails() {
   const navigate = useNavigate();
   const [property, setProperty] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('tenant');
+  
+  // Gallery State
+  const [images, setImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isFullScreenMode, setIsFullScreenMode] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
     const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
     const found = loadedProps.find((p: any) => p.id === id);
     if (found) {
       setProperty(found);
+      const propsImages = found.images || (found.image ? [found.image] : []);
+      setImages(propsImages);
     } else {
       navigate('/dashboard');
     }
   }, [id, navigate]);
 
+  // Auto-rotation effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (images.length > 1 && !isFullScreenMode && !isHovering && !isMenuOpen) {
+      interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      }, 6000);
+    }
+    return () => clearInterval(interval);
+  }, [images.length, isFullScreenMode, isHovering, isMenuOpen]);
+
   if (!property) return null;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, action: 'add' | 'replace' = 'replace') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        
+        let newImages = [...images];
+        if (action === 'replace' && images.length > 0) {
+          newImages[currentImageIndex] = base64String;
+        } else if (action === 'add' && images.length < 5) {
+          newImages.push(base64String);
+          setCurrentImageIndex(newImages.length - 1);
+        } else if (images.length === 0) {
+          newImages = [base64String];
+        }
+
+        setImages(newImages);
+        setProperty({ ...property, images: newImages, image: newImages[0] });
+        
+        const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
+        const updatedProps = loadedProps.map((p: any) => p.id === id ? { ...p, images: newImages, image: newImages[0] } : p);
+        localStorage.setItem('properties', JSON.stringify(updatedProps));
+        setIsMenuOpen(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDeleteImage = () => {
+    if (images.length === 0) return;
+    
+    const newImages = [...images];
+    newImages.splice(currentImageIndex, 1);
+    
+    setImages(newImages);
+    setCurrentImageIndex(prev => Math.min(prev, Math.max(0, newImages.length - 1)));
+    setProperty({ ...property, images: newImages, image: newImages[0] || null });
+    
+    const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
+    const updatedProps = loadedProps.map((p: any) => p.id === id ? { ...p, images: newImages, image: newImages[0] || null } : p);
+    localStorage.setItem('properties', JSON.stringify(updatedProps));
+    setIsMenuOpen(false);
+  };
+
+  const nextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   const handleDelete = () => {
     if (window.confirm("Are you sure you want to delete this property? This action cannot be undone.")) {
@@ -79,20 +155,116 @@ export function PropertyDetails() {
 
         <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto relative z-10 space-y-8">
           
+          {/* Hero Cover Image */}
+          <div 
+            className="w-full h-64 md:h-80 lg:h-96 rounded-[32px] overflow-hidden relative mb-[-40px] shadow-sm group cursor-pointer bg-surface-container"
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+            onClick={() => images.length > 0 && setIsFullScreenMode(true)}
+          >
+            <AnimatePresence initial={false}>
+              {images.length > 0 ? (
+                <motion.img
+                  key={currentImageIndex}
+                  src={images[currentImageIndex]}
+                  alt={property.address}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="w-full h-full object-cover absolute inset-0"
+                />
+              ) : (
+                <div className="w-full h-full bg-surface-container flex items-center justify-center absolute inset-0">
+                  <Building className="w-16 h-16 text-on-surface-variant/30" />
+                </div>
+              )}
+            </AnimatePresence>
+            
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-10"></div>
+            
+            {/* Image Indicators */}
+            {images.length > 1 && (
+              <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                {images.map((_, idx) => (
+                  <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'bg-white scale-125' : 'bg-white/40'}`} />
+                ))}
+              </div>
+            )}
+
+            {/* Expand Icon */}
+            {images.length > 0 && (
+              <div className="absolute bottom-12 right-6 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <Maximize2 className="w-4 h-4" />
+              </div>
+            )}
+
+            {/* Action Menu Toggle */}
+            <div 
+              className="absolute top-6 right-6 z-30"
+              onClick={(e) => e.stopPropagation()}
+              onMouseLeave={() => setIsMenuOpen(false)}
+            >
+              <button 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg text-on-surface hover:bg-white transition-all opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 duration-200"
+              >
+                <Wrench className="w-4 h-4" /> Edit Cover Image
+              </button>
+
+              {/* Action Menu Dropdown */}
+              <AnimatePresence>
+                {isMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-2 w-48 bg-surface rounded-2xl shadow-xl border border-outline-variant/30 overflow-hidden"
+                  >
+                    <div className="p-1">
+                      {images.length < 5 && (
+                        <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
+                          <Plus className="w-4 h-4" /> Add Image ({images.length}/5)
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'add')} />
+                        </label>
+                      )}
+                      {images.length > 0 && (
+                        <>
+                          <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
+                            <ImageIcon className="w-4 h-4" /> Replace Image
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'replace')} />
+                          </label>
+                          <button 
+                            onClick={handleDeleteImage}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-error hover:bg-error/10 rounded-xl cursor-pointer transition-colors text-left"
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete Image
+                          </button>
+                        </>
+                      )}
+                      {images.length === 0 && (
+                        <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
+                          <Plus className="w-4 h-4" /> Upload Image
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'add')} />
+                        </label>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
           {/* Dynamic Island Header (iOS Style) */}
           <motion.div 
-            initial={{ y: -50, opacity: 0 }}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="w-full max-w-4xl mx-auto bg-surface/80 backdrop-blur-2xl border border-white/50 rounded-[32px] md:rounded-full p-4 md:p-2.5 flex flex-col md:flex-row justify-between items-start md:items-center shadow-[0_8px_30px_rgba(0,0,0,0.06)] gap-4"
+            transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.1 }}
+            className="w-full max-w-4xl mx-auto bg-surface/90 backdrop-blur-2xl border border-white/50 rounded-[32px] md:rounded-full p-4 md:p-3 flex flex-col md:flex-row justify-between items-start md:items-center shadow-[0_12px_40px_rgba(0,0,0,0.12)] gap-4 relative z-10"
           >
             <div className="flex items-center gap-4 pl-2 md:pl-4">
-              <div className="w-14 h-14 bg-surface-container rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden border-2 border-surface relative">
-                {property.image ? (
-                  <img src={property.image} alt={property.address} className="w-full h-full object-cover" />
-                ) : (
-                  <Building className="w-6 h-6 text-on-surface-variant" />
-                )}
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0 shadow-inner">
+                <MapPin className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
                 <h1 className="text-base md:text-lg font-black text-on-surface leading-tight tracking-tight">
@@ -122,7 +294,7 @@ export function PropertyDetails() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`relative flex-1 py-3 text-center font-black text-xs uppercase tracking-widest z-10 transition-colors ${activeTab === tab ? 'text-on-surface' : 'text-on-surface-variant/70 hover:text-on-surface'}`}
+                  className={`relative flex-1 py-3 text-center font-black text-xs uppercase tracking-widest z-10 transition-colors cursor-pointer ${activeTab === tab ? 'text-on-surface' : 'text-on-surface-variant/70 hover:text-on-surface'}`}
                 >
                   {tab === 'tenant' ? (property.tenantName ? 'Current Tenant' : 'Find Tenant') : 'Manage Prop'}
                   {activeTab === tab && (
@@ -199,6 +371,66 @@ export function PropertyDetails() {
 
         </div>
       </div>
+
+      {/* Full-Screen Lightbox via Portal to break out of DashboardLayout z-index */}
+      {createPortal(
+        <AnimatePresence>
+          {isFullScreenMode && images.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[999] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4 sm:p-8"
+              onClick={() => setIsFullScreenMode(false)}
+            >
+              <button 
+                className="absolute top-6 right-6 md:top-8 md:right-8 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/10 px-5 py-2.5 rounded-full flex items-center justify-center gap-2 text-white transition-all shadow-xl z-50 group"
+                onClick={(e) => { e.stopPropagation(); setIsFullScreenMode(false); }}
+              >
+                <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Close</span>
+                <X className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+              </button>
+              
+              {images.length > 1 && (
+                <>
+                  <button 
+                    className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all shadow-lg z-50 hover:scale-105"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="w-8 h-8" />
+                  </button>
+                  <button 
+                    className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all shadow-lg z-50 hover:scale-105"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="w-8 h-8" />
+                  </button>
+                </>
+              )}
+
+              <motion.img
+                key={`fs-${currentImageIndex}`}
+                src={images[currentImageIndex]}
+                alt={property.address}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-full max-h-full object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                onClick={(e) => e.stopPropagation()}
+              />
+
+              {images.length > 1 && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full text-white text-sm font-bold tracking-widest uppercase flex items-center gap-2 shadow-xl">
+                  <ImageIcon className="w-4 h-4" /> {currentImageIndex + 1} / {images.length}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </DashboardLayout>
   );
 }
