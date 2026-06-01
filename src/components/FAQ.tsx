@@ -45,7 +45,7 @@ export function FAQ() {
   };
 
   return (
-    <section className="py-32 px-6 relative overflow-hidden">
+    <section className="py-12 sm:py-20 px-4 sm:px-6 relative overflow-hidden">
       <div 
         className="absolute inset-0 bg-cover bg-center z-0 pointer-events-none scale-105"
         style={{ 
@@ -61,8 +61,8 @@ export function FAQ() {
       <div className="absolute top-1/4 left-1/4 -translate-y-1/2 w-72 h-72 rounded-full bg-primary/15 blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-secondary-container/20 blur-[120px] pointer-events-none z-0"></div>
 
-      <div className="max-w-6xl mx-auto relative z-10 faq-glass p-8 md:p-16 rounded-[48px] shadow-2xl border border-white/10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+      <div className="max-w-6xl mx-auto relative z-10 faq-glass p-5 sm:p-8 md:p-14 rounded-3xl sm:rounded-[48px] shadow-2xl border border-white/10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-16">
           
           {/* Left Column: Sticky Title & Support Callout */}
           <div className="lg:col-span-5 lg:sticky lg:top-24 self-start space-y-10">
@@ -71,13 +71,13 @@ export function FAQ() {
                 <HelpCircle className="w-4 h-4" /> Got Questions?
               </div>
               <h2 
-                className="text-4xl md:text-5xl lg:text-[44px] font-black tracking-tight text-on-surface mb-6 leading-[1.15]"
+                className="text-3xl sm:text-4xl md:text-[44px] font-black tracking-tight text-on-surface mb-4 leading-[1.15]"
                 style={{ textShadow: '0 1px 3px rgba(255, 255, 255, 0.6), 0 0 20px rgba(255, 255, 255, 0.4)' }}
               >
                 Frequently asked questions
               </h2>
               <p 
-                className="text-lg text-on-surface-variant font-semibold leading-relaxed"
+                className="text-sm sm:text-lg text-on-surface-variant font-semibold leading-relaxed"
                 style={{ textShadow: '0 1px 2px rgba(255, 255, 255, 0.6)' }}
               >
                 Everything you need to know about setting up and automating your properties on PropertyLedge.

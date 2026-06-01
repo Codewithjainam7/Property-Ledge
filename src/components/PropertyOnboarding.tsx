@@ -6,29 +6,29 @@ import {
   ThemeProvider, createTheme, CssBaseline
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload } from 'lucide-react';
 
 import { motion } from 'framer-motion';
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#3c6e71',
+      main: '#22333b',
     },
     secondary: {
-      main: '#284b63',
+      main: '#a9927d',
     },
     background: {
-      default: '#f8f8f8',
+      default: '#f2f4f3',
       paper: '#ffffff',
     },
     text: {
-      primary: '#353535',
-      secondary: '#284b63'
+      primary: '#0a0908',
+      secondary: '#22333b'
     }
   },
   typography: {
-    fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
+    fontFamily: '"Space Grotesk", "Outfit", "Inter", sans-serif',
     button: {
       textTransform: 'none',
       fontWeight: 'bold',
@@ -36,7 +36,7 @@ const theme = createTheme({
     }
   },
   shape: {
-    borderRadius: 16,
+    borderRadius: 20,
   },
   components: {
     MuiTextField: {
@@ -53,7 +53,7 @@ const theme = createTheme({
   }
 });
 
-const steps = ['Property Location', 'Financial Setup', 'Tenant Verification', 'Final Review'];
+const steps = ['Property Location', 'Property Image', 'Financial Setup', 'Tenant Verification', 'Final Review'];
 
 export function PropertyOnboarding() {
   const [activeStep, setActiveStep] = useState(0);
@@ -65,6 +65,7 @@ export function PropertyOnboarding() {
     postcode: '',
     state: '',
     propertyType: '',
+    image: '',
     rentAmount: '',
     paymentFrequency: 'Weekly',
     tenantName: '',
@@ -78,7 +79,23 @@ export function PropertyOnboarding() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleNext = () => {
+    if (activeStep === 1 && !formData.image.trim()) {
+      alert("Property Image is a mandatory field. Please provide an image URL.");
+      return;
+    }
+
     if (activeStep === steps.length - 1) {
       // Save property and redirect
       const properties = JSON.parse(localStorage.getItem('properties') || '[]');
@@ -162,6 +179,42 @@ export function PropertyOnboarding() {
       case 1:
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
+            <Button
+              variant="outlined"
+              component="label"
+              fullWidth
+              sx={{ 
+                p: 4, 
+                borderStyle: 'dashed', 
+                borderWidth: 2, 
+                borderRadius: 3, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 2,
+                borderColor: formData.image ? 'primary.main' : 'rgba(59, 34, 181, 0.3)',
+                bgcolor: 'rgba(59, 34, 181, 0.02)'
+              }}
+            >
+               <Upload className="w-8 h-8 text-primary" />
+               <Typography sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Click to upload a property image</Typography>
+               <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>JPG, PNG, WebP accepted. Required field.</Typography>
+               <input
+                 type="file"
+                 hidden
+                 accept="image/*"
+                 onChange={handleImageUpload}
+               />
+            </Button>
+            {formData.image && (
+              <Box sx={{ mt: 2, borderRadius: 3, overflow: 'hidden', height: 240, border: '1px solid #ededf1', position: 'relative' }}>
+                <img src={formData.image} alt="Property Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e: any) => e.target.style.display = 'none'} />
+              </Box>
+            )}
+          </Box>
+        );
+      case 2:
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
               <TextField 
                 label="Rent Amount ($)" 
@@ -185,14 +238,14 @@ export function PropertyOnboarding() {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ p: 3, bgcolor: 'rgba(60, 110, 113, 0.05)', borderRadius: 2, border: '1px solid rgba(60, 110, 113, 0.2)' }}>
-              <Typography variant="body2" color="secondary" sx={{ fontWeight: 'medium' }}>
+            <Box sx={{ p: 3, bgcolor: 'rgba(59, 34, 181, 0.05)', borderRadius: 2.5, border: '1px solid rgba(59, 34, 181, 0.2)' }}>
+              <Typography variant="body2" color="primary" sx={{ fontWeight: '600' }}>
                 PropertyLedge will automatically generate invoices based on this schedule and send them to the tenant on your behalf.
               </Typography>
             </Box>
           </Box>
         );
-      case 2:
+      case 3:
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
             <TextField 
@@ -236,30 +289,36 @@ export function PropertyOnboarding() {
             </Box>
           </Box>
         );
-      case 3:
+      case 4:
         return (
-          <Box sx={{ mt: 3, p: 4, bgcolor: '#f8f8f8', borderRadius: 3, border: '1px solid #d9d9d9' }}>
-             <Typography variant="h6" gutterBottom color="primary.main" sx={{ mb: 3, fontWeight: '800' }}>
+          <Box sx={{ mt: 3, p: 4, bgcolor: '#f2f4f3', borderRadius: 3, border: '1px solid #ededf1', boxShadow: '0 8px 30px rgba(59, 34, 181, 0.02)' }}>
+             <Typography variant="h6" gutterBottom color="primary.main" sx={{ mb: 3, fontWeight: '800', fontFamily: 'Space Grotesk' }}>
                Verify Implementation Overview
              </Typography>
              
              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-               <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #d9d9d9', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Address Location</Typography>
-                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{formData.address}, {formData.suburb} {formData.state} {formData.postcode}</Typography>
-               </Box>
-               <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #d9d9d9', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Property Classification</Typography>
-                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{formData.propertyType}</Typography>
-               </Box>
-               <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #d9d9d9', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Automated Rent Schedule</Typography>
-                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>${formData.rentAmount} / {formData.paymentFrequency}</Typography>
-               </Box>
-               <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1 }}>
-                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>Tenant Identity</Typography>
-                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{formData.tenantName} ({formData.tenantEmail})</Typography>
-               </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Address Location</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.address}, {formData.suburb} {formData.state} {formData.postcode}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Image</Typography>
+                  <Box sx={{ width: 60, height: 40, borderRadius: 1, overflow: 'hidden', border: '1px solid #ededf1' }}>
+                     <img src={formData.image} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Classification</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.propertyType}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Automated Rent Schedule</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>${formData.rentAmount} / {formData.paymentFrequency}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tenant Identity</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.tenantName} ({formData.tenantEmail})</Typography>
+                </Box>
              </Box>
           </Box>
         );
@@ -276,7 +335,7 @@ export function PropertyOnboarding() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="min-h-screen py-8 px-4 sm:px-8 md:px-16"
-        style={{ backgroundColor: '#f8f8f8' }}
+        style={{ backgroundColor: '#f2f4f3' }}
       >
         <Button 
           startIcon={<ArrowLeft size={18} />} 
@@ -286,9 +345,9 @@ export function PropertyOnboarding() {
           Return to Dashboard
         </Button>
 
-        <Paper elevation={0} sx={{ maxWidth: 840, mx: 'auto', p: { xs: 4, md: 6 }, borderRadius: 4, border: '1px solid #d9d9d9', boxShadow: '0 24px 48px -12px rgba(60,110,113,0.1)' }}>
+        <Paper elevation={0} sx={{ maxWidth: 840, mx: 'auto', p: { xs: 4, md: 6 }, borderRadius: 5, border: '1px solid #ededf1', boxShadow: '0 24px 48px -12px rgba(59,34,181,0.06)' }}>
           <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Typography variant="h3" component="h1" gutterBottom sx={{ letterSpacing: '-0.5px', fontWeight: '900' }}>
+            <Typography variant="h3" component="h1" gutterBottom sx={{ letterSpacing: '-0.5px', fontWeight: '900', fontFamily: 'Space Grotesk' }}>
               Add a New Property
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
@@ -308,11 +367,11 @@ export function PropertyOnboarding() {
             {renderStepContent(activeStep)}
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 6, pt: 4, borderTop: '1px solid #f8f8f8' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 6, pt: 4, borderTop: '1px solid #ededf1' }}>
             <Button
               disabled={activeStep === 0}
               onClick={handleBack}
-              sx={{ py: 1.5, px: 4, color: 'text.secondary' }}
+              sx={{ py: 1.5, px: 4, color: 'text.secondary', fontWeight: 'bold' }}
             >
               Previous Step
             </Button>
@@ -320,7 +379,7 @@ export function PropertyOnboarding() {
               onClick={handleNext} 
               variant="contained"
               disableElevation
-              sx={{ py: 1.5, px: 6, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem' }}
+              sx={{ py: 1.5, px: 6, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem', fontWeight: 'bold' }}
             >
               {activeStep === steps.length - 1 ? 'Finalize & Save Property' : 'Proceed to Next'}
             </Button>

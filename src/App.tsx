@@ -1,21 +1,26 @@
 import React, { useState, useEffect, FormEvent, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck, Eye, EyeOff, RefreshCw, Shield, Lock, Globe } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck, Eye, EyeOff, RefreshCw, Shield, Lock, Globe, Mail, Zap, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card as MuiCard, CardContent, Avatar as MuiAvatar, Rating as MuiRating, Chip as MuiChip, Box, Typography } from '@mui/material';
 import { FAQ } from './components/FAQ';
-import heroBgImage from './components/hero-bg.png';
+import dashboardPreview from './assets/dashboard-preview.png';
 import { Dashboard } from './components/Dashboard';
 import { PropertyOnboarding } from './components/PropertyOnboarding';
 import { PropertyDetails } from './components/PropertyDetails';
+import { Properties } from './components/Properties';
 import { AccountSettings } from './components/AccountSettings';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem('user'));
+    
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
       const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
@@ -42,69 +47,294 @@ function Navigation() {
       />
 
       <nav 
-        className={`fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl rounded-full transition-all duration-500 z-50 flex justify-between items-center px-4 md:px-8 py-2.5 border ${
+        className={`fixed left-1/2 -translate-x-1/2 w-[96%] sm:w-[94%] max-w-7xl transition-all duration-500 z-50 rounded-2xl border ${
           scrolled 
-            ? 'bg-white/80 backdrop-blur-xl border-primary/20 shadow-[0_20px_50px_rgba(60,110,113,0.06),_0_0_20px_rgba(60,110,113,0.03)] scale-[0.99]' 
-            : 'bg-white/35 backdrop-blur-md border-white/40 shadow-sm'
-        } hover:border-primary/30 transition-all duration-300`}
+            ? 'top-3 bg-white/95 backdrop-blur-2xl border-primary/10 shadow-[0_8px_32px_rgba(59,34,181,0.10),0_2px_8px_rgba(0,0,0,0.06)] py-3 px-4 sm:px-5' 
+            : 'top-4 bg-white/60 backdrop-blur-xl border-white/35 shadow-[0_4px_24px_rgba(0,0,0,0.04)] py-3.5 px-4 sm:px-6'
+        }`}
       >
-        <Link 
-          to="/" 
-          className="text-xl md:text-2xl font-bold tracking-tighter text-primary flex items-center gap-2 group"
-        >
-          <svg 
-            className="h-6 w-6 md:h-8 md:w-8 text-primary transition-transform duration-500 group-hover:rotate-[360deg]" 
-            fill="none" 
-            viewBox="0 0 32 32" 
-            xmlns="http://www.w3.org/2000/svg"
+        <div className="w-full flex justify-between items-center gap-3">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2.5 group z-50 shrink-0"
+            onClick={() => setMobileMenuOpen(false)}
           >
-            <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
-            <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
-          </svg>
-          <span className="font-display tracking-tight text-on-surface group-hover:text-primary group-hover:text-glow transition-all duration-300">
-            PropertyLedge
-          </span>
-        </Link>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-[#6B3AFF] flex items-center justify-center shadow-md shadow-primary/30 group-hover:scale-105 group-hover:shadow-primary/50 transition-all duration-300 shrink-0">
+              <Building className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-[13px] xs:text-sm sm:text-base tracking-tight leading-none">
+                Property<span className="text-primary">Ledge</span>
+              </span>
+              <span className="hidden sm:block text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest leading-none mt-0.5">Property Management</span>
+            </div>
+          </Link>
 
-        {/* Sliding Pill Navigation Links */}
-        <div className="hidden md:flex items-center gap-2 relative">
-          {links.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onMouseEnter={() => setHoveredLink(link.name)}
-              onMouseLeave={() => setHoveredLink(null)}
-              className="px-4 py-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-bold relative z-10"
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center bg-surface-container/40 rounded-xl px-1 py-1 gap-0.5 border border-outline-variant/20">
+            {links.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                onMouseEnter={() => setHoveredLink(link.name)}
+                onMouseLeave={() => setHoveredLink(null)}
+                className="relative px-4 py-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold rounded-lg z-10"
+              >
+                {link.name}
+                {hoveredLink === link.name && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="absolute inset-0 bg-white border border-primary/10 rounded-lg -z-10 shadow-sm"
+                    transition={{ type: 'spring' as const, stiffness: 400, damping: 32 }}
+                  />
+                )}
+              </a>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 z-50 shrink-0">
+            {isLoggedIn ? (
+              <Link 
+                to="/dashboard" 
+                className="text-on-surface-variant hover:text-primary font-semibold text-sm hidden sm:block transition-colors px-2 py-1.5"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <Link 
+                to="/login" 
+                className="text-on-surface-variant hover:text-primary font-semibold text-sm hidden sm:block transition-colors px-3 py-2 rounded-xl hover:bg-surface-container/60"
+              >
+                Log in
+              </Link>
+            )}
+            
+            <Link 
+              to={isLoggedIn ? "/dashboard" : "/signup"} 
+              className="relative group overflow-hidden flex items-center gap-2 bg-primary text-on-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 whitespace-nowrap"
             >
-              {link.name}
-              {hoveredLink === link.name && (
-                <motion.span
-                  layoutId="nav-pill"
-                  className="absolute inset-0 bg-primary/8 border border-primary/10 rounded-full -z-10"
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-              )}
-            </a>
-          ))}
-        </div>
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+              <span className="hidden sm:inline">{isLoggedIn ? 'Go to Dashboard' : 'Start Free Trial'}</span>
+              <span className="sm:hidden">{isLoggedIn ? 'Dashboard' : 'Sign Up'}</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
 
-        <div className="flex items-center gap-4">
-          <Link 
-            to="/login" 
-            className="text-on-surface-variant hover:text-primary font-bold text-sm hidden sm:block transition-colors"
-          >
-            Log in
-          </Link>
-          <Link 
-            to="/signup" 
-            className="relative group overflow-hidden flex items-center gap-2 bg-primary text-on-primary font-bold uppercase tracking-wider text-[10px] md:text-xs px-5 md:px-7 py-3 rounded-full hover:bg-primary/95 transition-all shadow-lg glow-primary"
-          >
-            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-            Start Free Trial <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
+            {/* Hamburger Menu Button */}
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden flex flex-col justify-center items-center w-9 h-9 rounded-xl bg-surface-container/50 hover:bg-primary/10 border border-outline-variant/25 transition-all focus:outline-none gap-1 p-2"
+              aria-label="Toggle Menu"
+            >
+              <span className={`w-full h-0.5 bg-on-surface rounded-full transition-all duration-300 origin-center block ${mobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
+              <span className={`w-full h-0.5 bg-on-surface rounded-full transition-all duration-300 block ${mobileMenuOpen ? 'opacity-0' : 'opacity-100'}`} />
+              <span className={`w-full h-0.5 bg-on-surface rounded-full transition-all duration-300 origin-center block ${mobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
+            </button>
+          </div>
         </div>
       </nav>
+
+      {/* Mobile Drawer Menu (iOS style side-drawer panel) */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            />
+            {/* Side panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="md:hidden fixed top-0 right-0 bottom-0 w-[85%] max-w-[360px] bg-surface/90 backdrop-blur-3xl z-50 flex flex-col justify-between p-6 pt-20 shadow-[-20px_0_60px_rgba(59,34,181,0.15)] rounded-l-[40px] border-l border-white/40 overflow-hidden"
+            >
+              {/* Dynamic Gradients inside Drawer */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-secondary/10 blur-[60px] rounded-full pointer-events-none -mr-10 -mt-10" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 blur-[50px] rounded-full pointer-events-none" />
+
+              <div className="flex flex-col gap-6 relative z-10">
+                {/* Visual Card Intro in drawer */}
+                <div className="p-5 rounded-[24px] bg-gradient-to-br from-primary to-[#6B3AFF] shadow-lg shadow-primary/30 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full blur-md pointer-events-none" />
+                  <div className="flex items-center gap-3 mb-2 relative z-10">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner border border-white/20">
+                      <Building className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-white font-black tracking-tight leading-none text-lg">Property<span className="text-white/70">Ledge</span></div>
+                      <div className="text-white/80 font-bold text-[10px] uppercase tracking-widest mt-0.5">Mobile Access</div>
+                    </div>
+                  </div>
+                  <div className="text-[13px] text-white/90 font-medium leading-tight relative z-10">Premium property management toolkit in your pocket.</div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {links.map((link, i) => (
+                    <motion.a
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-4 text-lg font-extrabold text-on-surface hover:text-primary transition-all tracking-tight p-3 rounded-2xl bg-white/60 hover:bg-white border border-outline-variant/40 shadow-sm hover:shadow-md hover:border-primary/20 active:scale-95 group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                        {link.name === 'Features' && <ClipboardList className="w-5 h-5" />}
+                        {link.name === 'Pricing' && <PieChart className="w-5 h-5" />}
+                        {link.name === 'Testimonials' && <Users className="w-5 h-5" />}
+                      </div>
+                      {link.name}
+                    </motion.a>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 relative z-10 mt-auto pb-4">
+                {isLoggedIn ? (
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full py-4 text-center bg-gradient-to-r from-primary to-[#6B3AFF] text-white text-base font-black rounded-2xl hover:opacity-90 transition-all shadow-[0_8px_30px_rgba(59,34,181,0.3)] flex items-center justify-center gap-2 group active:scale-95"
+                  >
+                    Go to Dashboard <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full py-4 text-center text-on-surface text-base font-black border border-outline-variant/60 bg-white/80 backdrop-blur-md rounded-2xl hover:bg-white shadow-sm transition-all active:scale-95"
+                    >
+                      Log in to account
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full py-4 text-center bg-gradient-to-r from-primary to-[#6B3AFF] text-white text-base font-black rounded-2xl hover:opacity-90 transition-all shadow-[0_8px_30px_rgba(59,34,181,0.3)] flex items-center justify-center gap-2 group active:scale-95"
+                    >
+                      Start Free Trial <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </>
+  );
+}
+
+function SimulatedDashboardMockup() {
+  return (
+    <div className="w-full h-full flex flex-col md:flex-row text-on-surface bg-surface-container-lowest font-sans select-none text-left">
+      {/* Mini Sidebar */}
+      <div className="w-full md:w-20 lg:w-24 bg-[#0c0628] text-white flex md:flex-col items-center justify-between p-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 shrink-0">
+        <div className="flex md:flex-col items-center gap-6 w-full">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-black text-white shadow-lg shadow-primary/30 text-sm">PL</div>
+          <div className="flex md:flex-col items-center gap-4 text-white/50 w-full justify-center">
+            <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-primary"><Home className="w-5 h-5" /></div>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center"><Building className="w-5 h-5" /></div>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center"><Users className="w-5 h-5" /></div>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center"><ClipboardList className="w-5 h-5" /></div>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center"><PieChart className="w-5 h-5" /></div>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-bold text-white text-xs">JD</div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 bg-[#f9f9fd] p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto min-h-[350px] sm:min-h-[450px] md:min-h-[500px]">
+        {/* Mock Top bar */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h4 className="text-base sm:text-lg font-black text-[#0f0b35] tracking-tight">Portfolio Ledger</h4>
+            <p className="text-[10px] sm:text-xs text-on-surface-variant/80 font-bold">Welcome back, Jainam</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 bg-white border border-outline-variant/30 rounded-full px-3 py-1 text-xs text-on-surface-variant font-bold shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Auto-sync active
+            </div>
+            <div className="w-8 h-8 rounded-full bg-white border border-outline-variant/30 flex items-center justify-center text-on-surface shadow-sm"><Mail className="w-4 h-4" /></div>
+          </div>
+        </div>
+
+        {/* 3 Metrics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+            <div className="text-[10px] text-on-surface-variant/85 font-black uppercase tracking-wider">Rent Collected</div>
+            <div className="text-lg sm:text-xl font-black text-primary mt-2">$14,820.00</div>
+            <div className="text-[9px] text-emerald-600 font-bold mt-1">↑ 12% vs last month</div>
+          </div>
+          <div className="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+            <div className="text-[10px] text-on-surface-variant/85 font-black uppercase tracking-wider">Occupancy</div>
+            <div className="text-lg sm:text-xl font-black text-secondary mt-2">100%</div>
+            <div className="text-[9px] text-[#5952af] font-bold mt-1">8 of 8 units occupied</div>
+          </div>
+          <div className="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+            <div className="text-[10px] text-on-surface-variant/85 font-black uppercase tracking-wider">Expenses Scanned</div>
+            <div className="text-lg sm:text-xl font-black text-[#006461] mt-2">$3,420.50</div>
+            <div className="text-[9px] text-on-surface-variant font-bold mt-1">Matched EOFY deductions</div>
+          </div>
+        </div>
+
+        {/* Bottom Split (Recent payments & Property stats) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Rent Schedule */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-outline-variant/30 p-4 sm:p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-xs sm:text-sm font-black text-[#0f0b35]">Active Tenancies Ledger</span>
+              <span className="text-[8px] sm:text-[9px] bg-primary/5 text-primary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Live Ledger</span>
+            </div>
+            <div className="space-y-3">
+              {[
+                { address: "12 Acacia Avenue, Sydney", tenant: "Smith Family", amount: "$3,200/mo", status: "Paid", color: "bg-emerald-500/10 text-emerald-700" },
+                { address: "48 Collins Street, Melbourne", tenant: "Sarah Jenkins", amount: "$4,100/mo", status: "Paid", color: "bg-emerald-500/10 text-emerald-700" },
+                { address: "7a Boundary Rd, Brisbane", tenant: "David L.", amount: "$2,850/mo", status: "Pending", color: "bg-amber-500/10 text-amber-700" }
+              ].map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 hover:bg-[#fcfdff] rounded-xl border border-transparent hover:border-outline-variant/20 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary font-bold text-[10px]">0{idx+1}</div>
+                    <div>
+                      <div className="text-xs font-black text-on-surface">{item.address}</div>
+                      <div className="text-[9px] text-on-surface-variant/80 font-bold">{item.tenant} • {item.amount}</div>
+                    </div>
+                  </div>
+                  <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${item.color}`}>{item.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Expense breakdown graph */}
+          <div className="bg-white rounded-2xl border border-outline-variant/30 p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+            <span className="text-xs sm:text-sm font-black text-[#0f0b35] mb-3">EOFY Tax Readiness</span>
+            <div className="flex-1 flex items-center justify-center py-4">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+                {/* Circular ring representation */}
+                <div className="absolute inset-0 rounded-full border-8 border-primary/10" />
+                <div className="absolute inset-0 rounded-full border-8 border-transparent border-t-primary border-l-secondary" />
+                <div className="text-center">
+                  <div className="text-base sm:text-lg font-black text-on-surface">88%</div>
+                  <div className="text-[7px] sm:text-[8px] text-on-surface-variant/80 font-bold uppercase tracking-wider">Matched</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-between text-[9px] text-on-surface-variant font-bold border-t border-outline-variant/30 pt-3">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> Repairs</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-secondary" /> Interest</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -124,25 +354,19 @@ function Hero() {
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { type: 'spring', stiffness: 90, damping: 18 }
+      transition: { type: 'spring' as const, stiffness: 90, damping: 18 }
     }
   };
 
   return (
     <section 
-      className="pt-40 pb-20 px-4 flex flex-col items-center justify-center relative overflow-hidden min-h-[90vh]"
+      className="pt-28 pb-12 sm:pt-36 sm:pb-16 md:pt-40 md:pb-20 px-4 flex flex-col items-center justify-center relative overflow-hidden min-h-[90vh]"
     >
-      {/* Background Image with scale and blur to create a solid, edge-to-edge glassmorphic effect */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center scale-105 z-0"
-        style={{ 
-          backgroundImage: `url(${heroBgImage})`,
-          filter: 'blur(20px) saturate(1.3)',
-          WebkitFilter: 'blur(20px) saturate(1.3)'
-        }}
-      />
-      {/* Light semi-transparent overlay to ensure text contrast */}
-      <div className="absolute inset-0 bg-white/30 z-0"></div>
+      {/* Base gradient background for the Hero section */}
+      <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface-container-low to-surface z-0"></div>
+
+      {/* Geometric Grid Overlay for modern 2026 tech look */}
+      <div className="absolute inset-0 grid-pattern opacity-40 z-0 pointer-events-none" />
 
       {/* Dynamic Animated Ambient Blobs under the glass layer */}
       <motion.div 
@@ -178,35 +402,35 @@ function Hero() {
       >
         <motion.div 
           variants={itemVariants}
-          className="inline-flex items-center gap-3 bg-surface-container-lowest/60 backdrop-blur-xl border border-outline-variant rounded-full px-4 py-2 mb-8 shadow-sm"
+          className="inline-flex items-center gap-2.5 bg-gradient-to-r from-primary/10 to-secondary/15 backdrop-blur-xl border border-primary/20 rounded-full px-4 py-2 mb-8 shadow-sm hover:border-primary/45 transition-colors"
         >
-          <span className="bg-secondary-container text-on-secondary-container text-xs font-bold px-2 py-1 rounded-full uppercase tracking-widest">Update</span>
-          <span className="text-on-surface-variant text-sm font-bold pr-2">🇦🇺 Built for Australian Landlords — Now in Open Beta</span>
+          <span className="bg-primary text-on-primary text-[10px] font-black uppercase tracking-widest py-0.5 px-2.5 rounded-full shadow-inner animate-pulse">Live</span>
+          <span className="text-primary font-bold text-xs sm:text-sm pr-1">🇦🇺 The New Standard for Australian Landlords</span>
         </motion.div>
         
         <motion.h1 
           variants={itemVariants}
-          className="text-5xl md:text-7xl lg:text-[88px] font-extrabold tracking-tight leading-[1.05] text-on-surface mb-6 font-display"
+          className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-[80px] font-black tracking-tight leading-[1.05] text-on-surface mb-6 font-display text-glow"
         >
-          Your Rental Properties.<br />
-          <span className="text-primary tracking-tighter text-glow">Managed Smarter.</span>
+          Your entire property portfolio.<br />
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-secondary-container tracking-tighter">Automated in one place.</span>
         </motion.h1>
         
         <motion.p 
           variants={itemVariants}
-          className="text-lg md:text-xl text-on-surface-variant max-w-[640px] mx-auto mb-10 font-medium leading-relaxed"
+          className="text-base sm:text-lg md:text-xl text-on-surface-variant max-w-[640px] mx-auto mb-10 font-medium leading-relaxed px-4"
         >
           The all-in-one platform for Australian landlords, property managers and agencies. Automated invoices, digital leases, condition reports — without the agency fees.
         </motion.p>
         
         <motion.div 
           variants={itemVariants}
-          className="flex flex-col sm:flex-row items-center gap-4 mb-14 w-full sm:w-auto"
+          className="flex flex-col sm:flex-row items-center gap-4 mb-14 w-full sm:w-auto px-4"
         >
-          <Link to="/signup" className="bg-primary text-on-primary w-full sm:w-auto text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-xl glow-primary">
+          <Link to="/signup" className="bg-primary text-on-primary w-full sm:w-auto text-base sm:text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-primary/95 transition-all shadow-xl glow-primary">
             Start Free Trial <ArrowRight className="w-5 h-5" />
           </Link>
-          <button className="bg-surface border-2 border-outline-variant text-on-surface w-full sm:w-auto text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors shadow-sm">
+          <button className="bg-white/80 border-2 border-outline-variant/60 text-on-surface w-full sm:w-auto text-base sm:text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors shadow-sm">
             <Play className="w-5 h-5" /> Watch Demo
           </button>
         </motion.div>
@@ -217,18 +441,18 @@ function Hero() {
         >
           <div className="flex -space-x-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="w-10 h-10 rounded-full border-2 border-surface overflow-hidden shadow-sm">
+              <div key={i} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-surface overflow-hidden shadow-sm">
                 <img src={`https://i.pravatar.cc/150?img=${i + 10}`} alt="User avatar" className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             <div className="flex">
               {[1, 2, 3, 4, 5].map((i) => (
-                <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
+                <Star key={i} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-secondary text-secondary" />
               ))}
             </div>
-            <span className="text-sm text-on-surface-variant font-bold">Trusted by 2,500+ landlords across Australia</span>
+            <span className="text-xs sm:text-sm text-on-surface-variant font-bold">Trusted by 2,500+ landlords across Australia</span>
           </div>
         </motion.div>
       </motion.div>
@@ -236,36 +460,32 @@ function Hero() {
       <motion.div 
         initial={{ opacity: 0, y: 70, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        whileHover={{ y: -8, scale: 1.01 }}
-        transition={{ 
-          default: { duration: 0.8, ease: "easeOut" },
-          whileHover: { type: 'spring', stiffness: 300, damping: 22 }
+        whileHover={{ 
+          y: -8, 
+          scale: 1.01,
+          transition: { type: 'spring' as const, stiffness: 300, damping: 22 }
         }}
-        className="w-full max-w-5xl mx-auto mt-20 relative z-10 perspective-[1000px] group/hero-img"
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="w-full max-w-5xl mx-auto mt-12 md:mt-20 relative z-10 perspective-[1000px] group/hero-img px-4"
       >
-        <div className="bg-surface-container-lowest/80 backdrop-blur-2xl rounded-[32px] overflow-hidden border border-outline-variant shadow-[0_32px_64px_rgba(159,65,34,0.08),_0_0_0_1px_rgba(255,255,255,0.3)] transition-transform duration-300">
+        <div className="bg-surface-container-lowest/80 backdrop-blur-2xl rounded-[32px] overflow-hidden border border-outline-variant shadow-[0_32px_64px_rgba(59,34,181,0.06),_0_0_0_1px_rgba(255,255,255,0.3)] transition-transform duration-300">
           <div className="h-12 border-b border-outline-variant flex items-center px-6 gap-2 bg-surface-container/50">
             <div className="flex gap-2">
-              <div className="w-3.5 h-3.5 rounded-full bg-error"></div>
-              <div className="w-3.5 h-3.5 rounded-full bg-[#f59e0b]"></div>
-              <div className="w-3.5 h-3.5 rounded-full bg-secondary"></div>
+              <div className="w-3 h-3 rounded-full bg-error hover:scale-110 transition-transform cursor-pointer"></div>
+              <div className="w-3 h-3 rounded-full bg-[#f59e0b] hover:scale-110 transition-transform cursor-pointer"></div>
+              <div className="w-3 h-3 rounded-full bg-secondary hover:scale-110 transition-transform cursor-pointer"></div>
+            </div>
+            <div className="mx-auto text-[10px] md:text-xs font-black text-on-surface-variant bg-surface-container-high/60 border border-outline-variant/30 rounded-full px-5 py-1.5 flex items-center gap-1.5 shadow-inner">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              app.propertyledge.com.au/dashboard
             </div>
           </div>
-          <div className="h-[400px] md:h-[600px] bg-surface p-6 relative flex items-center justify-center overflow-hidden">
+          <div className="w-full relative flex items-stretch justify-center overflow-hidden">
             <img 
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1600&auto=format&fit=crop&q=80" 
-              alt="Dashboard overview" 
-              className="w-full h-full object-cover rounded-[20px] shadow-lg border border-outline-variant/50"
+              src={dashboardPreview} 
+              alt="Property Ledge Dashboard" 
+              className="w-full h-auto object-cover transform translate-y-1 sm:translate-y-2 max-h-[80vh] object-top"
             />
-            <div className="absolute inset-x-10 top-20 bottom-10 flex gap-6">
-               <div className="w-64 bg-surface-container-lowest/90 backdrop-blur-md rounded-2xl p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant h-fit">
-                 <div className="w-12 h-12 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center">
-                    <PieChart className="w-6 h-6" />
-                 </div>
-                 <div className="text-3xl font-extrabold text-on-surface tracking-tight">$4,260</div>
-                 <div className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mt-1">Rent Collected</div>
-               </div>
-            </div>
           </div>
         </div>
       </motion.div>
@@ -292,9 +512,174 @@ function LogoStrip() {
   );
 }
 
+function FeatureVisualMockup({ label }: { label: string }) {
+  if (label === 'INVOICING') {
+    return (
+      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+        <div className="flex justify-between items-center mb-3">
+          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Rent Invoice INV-00142</div>
+          <span className="text-[9px] bg-emerald-500/10 text-emerald-700 font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Paid</span>
+        </div>
+        <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 sm:p-4 shadow-sm space-y-2.5 flex-1 flex flex-col justify-center">
+          <div className="flex justify-between text-xs">
+            <span className="text-on-surface-variant font-bold">Tenant</span>
+            <span className="font-black text-[#0f0b35]">Smith Family</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-on-surface-variant font-bold">Amount Due</span>
+            <span className="font-black text-[#0f0b35]">$480.00</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-on-surface-variant font-bold">Due Date</span>
+            <span className="font-bold text-on-surface">25 May 2026</span>
+          </div>
+          <div className="border-t border-outline-variant/20 pt-2.5">
+            <div className="text-[9px] text-on-surface-variant font-black uppercase tracking-wider mb-1">Direct Deposit Instructions:</div>
+            <div className="bg-[#fcfdff] p-2 rounded-xl border border-outline-variant/20 text-[9px] space-y-0.5 font-mono text-on-surface-variant">
+              <div><span className="font-black">BSB:</span> 082-902</div>
+              <div><span className="font-black">Account:</span> 4892-0193</div>
+              <div><span className="font-black">Ref:</span> INV-00142</div>
+            </div>
+          </div>
+        </div>
+        <div className="text-[8px] sm:text-[9px] text-center text-on-surface-variant font-bold bg-white/60 p-2 rounded-xl border border-outline-variant/20 mt-2 shrink-0">
+          🔒 Auto-generated & sent to tenant via email & SMS.
+        </div>
+      </div>
+    );
+  }
+
+  if (label === 'PORTFOLIO') {
+    return (
+      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+        <div className="flex justify-between items-center mb-3">
+          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Property Assets</div>
+          <span className="text-[9px] bg-primary/10 text-primary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">2 Active</span>
+        </div>
+        <div className="space-y-2.5 flex-1 flex flex-col justify-center">
+          <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 shadow-sm flex justify-between items-center">
+            <div>
+              <div className="text-xs font-black text-[#0f0b35]">12 Acacia Avenue, Sydney</div>
+              <div className="text-[9px] text-on-surface-variant font-bold mt-0.5">3 Bed • 2 Bath • Residential</div>
+            </div>
+            <span className="text-[9px] bg-emerald-500/10 text-emerald-700 font-black px-2 py-0.5 rounded-full">100% Occupied</span>
+          </div>
+          <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 shadow-sm flex justify-between items-center">
+            <div>
+              <div className="text-xs font-black text-[#0f0b35]">48 Collins Street, Melbourne</div>
+              <div className="text-[9px] text-on-surface-variant font-bold mt-0.5">2 Bed • 1.5 Bath • Apartment</div>
+            </div>
+            <span className="text-[9px] bg-emerald-500/10 text-emerald-700 font-black px-2 py-0.5 rounded-full">100% Occupied</span>
+          </div>
+        </div>
+        <div className="text-[8px] sm:text-[9px] text-center text-on-surface-variant font-bold bg-white/60 p-2 rounded-xl border border-outline-variant/20 mt-2 shrink-0">
+          👥 Assigned Manager: Jainam Jain (Owner)
+        </div>
+      </div>
+    );
+  }
+
+  if (label === 'REPORTS') {
+    return (
+      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+        <div className="flex justify-between items-center mb-3">
+          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">ATO Tax Ledger</div>
+          <span className="text-[9px] bg-emerald-600/10 text-emerald-700 font-black uppercase tracking-wider px-2 py-0.5 rounded-full">EOFY Ready</span>
+        </div>
+        <div className="space-y-2 flex-1 flex flex-col justify-center">
+          {[
+            { cat: "Capital Works (Div 43)", amount: "$1,450.00", rule: "Depreciable assets" },
+            { cat: "Water Charges", amount: "$480.00", rule: "100% Claimable" },
+            { cat: "Interest Expenses", amount: "$2,840.00", rule: "Matched with bank feed" },
+            { cat: "Repairs & Maintenance", amount: "$1,120.00", rule: "ATO receipt attached" }
+          ].map((item, idx) => (
+            <div key={idx} className="bg-white border border-outline-variant/35 rounded-xl p-2 sm:p-2.5 shadow-sm flex justify-between items-center text-xs">
+              <div>
+                <div className="font-black text-[#0f0b35] text-[11px] sm:text-xs">{item.cat}</div>
+                <div className="text-[8px] sm:text-[9px] text-on-surface-variant/80 font-bold mt-0.5">{item.rule}</div>
+              </div>
+              <span className="font-black text-primary text-[11px] sm:text-xs">{item.amount}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (label === 'INSPECTIONS') {
+    return (
+      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+        <div className="flex justify-between items-center mb-3">
+          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Routine Inspection</div>
+          <span className="text-[9px] bg-secondary/15 text-[#5952af] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Unit 3B</span>
+        </div>
+        <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 sm:p-4 shadow-sm space-y-2.5 flex-1 flex flex-col justify-center">
+          <div className="text-[9px] font-black text-[#0f0b35] uppercase tracking-wider border-b border-outline-variant/20 pb-1">Checklist</div>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center gap-2 text-emerald-700 font-bold text-[11px] sm:text-xs">
+              <span className="w-3.5 h-3.5 rounded bg-emerald-500/10 flex items-center justify-center text-[9px] font-black shrink-0">✓</span> Kitchen: Clean, oven functioning
+            </div>
+            <div className="flex items-center gap-2 text-emerald-700 font-bold text-[11px] sm:text-xs">
+              <span className="w-3.5 h-3.5 rounded bg-emerald-500/10 flex items-center justify-center text-[9px] font-black shrink-0">✓</span> Bathroom: Exhaust working, no leaks
+            </div>
+            <div className="flex items-center gap-2 text-amber-700 font-bold text-[11px] sm:text-xs">
+              <span className="w-3.5 h-3.5 rounded bg-amber-500/10 flex items-center justify-center text-[9px] font-black shrink-0">!</span> Living: Scuff marks on entry wall
+            </div>
+          </div>
+          <div className="border-t border-outline-variant/20 pt-2 shrink-0">
+            <div className="text-[8px] sm:text-[9px] text-on-surface-variant font-black uppercase tracking-wider">Tenant Digital Sign-off:</div>
+            <div className="h-8 bg-surface border border-outline-variant/30 rounded-xl mt-1 flex items-center justify-center font-display italic text-on-surface-variant text-[11px] sm:text-xs font-black select-none pointer-events-none">
+              Sarah Jenkins
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // LEASING
+  return (
+    <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+      <div className="flex justify-between items-center mb-3">
+        <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Tenancy Agreement</div>
+        <span className="text-[9px] bg-primary/10 text-primary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Legally Signed</span>
+      </div>
+      <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 sm:p-4 shadow-sm space-y-2.5 flex-1 flex flex-col justify-center">
+        <div className="text-[9px] font-black text-[#0f0b35] uppercase tracking-wider border-b border-outline-variant/20 pb-1">Key Terms</div>
+        <div className="grid grid-cols-2 gap-2 text-[10px] sm:text-xs font-bold text-on-surface-variant">
+          <div>
+            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Landlord</span>
+            Sarah Jenkins
+          </div>
+          <div>
+            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Tenant</span>
+            Smith Family
+          </div>
+          <div>
+            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Rent</span>
+            $780 / week
+          </div>
+          <div>
+            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Term</span>
+            12 Months Fixed
+          </div>
+        </div>
+        <div className="border-t border-outline-variant/20 pt-2 shrink-0">
+          <div className="text-[8px] sm:text-[9px] text-emerald-600 font-bold flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Encrypted audit log verified
+          </div>
+          <div className="h-9 bg-primary/5 border border-primary/20 rounded-xl mt-1 flex items-center justify-center font-display italic text-primary text-xs sm:text-sm font-black select-none">
+            Smith Family Signatures
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadge }: any) {
   return (
-    <section className="py-24 px-6 overflow-hidden relative">
+    <section className="py-16 sm:py-24 px-4 sm:px-6 overflow-hidden relative">
       {/* Background soft glowing orb for each feature card */}
       <div 
         className={`absolute top-1/2 -translate-y-1/2 ${reversed ? 'left-1/4' : 'right-1/4'} w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] pointer-events-none -z-10`} 
@@ -305,34 +690,34 @@ function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadg
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-120px" }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className={`max-w-7xl mx-auto group bg-gradient-to-br from-white/90 via-white/50 to-[#eef5f8]/40 backdrop-blur-3xl rounded-[40px] border border-white/60 p-8 md:p-12 lg:p-16 flex flex-col ${reversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-12 lg:gap-20 shadow-[0_32px_80px_-20px_rgba(60,110,113,0.08),_0_0_0_1px_rgba(255,255,255,0.4)] hover:shadow-[0_48px_100px_-20px_rgba(60,110,113,0.15),_0_0_0_1px_rgba(255,255,255,0.5)] transition-all duration-700`}
+        className={`max-w-7xl mx-auto group bg-gradient-to-br from-white/95 via-white/70 to-[#f5f3ff]/40 backdrop-blur-3xl rounded-[40px] border border-white/60 p-5 sm:p-8 md:p-12 lg:p-16 flex flex-col ${reversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-8 lg:gap-20 shadow-[0_32px_80px_-20px_rgba(59,34,181,0.06),_0_0_0_1px_rgba(255,255,255,0.4)] hover:shadow-[0_48px_100px_-20px_rgba(59,34,181,0.12),_0_0_0_1px_rgba(255,255,255,0.5)] transition-all duration-700`}
       >
         {/* Left Side: Content */}
-        <div className="flex-1 space-y-8 z-10 relative">
+        <div className="flex-1 space-y-6 sm:space-y-8 z-10 relative">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/15 text-primary text-xs font-black uppercase tracking-widest shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             {label}
           </div>
           
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-on-surface leading-[1.1] font-display group-hover:text-primary transition-colors duration-500">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-on-surface leading-[1.1] font-display group-hover:text-primary transition-colors duration-500">
             {title}
           </h2>
           
-          <p className="text-lg text-on-surface-variant font-medium leading-relaxed">
+          <p className="text-base sm:text-lg text-on-surface-variant font-medium leading-relaxed">
             {desc}
           </p>
           
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {bullets.map((b: string, i: number) => (
               <motion.div
                 key={i}
                 whileHover={{ x: 8 }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-white/40 border border-white/40 backdrop-blur-sm shadow-sm transition-all duration-300 hover:bg-white/80 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(60,110,113,0.06)] group/bullet"
+                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-white/40 border border-white/40 backdrop-blur-sm shadow-sm transition-all duration-300 hover:bg-white/80 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(59,34,181,0.05)] group/bullet"
               >
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover/bullet:bg-primary group-hover/bullet:text-white transition-all duration-300 shadow-inner shrink-0">
-                  <Check className="w-4 h-4 stroke-[3]" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover/bullet:bg-primary group-hover/bullet:text-white transition-all duration-300 shadow-inner shrink-0">
+                  <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
                 </div>
-                <span className="text-[#333333] font-bold text-base md:text-lg tracking-tight leading-none">
+                <span className="text-[#333333] font-bold text-sm sm:text-base md:text-lg tracking-tight leading-none">
                   {b}
                 </span>
               </motion.div>
@@ -342,11 +727,11 @@ function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadg
           <div className="pt-2">
             <Link 
               to="/signup" 
-              className="inline-flex items-center gap-3.5 text-primary font-black hover:text-on-surface transition-colors group/link text-base uppercase tracking-wider"
+              className="inline-flex items-center gap-3.5 text-primary font-black hover:text-on-surface transition-colors group/link text-xs sm:text-sm uppercase tracking-wider"
             >
               Explore feature 
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover/link:translate-x-1.5 group-hover/link:bg-primary group-hover/link:text-white transition-all duration-300">
-                <ArrowRight className="w-4 h-4" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover/link:translate-x-1.5 group-hover/link:bg-primary group-hover/link:text-white transition-all duration-300">
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </Link>
           </div>
@@ -355,24 +740,19 @@ function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadg
         {/* Right Side: Visual */}
         <div className="flex-1 relative w-full lg:w-1/2">
           {floatingBadge && (
-            <div className={`absolute -top-6 ${reversed ? '-left-6' : '-right-6'} z-20 bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-4.5 rounded-2xl flex items-center gap-4 transition-all duration-500 hover:scale-105 animate-float`}>
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-inner ${floatingBadge.colorClass || 'bg-secondary-container text-on-secondary-container'}`}>
+            <div className={`absolute -top-4 md:-top-6 ${reversed ? 'left-4 md:-left-6' : 'right-4 md:-right-6'} z-20 bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-3 md:p-4.5 rounded-2xl flex items-center gap-3 md:gap-4 transition-all duration-500 hover:scale-105 animate-float scale-[0.8] sm:scale-95 md:scale-100 origin-center`}>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-inner ${floatingBadge.colorClass || 'bg-secondary-container text-on-secondary-container'}`}>
                 {floatingBadge.icon || <Check className="w-6 h-6" />}
               </div>
               <div>
-                <div className="text-sm font-black text-[#333333] tracking-tight">{floatingBadge.title}</div>
-                <div className="text-[10px] font-black text-primary uppercase tracking-widest mt-0.5">{floatingBadge.subtitle}</div>
+                <div className="text-xs sm:text-sm font-black text-[#333333] tracking-tight">{floatingBadge.title}</div>
+                <div className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-widest mt-0.5">{floatingBadge.subtitle}</div>
               </div>
             </div>
           )}
           
-          <div className="bg-surface-container rounded-[32px] p-2 relative overflow-hidden aspect-[4/3] border border-outline-variant/40 shadow-lg group-hover:shadow-xl transition-shadow duration-500">
-            <img 
-              src={image} 
-              alt={title} 
-              className="w-full h-full object-cover rounded-[28px] transition-transform duration-750 group-hover:scale-[1.03] group-hover:rotate-[0.5deg]" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary-container/20 via-transparent to-transparent pointer-events-none" />
+          <div className="bg-surface-container rounded-[32px] p-2.5 relative overflow-hidden aspect-[4/3] border border-outline-variant/40 shadow-lg group-hover:shadow-xl transition-shadow duration-500 flex items-stretch">
+            <FeatureVisualMockup label={label} />
           </div>
         </div>
       </motion.div>
@@ -381,45 +761,118 @@ function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadg
 }
 
 function Pricing() {
+  const [isAnnual, setIsAnnual] = React.useState(true);
+
+  const plans = [
+    { 
+      name: "Starter", price: isAnnual ? "Free" : "Free", period: "", limit: "1 property", 
+      desc: "Perfect for the single-property landlord getting started.", 
+      features: ["1 Property", "Automated Invoicing", "Basic Ledger", "Tenant Portal"],
+      isPopular: false, badge: null, icon: <Home className="w-6 h-6" />
+    },
+    { 
+      name: "Pro", price: isAnnual ? "$24" : "$29", period: "/mo", limit: "Up to 10 properties", 
+      desc: "For growing portfolios needing full automation and reporting.", 
+      features: ["Up to 10 Properties", "Automated Rent Collection", "EOFY Reports", "Digital Lease Signing", "Priority Support"],
+      isPopular: true, badge: "Most Popular", icon: <Zap className="w-6 h-6" />
+    },
+    { 
+      name: "Agency", price: isAnnual ? "$69" : "$79", period: "/mo", limit: "Unlimited + Team", 
+      desc: "Full team access, advanced reporting, and white-label options.", 
+      features: ["Unlimited Properties", "Team & Agent Roles", "Advanced Analytics", "API Access", "White Label"],
+      isPopular: false, badge: "Best Value", icon: <Building className="w-6 h-6" />
+    }
+  ];
+
   return (
-    <section id="pricing" className="py-32 px-6 bg-surface-container/20">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-20 relative z-10">
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-on-surface mb-6">Simple, fair pricing for portfolios of any size.</h2>
-          <p className="text-lg text-on-surface-variant font-medium">14-day free trial — no credit card required.</p>
+    <section id="pricing" className="py-24 sm:py-32 px-4 sm:px-6 relative overflow-hidden bg-surface">
+      {/* Dynamic Backgrounds */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-surface to-surface pointer-events-none" />
+      <div className="absolute -left-1/4 top-1/2 w-[800px] h-[800px] rounded-full bg-secondary/5 blur-[120px] pointer-events-none" />
+      <div className="absolute right-0 bottom-0 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[100px] pointer-events-none" />
+      
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container border border-outline-variant shadow-sm mb-6">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-on-surface bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Flexible Plans</span>
+          </div>
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-on-surface mb-6 font-display">Pricing that scales with you.</h2>
+          <p className="text-lg sm:text-xl text-on-surface-variant font-medium max-w-2xl mx-auto mb-10">Start for free, upgrade when you need more power. All plans include a 14-day premium trial.</p>
+          
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4">
+            <span className={`text-sm font-bold transition-colors ${!isAnnual ? 'text-on-surface' : 'text-on-surface-variant'}`}>Monthly</span>
+            <button 
+              onClick={() => setIsAnnual(!isAnnual)}
+              className="w-16 h-8 rounded-full bg-surface-container-high border border-outline-variant/60 relative flex items-center px-1 transition-all shadow-inner focus:outline-none"
+            >
+              <div className={`w-6 h-6 rounded-full bg-primary shadow-md transition-all duration-300 transform ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`} />
+            </button>
+            <span className={`text-sm font-bold flex items-center gap-2 transition-colors ${isAnnual ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+              Annually <span className="text-[9px] uppercase tracking-widest font-black bg-emerald-500/10 text-emerald-600 py-1 px-2.5 rounded-full border border-emerald-500/20">Save 20%</span>
+            </span>
+          </div>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-8 relative z-10">
-          {[
-            { name: "Starter", price: "Free", limit: "1 property", desc: "Perfect for the single-property landlord.", isPopular: false },
-            { name: "Pro", price: "$29", period: "/mo", limit: "Up to 10 properties", desc: "For growing portfolios needing automation.", isPopular: true },
-            { name: "Agency", price: "$79", period: "/mo", limit: "Unlimited + Team", desc: "Full team access and advanced reporting.", isPopular: false }
-          ].map((plan, i) => (
-            <div key={i} className={`p-10 bg-surface-container-lowest/80 backdrop-blur-xl rounded-[32px] border border-outline-variant flex flex-col relative group hover:-translate-y-2 transition-transform duration-300 ${plan.isPopular ? 'shadow-[0_24px_48px_-12px_rgba(159,65,34,0.15)] ring-2 ring-primary border-transparent' : 'shadow-sm'}`}>
+        {/* Pricing Cards Grid */}
+        <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-center">
+          {plans.map((plan, i) => (
+            <div 
+              key={i} 
+              className={`relative flex flex-col rounded-[32px] transition-all duration-500
+                ${plan.isPopular 
+                  ? 'bg-gradient-to-b from-[#1A1A24] to-[#0D0D14] text-white border-none shadow-[0_32px_80px_-12px_rgba(59,34,181,0.50)] lg:scale-105 z-20 py-12 px-8 md:px-10' 
+                  : 'bg-white/60 backdrop-blur-3xl border border-outline-variant/50 shadow-xl shadow-black/5 hover:shadow-2xl hover:-translate-y-2 z-10 py-10 px-8 md:px-10'
+                }
+              `}
+            >
+              {/* Popular Glow Ring */}
               {plan.isPopular && (
-                <div className="absolute -top-4 inset-x-0 flex justify-center">
-                  <span className="bg-primary text-on-primary text-xs font-bold uppercase tracking-widest py-1.5 px-6 rounded-full shadow-md">Recommended</span>
-                </div>
+                <div className="absolute -inset-[1px] rounded-[32px] bg-gradient-to-b from-primary via-secondary to-primary/20 -z-10 opacity-50" />
               )}
-              <h3 className="text-3xl font-extrabold text-on-surface mb-2 mt-4">{plan.name}</h3>
-              <p className="text-on-surface-variant font-medium mb-6 h-12 leading-relaxed">{plan.desc}</p>
-              <div className="mb-8 flex items-baseline">
-                <span className="text-6xl font-extrabold text-on-surface tracking-tighter">{plan.price}</span>
-                {plan.period && <span className="text-xl text-on-surface-variant font-bold ml-1">{plan.period}</span>}
+              
+              {/* Header */}
+              <div className="flex items-center justify-between mb-8">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${plan.isPopular ? 'bg-white/10 text-white' : 'bg-primary/10 text-primary'}`}>
+                  {plan.icon}
+                </div>
+                {plan.badge && (
+                  <div className={`text-[10px] font-black uppercase tracking-widest py-1.5 px-4 rounded-full border ${plan.isPopular ? 'bg-primary/20 text-primary-200 border-primary/30' : 'bg-surface-container text-on-surface-variant border-outline-variant'}`}>
+                    {plan.badge}
+                  </div>
+                )}
               </div>
-              <ul className="space-y-5 mb-10 flex-1">
-                <li className="flex items-center gap-3 text-on-surface font-semibold text-lg">
-                  <CheckCircle2 className="w-6 h-6 text-primary" /> {plan.limit}
-                </li>
-                <li className="flex items-center gap-3 text-on-surface font-semibold text-lg">
-                  <CheckCircle2 className="w-6 h-6 text-primary" /> Automated Invoicing
-                </li>
-                <li className="flex items-center gap-3 text-on-surface font-semibold text-lg">
-                  <CheckCircle2 className="w-6 h-6 text-primary" /> Ledger & EOFY Reports
-                </li>
+
+              <h3 className={`text-2xl font-black mb-2 ${plan.isPopular ? 'text-white' : 'text-on-surface'}`}>{plan.name}</h3>
+              <p className={`text-sm font-semibold mb-8 h-10 ${plan.isPopular ? 'text-white/60' : 'text-on-surface-variant'}`}>{plan.desc}</p>
+              
+              <div className="flex items-baseline gap-1.5 mb-10 pb-10 border-b border-dashed border-outline-variant/30">
+                <span className={`text-6xl font-black tracking-tighter ${plan.isPopular ? 'text-white' : 'text-on-surface'}`}>{plan.price}</span>
+                {plan.period && <span className={`text-lg font-bold ${plan.isPopular ? 'text-white/40' : 'text-on-surface-variant'}`}>{plan.period}</span>}
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-1">
+                {plan.features.map((f, fi) => (
+                  <li key={fi} className="flex items-start gap-3">
+                    <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.isPopular ? 'bg-primary/20' : 'bg-primary/10'}`}>
+                      <Check className={`w-3 h-3 stroke-[3] ${plan.isPopular ? 'text-primary-300' : 'text-primary'}`} />
+                    </div>
+                    <span className={`text-sm font-bold leading-tight ${plan.isPopular ? 'text-white/90' : 'text-on-surface'}`}>{f}</span>
+                  </li>
+                ))}
               </ul>
-              <Link to="/signup" className={`w-full py-4 rounded-full font-bold text-center uppercase tracking-wider transition-all ${plan.isPopular ? 'bg-primary text-on-primary hover:bg-primary/90 shadow-lg shadow-primary/20' : 'bg-surface-container text-on-surface hover:bg-outline-variant'}`}>
-                Start Free Trial
+
+              <Link 
+                to="/signup" 
+                className={`w-full py-4 rounded-2xl font-black text-center text-sm transition-all uppercase tracking-widest flex items-center justify-center gap-2 group
+                  ${plan.isPopular 
+                    ? 'bg-primary text-white hover:bg-primary/90 shadow-[0_8px_30px_rgba(59,34,181,0.4)] hover:shadow-[0_12px_40px_rgba(59,34,181,0.6)]' 
+                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant'
+                  }
+                `}
+              >
+                Get Started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
           ))}
@@ -429,273 +882,92 @@ function Pricing() {
   );
 }
 
+
 function Testimonials() {
-  const row1Testimonials = [
-    { 
-      quote: "It completely replaced our agency. What used to cost us 8% of rent now costs $29 a month. The automated rent tracking is flawless.", 
-      name: "Sarah Jenkins", 
-      role: "Landlord, Brisbane QLD", 
-      rating: 5,
-      tag: "Saved $3,400 annually",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
-    },
-    { 
-      quote: "The EOFY reporting saved me a weekend of matching bank statements. Everything aligns with the ATO categories directly.", 
-      name: "Mark T.", 
-      role: "Property Investor, Melbourne VIC", 
-      rating: 5,
-      tag: "3 Properties Managed",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
-    },
-    { 
-      quote: "Condition reports used to be a nightmare of PDFs and emails. Doing it straight from the phone and getting digital signatures changed the game.", 
-      name: "Elena R.", 
-      role: "Property Manager, Sydney NSW", 
-      rating: 5,
-      tag: "Verified Manager",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150"
-    }
+  const allTestimonials = [
+    { quote: "It completely replaced our agency. What used to cost us 8% of rent now costs $29 a month. The automated rent tracking is flawless.", name: "Sarah Jenkins", role: "Landlord, Brisbane QLD", rating: 5, tag: "Saved $3,400 annually", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" },
+    { quote: "The EOFY reporting saved me a weekend of matching bank statements. Everything aligns with the ATO categories directly.", name: "Mark T.", role: "Property Investor, Melbourne VIC", rating: 5, tag: "3 Properties", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" },
+    { quote: "Condition reports used to be a nightmare of PDFs and emails. Doing it straight from the phone changed the game.", name: "Elena R.", role: "Property Manager, Sydney NSW", rating: 5, tag: "Verified Manager", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150" },
+    { quote: "Finally, a platform built for the Australian market. The localized lease agreements and default settings save so much time.", name: "David L.", role: "Agency Director, Perth WA", rating: 5, tag: "ABN Registered", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150" },
+    { quote: "I can see exactly when my tenants have paid, and the automated reminders mean I never have to chase up rent again.", name: "Jessica W.", role: "Landlord, Gold Coast QLD", rating: 5, tag: "Self-Managed", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" },
+    { quote: "The tenant portal is so clean. My tenants love being able to see their payment history and log maintenance requests.", name: "Tom C.", role: "Self-Managed Landlord, Adelaide SA", rating: 5, tag: "Saved 12hrs/mo", avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150" },
   ];
 
-  const row2Testimonials = [
-    { 
-      quote: "Finally, a platform built for the Australian market. The localized lease agreements and default settings save so much time.", 
-      name: "David L.", 
-      role: "Agency Director, Perth WA", 
-      rating: 5,
-      tag: "ABN Registered",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"
-    },
-    { 
-      quote: "I can see exactly when my tenants have paid, and the automated reminders mean I never have to chase up rent again.", 
-      name: "Jessica W.", 
-      role: "Landlord, Gold Coast QLD", 
-      rating: 5,
-      tag: "Self-Managed",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
-    },
-    { 
-      quote: "The tenant portal is so clean. My tenants love being able to see their payment history and easily log maintenance requests.", 
-      name: "Tom C.", 
-      role: "Self-Managed Landlord, Adelaide SA", 
-      rating: 5,
-      tag: "Saved 12 hours monthly",
-      avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150"
-    }
-  ];
+  const row1 = [...allTestimonials.slice(0, 3), ...allTestimonials.slice(0, 3)];
+  const row2 = [...allTestimonials.slice(3), ...allTestimonials.slice(3)];
 
-  const row1 = [...row1Testimonials, ...row1Testimonials];
-  const row2 = [...row2Testimonials, ...row2Testimonials];
+  const TestimonialCard = ({ t }: { t: typeof allTestimonials[0] }) => (
+    <div className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_rgba(12,43,75,0.04)] rounded-3xl p-4 flex flex-col justify-between h-full hover:shadow-[0_12px_40px_rgba(12,43,75,0.08)] hover:border-primary/25 transition-all duration-300 hover:-translate-y-0.5">
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2.5">
+            <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-xl object-cover border border-black/5 shrink-0" />
+            <div>
+              <div className="font-extrabold text-sm text-on-surface leading-tight">{t.name}</div>
+              <div className="font-semibold text-[10px] text-on-surface-variant uppercase tracking-wide mt-0.5">{t.role}</div>
+            </div>
+          </div>
+          <span className="bg-primary/8 border border-primary/15 text-primary text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0 hidden sm:block">{t.tag}</span>
+        </div>
+        <div className="flex mb-2">
+          {[...Array(t.rating)].map((_, i) => <Star key={i} className="w-3 h-3 fill-secondary text-secondary" />)}
+        </div>
+        <p className="font-semibold text-[13px] text-on-surface leading-relaxed">"{t.quote}"</p>
+      </div>
+      <div className="flex items-center justify-between border-t border-outline-variant/30 pt-2.5 mt-3">
+        <span className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide">Verified Account</span>
+        <div className="flex items-center gap-1 text-primary">
+          <CheckCircle2 className="w-3 h-3" />
+          <span className="text-[10px] font-extrabold uppercase tracking-wide">Active</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <section id="testimonials" className="py-32 px-6 relative bg-surface-container-low/20 overflow-hidden">
-      {/* Background ambient glow shapes */}
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[140px] pointer-events-none z-0"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full bg-secondary-container/5 blur-[120px] pointer-events-none z-0"></div>
+    <section id="testimonials" className="py-16 sm:py-24 px-4 sm:px-6 relative bg-surface-container-low/20 overflow-hidden">
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[140px] pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] rounded-full bg-secondary-container/5 blur-[120px] pointer-events-none z-0" />
 
-      <div className="max-w-7xl mx-auto relative z-10 mb-16">
-        
-        {/* Section Header */}
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs uppercase tracking-widest mb-6">
+      <div className="max-w-7xl mx-auto relative z-10 mb-8 sm:mb-14">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs uppercase tracking-widest mb-5">
             <Star className="w-3.5 h-3.5 fill-primary" /> Testimonials
           </div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-on-surface mb-6 font-display">
-            Trusted by landlords nationwide.
-          </h2>
-          <p className="text-lg text-on-surface-variant font-medium leading-relaxed">
-            See how self-managed property owners and investors across Australia are simplifying management and eliminating agency fees.
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-on-surface mb-4 font-display">Trusted by landlords nationwide.</h2>
+          <p className="text-sm sm:text-lg text-on-surface-variant font-medium leading-relaxed">
+            See how landlords across Australia are simplifying management and cutting agency fees.
           </p>
         </div>
       </div>
 
-      {/* Marquee Content Wrap */}
-      <div className="w-full max-w-[100vw] overflow-x-hidden flex flex-col gap-6">
-        
-        {/* Row 1: Scrolling Left */}
+      {/* Mobile: 2-column grid of cards */}
+      <div className="sm:hidden max-w-lg mx-auto grid grid-cols-2 gap-3 relative z-10">
+        {allTestimonials.map((t, i) => (
+          <TestimonialCard key={i} t={t} />
+        ))}
+      </div>
+
+      {/* Desktop: Marquee rows */}
+      <div className="hidden sm:flex w-full max-w-[100vw] overflow-x-hidden flex-col gap-5 relative z-10">
         <div className="marquee-container">
           <div className="marquee-content animate-marquee-left">
-            {row1.map((t, index) => (
-              <MuiCard
-                key={index}
-                sx={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.65)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  boxShadow: '0 8px 32px 0 rgba(12, 43, 75, 0.04)',
-                  borderRadius: '24px',
-                  width: { xs: '320px', sm: '380px', md: '420px' },
-                  height: '240px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  flexShrink: 0,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: '0 12px 40px 0 rgba(12, 43, 75, 0.08)',
-                    borderColor: 'rgba(60, 110, 113, 0.3)',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    {/* Header: Avatar, Name/Role, Tag */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <MuiAvatar 
-                          src={t.avatar} 
-                          alt={t.name}
-                          variant="rounded" 
-                          sx={{ width: 44, height: 44, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)' }}
-                        />
-                        <Box>
-                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '0.875rem', color: 'var(--color-on-surface)', lineHeight: 1.2 }}>
-                            {t.name}
-                          </Typography>
-                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', mt: 0.5 }}>
-                            {t.role}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <MuiChip 
-                        label={t.tag}
-                        size="small"
-                        sx={{
-                          fontFamily: "'Outfit', sans-serif",
-                          fontWeight: 700,
-                          fontSize: '9px',
-                          height: '22px',
-                          backgroundColor: 'rgba(60, 110, 113, 0.1)',
-                          color: 'var(--color-primary)',
-                          border: '1px solid rgba(60, 110, 113, 0.2)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </Box>
-
-                    {/* Stars */}
-                    <Box sx={{ display: 'flex', mb: 1.5 }}>
-                      <MuiRating value={t.rating} readOnly size="small" sx={{ color: 'var(--color-secondary)' }} />
-                    </Box>
-
-                    {/* Quote */}
-                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--color-on-surface)' }}>
-                      "{t.quote}"
-                    </Typography>
-                  </div>
-
-                  {/* Footer Verified Account */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-outline-variant)', pt: 2, mt: 2 }}>
-                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', opacity: 0.7 }}>
-                      Verified Account
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--color-primary)' }}>
-                      <CheckCircle2 className="w-3.5 h-3.5 fill-primary/10" />
-                      <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Active
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </MuiCard>
+            {row1.map((t, i) => (
+              <div key={i} className="w-[340px] md:w-[400px] shrink-0">
+                <TestimonialCard t={t} />
+              </div>
             ))}
           </div>
         </div>
-
-        {/* Row 2: Scrolling Right */}
         <div className="marquee-container">
           <div className="marquee-content animate-marquee-right">
-            {row2.map((t, index) => (
-              <MuiCard
-                key={index}
-                sx={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.65)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
-                  boxShadow: '0 8px 32px 0 rgba(12, 43, 75, 0.04)',
-                  borderRadius: '24px',
-                  width: { xs: '320px', sm: '380px', md: '420px' },
-                  height: '240px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  flexShrink: 0,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: '0 12px 40px 0 rgba(12, 43, 75, 0.08)',
-                    borderColor: 'rgba(60, 110, 113, 0.3)',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 }, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    {/* Header: Avatar, Name/Role, Tag */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <MuiAvatar 
-                          src={t.avatar} 
-                          alt={t.name}
-                          variant="rounded" 
-                          sx={{ width: 44, height: 44, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)' }}
-                        />
-                        <Box>
-                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '0.875rem', color: 'var(--color-on-surface)', lineHeight: 1.2 }}>
-                            {t.name}
-                          </Typography>
-                          <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', mt: 0.5 }}>
-                            {t.role}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <MuiChip 
-                        label={t.tag}
-                        size="small"
-                        sx={{
-                          fontFamily: "'Outfit', sans-serif",
-                          fontWeight: 700,
-                          fontSize: '9px',
-                          height: '22px',
-                          backgroundColor: 'rgba(60, 110, 113, 0.1)',
-                          color: 'var(--color-primary)',
-                          border: '1px solid rgba(60, 110, 113, 0.2)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em'
-                        }}
-                      />
-                    </Box>
-
-                    {/* Stars */}
-                    <Box sx={{ display: 'flex', mb: 1.5 }}>
-                      <MuiRating value={t.rating} readOnly size="small" sx={{ color: 'var(--color-secondary)' }} />
-                    </Box>
-
-                    {/* Quote */}
-                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--color-on-surface)' }}>
-                      "{t.quote}"
-                    </Typography>
-                  </div>
-
-                  {/* Footer Verified Account */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--color-outline-variant)', pt: 2, mt: 2 }}>
-                    <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-variant)', opacity: 0.7 }}>
-                      Verified Account
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'var(--color-primary)' }}>
-                      <CheckCircle2 className="w-3.5 h-3.5 fill-primary/10" />
-                      <Typography sx={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Active
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </MuiCard>
+            {row2.map((t, i) => (
+              <div key={i} className="w-[340px] md:w-[400px] shrink-0">
+                <TestimonialCard t={t} />
+              </div>
             ))}
           </div>
         </div>
-
       </div>
     </section>
   );
@@ -715,37 +987,30 @@ function Footer() {
   };
 
   return (
-    <footer className="pt-32 pb-16 px-6 bg-gradient-to-b from-[#0E2030] to-[#040C12] text-white relative z-10 border-t border-white/5 overflow-hidden">
+    <footer className="pt-16 sm:pt-24 pb-10 sm:pb-16 px-4 sm:px-6 bg-gradient-to-b from-[#0c0628] via-[#08041a] to-[#03010b] text-white relative z-10 border-t border-white/5 overflow-hidden">
       {/* Background ambient glow */}
       <div className="absolute top-0 left-1/4 -translate-y-1/2 w-96 h-96 rounded-full bg-primary/10 blur-[150px] pointer-events-none z-0"></div>
       <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-secondary-container/10 blur-[120px] pointer-events-none z-0"></div>
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 mb-24">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-16 mb-10 sm:mb-16">
           
-          {/* Logo & Intro Brand Column */}
-          <div className="lg:col-span-4 flex flex-col justify-between">
-            <div>
-              <Link to="/" className="text-3xl font-black tracking-tight text-white flex items-center gap-2 mb-6 font-display">
-                <svg className="h-8 w-8 text-primary" fill="none" height="32" viewBox="0 0 32 32" width="32" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="16" cy="16" r="15" stroke="currentColor" strokeWidth="2"></circle>
-                  <path d="M11 10V22M21 10V22M11 16H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path>
-                </svg>
-                PropertyLedge
-              </Link>
-              <p className="text-white/60 font-semibold max-w-sm mb-8 leading-relaxed text-base">
-                The complete operating system for modern Australian property managers and landlords. Secure, compliant, and zero agency fees.
-              </p>
-            </div>
-            
-            {/* Trust and Australian Owned Badges */}
-            <div className="flex flex-col gap-4">
-              <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 max-w-xs shadow-inner">
-                <span className="text-2xl">🇦🇺</span>
-                <div>
-                  <div className="text-[10px] font-black tracking-widest text-primary uppercase">Australian Owned</div>
-                  <div className="text-xs font-bold text-white/90">Proudly Sydney & Melbourne based</div>
-                </div>
+          {/* Logo & Intro Brand Column — full width on mobile */}
+          <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex flex-col gap-5">
+            <Link to="/" className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5 font-display w-fit">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[#6B3AFF] flex items-center justify-center shadow-md shadow-primary/40 shrink-0">
+                <Building className="w-5 h-5 text-white" />
+              </div>
+              Property<span className="text-primary">Ledge</span>
+            </Link>
+            <p className="text-white/55 font-semibold max-w-xs leading-relaxed text-sm">
+              The complete operating system for modern Australian property managers and landlords. Secure, compliant, zero agency fees.
+            </p>
+            <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 w-fit">
+              <span className="text-xl">🇦🇺</span>
+              <div>
+                <div className="text-[10px] font-black tracking-widest text-primary uppercase">Australian Owned</div>
+                <div className="text-xs font-bold text-white/80">Proudly Sydney & Melbourne based</div>
               </div>
             </div>
           </div>
@@ -944,7 +1209,7 @@ function Login() {
 
   // Default credentials for checking
   const DEFAULT_USER = {
-    name: 'Sarah Connor',
+    name: 'Sarah Jenkins',
     email: 'landlord@gmail.com',
     password: 'password123',
     role: 'landlord',
@@ -993,61 +1258,86 @@ function Login() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen relative flex items-center justify-center p-6 bg-[#f0f4f8]"
+      className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden"
     >
-      <div className="w-full max-w-[500px] p-10 md:p-14 rounded-[32px] relative z-10 shadow-sm border border-[#e2e8f0] bg-white text-on-surface">
-        <div className="flex justify-center mb-10">
-          <Link to="/" className="inline-flex items-center gap-2 text-[#356064] hover:text-[#254548] transition-colors mb-2 font-bold text-sm tracking-widest uppercase">
-             <ArrowLeft className="w-5 h-5" /> Back to home
+      {/* Base gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface-container-low to-surface z-0"></div>
+
+      {/* Geometric Grid Overlay for modern 2026 tech look */}
+      <div className="absolute inset-0 grid-pattern opacity-30 z-0 pointer-events-none" />
+
+      {/* Dynamic Animated Ambient Blobs under the glass layer */}
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-primary/10 blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-secondary-container/15 blur-[120px] pointer-events-none z-0"></div>
+
+      <div className="w-full max-w-[500px] p-6 sm:p-10 md:p-12 rounded-[32px] relative z-10 faq-glass shadow-2xl border border-white/40 text-on-surface">
+        <div className="flex justify-between items-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 text-primary hover:text-primary-fixed-dim transition-all font-bold text-xs tracking-widest uppercase group">
+             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to home
           </Link>
+          <div className="text-[10px] font-black text-on-surface-variant bg-surface-container-high/60 border border-outline-variant/30 rounded-full px-3 py-1 flex items-center gap-1 shadow-inner">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Secure
+          </div>
         </div>
-        <h2 className="text-[32px] font-extrabold text-[#333333] text-center mb-2 tracking-tighter">Welcome back</h2>
-        <p className="text-center text-[#356064] mb-8 font-medium text-lg">Log in to manage your properties</p>
+
+        <h2 className="text-3xl md:text-[36px] font-black text-on-surface text-center mb-1 tracking-tight font-display">Welcome back</h2>
+        <p className="text-center text-on-surface-variant mb-8 font-medium text-sm md:text-base">Log in to manage your properties</p>
         
         {error && (
-          <div className="p-4 mb-6 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 text-center animate-fade-in">
+          <div className="p-4 mb-6 bg-red-50 text-red-600 rounded-2xl text-xs sm:text-sm font-bold border border-red-100 text-center animate-fade-in">
             {error}
           </div>
         )}
         
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-[#333333] mb-2 uppercase tracking-widest">Email address</label>
-            <input 
-              type="email" 
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] placeholder-[#a0aab2] focus:outline-none focus:border-[#356064] focus:ring-1 focus:ring-[#356064] transition-all font-medium"
-              placeholder="sarah@gmail.com"
-            />
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Email address</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40">
+                <Mail className="w-5 h-5" />
+              </span>
+              <input 
+                type="email" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl pl-12 pr-5 py-3.5 text-on-surface placeholder-[#a0aab2] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium text-sm"
+                placeholder="sarah@gmail.com"
+              />
+            </div>
           </div>
-          <div>
-             <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-bold text-[#333333] uppercase tracking-widest">Password</label>
-                <a href="#" className="text-xs font-bold text-[#356064] hover:text-[#254548] uppercase tracking-widest transition-colors">Forgot password?</a>
+          <div className="space-y-2">
+             <div className="flex justify-between items-center">
+                <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Password</label>
+                <a href="#" className="text-[10px] font-black text-primary hover:text-primary-fixed-dim uppercase tracking-wider transition-colors">Forgot password?</a>
              </div>
-            <input 
-              type="password" 
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white border border-[#d2d6dc] rounded-2xl px-5 py-4 text-[#333333] placeholder-[#a0aab2] focus:outline-none focus:border-[#356064] focus:ring-1 focus:ring-[#356064] transition-all font-medium"
-              placeholder="••••••••"
-            />
+             <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40">
+                <Lock className="w-5 h-5" />
+              </span>
+              <input 
+                type="password" 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl pl-12 pr-5 py-3.5 text-on-surface placeholder-[#a0aab2] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium text-sm"
+                placeholder="••••••••"
+              />
+             </div>
           </div>
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-[#356064] text-white font-bold uppercase tracking-wider rounded-2xl py-5 mt-8 hover:bg-[#254548] transition-all shadow-sm flex items-center justify-center"
+            className="w-full relative group overflow-hidden bg-primary text-on-primary font-bold uppercase tracking-wider rounded-2xl py-4 mt-8 hover:bg-primary/95 transition-all shadow-lg glow-primary flex items-center justify-center gap-2"
           >
-            {loading ? <div className="w-6 h-6 border-4 border-[#e2e8f0] border-t-white rounded-full animate-spin"></div> : 'Sign In'}
+            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <>Sign In <ArrowRight className="w-4 h-4" /></>}
           </button>
         </form>
 
-        <div className="mt-10 pt-8 border-t border-[#d2d6dc] text-center">
-          <p className="text-sm text-[#356064] font-medium">
-            Don't have an account? <Link to="/signup" className="text-[#356064] font-bold hover:underline">Start free trial</Link>
+        <div className="mt-8 pt-6 border-t border-outline-variant/40 text-center">
+          <p className="text-sm text-on-surface-variant font-medium">
+            Don't have an account? <Link to="/signup" className="text-primary font-bold hover:underline">Start free trial</Link>
           </p>
         </div>
       </div>
@@ -1133,84 +1423,102 @@ function Signup() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen relative flex items-center justify-center p-6 bg-[#f0f4f8]"
+      className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden"
     >
-      <div className="w-full max-w-[560px] p-6 sm:p-10 md:p-12 rounded-[32px] shadow-sm border border-[#e2e8f0] bg-white">
-        <Link to="/" className="inline-flex items-center gap-2 text-[#356064] hover:text-[#254548] transition-colors mb-8 font-bold text-xs tracking-widest uppercase">
-           <ArrowLeft className="w-4 h-4" /> Back to home
-        </Link>
+      {/* Base gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface-container-low to-surface z-0"></div>
+
+      {/* Geometric Grid Overlay for modern 2026 tech look */}
+      <div className="absolute inset-0 grid-pattern opacity-30 z-0 pointer-events-none" />
+
+      {/* Dynamic Animated Ambient Blobs under the glass layer */}
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-primary/10 blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-secondary-container/15 blur-[120px] pointer-events-none z-0"></div>
+
+      <div className="w-full max-w-[560px] p-6 sm:p-10 md:p-12 rounded-[32px] relative z-10 faq-glass shadow-2xl border border-white/40 text-on-surface">
+        <div className="flex justify-between items-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 text-primary hover:text-primary-fixed-dim transition-all font-bold text-xs tracking-widest uppercase group">
+             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to home
+          </Link>
+          <div className="text-[10px] font-black text-on-surface-variant bg-surface-container-high/60 border border-outline-variant/30 rounded-full px-3 py-1 flex items-center gap-1 shadow-inner">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Step {step} of 2
+          </div>
+        </div>
         
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-[36px] md:text-[40px] font-extrabold text-[#333333] mb-2 tracking-tight leading-tight">Create your account</h2>
-            <p className="text-base text-[#356064] mb-8 font-medium">Start your 14-day free trial. No credit card required.</p>
+            <h2 className="text-3xl md:text-[38px] font-black text-on-surface mb-2 tracking-tight leading-tight font-display">Create your account</h2>
+            <p className="text-sm text-on-surface-variant mb-8 font-medium">Start your 14-day free trial. No credit card required.</p>
             {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100">{error}</div>}
             <form onSubmit={handleNext} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                 <div>
-                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">First name</label>
-                  <input type="text" placeholder="Sarah" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                 <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">First name</label>
+                  <input type="text" placeholder="Sarah" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
                  </div>
-                 <div>
-                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Last name</label>
-                  <input type="text" placeholder="Connor" required value={lname} onChange={(e) => setLname(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                 <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Last name</label>
+                  <input type="text" placeholder="Connor" required value={lname} onChange={(e) => setLname(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
                  </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                 <div>
-                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Email address</label>
-                  <input type="email" placeholder="sarah@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                 <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Email address</label>
+                  <input type="email" placeholder="sarah@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
                  </div>
-                 <div>
-                  <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Mobile number</label>
-                  <input type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="(555) 123-4567" className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                 <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Mobile number</label>
+                  <input type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="0412 345 678" className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
                  </div>
               </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                   <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-[11px] font-bold text-[#333333] uppercase tracking-widest">Password</label>
-                        <button type="button" onClick={generatePassword} className="text-[10px] flex items-center font-bold text-[#356064] hover:text-[#254548] uppercase tracking-wider">
+                   <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Password</label>
+                        <button type="button" onClick={generatePassword} className="text-[9px] flex items-center font-black text-primary hover:text-primary-fixed-dim uppercase tracking-wider">
                            <RefreshCw className="w-3 h-3 mr-1" /> Generate
                         </button>
                       </div>
                       <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 pr-10 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6a808f] hover:text-[#333333] transition-colors">
+                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 pr-10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-on-surface transition-colors">
                             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                    </div>
-                   <div>
-                      <label className="block text-[11px] font-bold text-[#333333] mb-2 uppercase tracking-widest">Confirm Password</label>
+                   <div className="space-y-2">
+                      <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Confirm Password</label>
                       <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white border border-[#e2e8f0] rounded-[16px] px-4 py-3.5 pr-10 text-[#333333] focus:border-[#356064] focus:ring-1 focus:ring-[#356064] outline-none transition-all font-medium placeholder:text-[#a0acb5]" />
+                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
                       </div>
                    </div>
                 </div>
                 {password && (
                   <div className="mt-2">
                      <div className="flex justify-between items-center mb-1.5">
-                       <span className="text-[10px] font-bold text-[#6a808f] uppercase tracking-wider">Password Strength</span>
-                       <span className="text-[10px] font-bold text-[#333333]">{calculateStrength(password) < 40 ? 'Weak' : calculateStrength(password) < 80 ? 'Good' : 'Strong'}</span>
+                       <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-wider">Password Strength</span>
+                       <span className="text-[10px] font-black text-on-surface">{calculateStrength(password) < 40 ? 'Weak' : calculateStrength(password) < 80 ? 'Good' : 'Strong'}</span>
                      </div>
-                     <div className="h-1.5 w-full bg-[#e2e8f0] rounded-full overflow-hidden">
-                       <div className={`h-full transition-all duration-300 ${calculateStrength(password) < 40 ? 'bg-red-500' : calculateStrength(password) < 80 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${calculateStrength(password)}%` }}></div>
+                     <div className="h-1.5 w-full bg-outline-variant/50 rounded-full overflow-hidden">
+                       <div className={`h-full transition-all duration-300 ${calculateStrength(password) < 40 ? 'bg-error' : calculateStrength(password) < 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${calculateStrength(password)}%` }}></div>
                      </div>
                   </div>
                 )}
               </div>
-              <button type="submit" className="w-full bg-[#356064] text-white font-bold uppercase tracking-[0.15em] rounded-2xl py-4 mt-8 hover:bg-[#254548] transition-all text-sm">CONTINUE</button>
+              <button type="submit" className="w-full relative group overflow-hidden bg-primary text-on-primary font-bold uppercase tracking-wider rounded-2xl py-4 mt-8 hover:bg-primary/95 transition-all shadow-lg glow-primary flex items-center justify-center gap-2">
+                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                CONTINUE <ArrowRight className="w-4 h-4" />
+              </button>
             </form>
           </motion.div>
         )}
 
         {step === 2 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-[32px] md:text-[40px] font-extrabold text-[#333333] mb-3 tracking-tight">How will you use PropertyLedge?</h2>
-            <p className="text-base text-[#356064] font-medium mb-10">We'll customize your dashboard based on your answer.</p>
-            <div className="space-y-4 mb-10">
+            <h2 className="text-3xl md:text-[36px] font-black text-on-surface mb-3 tracking-tight leading-tight font-display">How will you use PropertyLedge?</h2>
+            <p className="text-sm text-on-surface-variant font-medium mb-8">We'll customize your dashboard based on your answer.</p>
+            <div className="space-y-4 mb-8">
               {roles.map((r) => {
                 const Icon = r.icon;
                 const active = role === r.id;
@@ -1218,24 +1526,24 @@ function Signup() {
                   <div 
                     key={r.id} 
                     onClick={() => setRole(r.id)}
-                    className={`p-5 md:p-6 rounded-[20px] md:rounded-[24px] border-2 cursor-pointer transition-all flex items-center gap-4 md:gap-5
-                      ${active ? 'border-[#356064] bg-[#eef3f7] shadow-sm' : 'border-[#e2e8f0] hover:border-[#356064]/50 bg-white'}
+                    className={`p-4 md:p-5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-4
+                      ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-outline-variant/40 hover:border-primary/40 bg-white/40 backdrop-blur-sm'}
                     `}
                   >
-                     <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 ${active ? 'bg-[#356064] text-white shadow-md' : 'bg-[#f4f6f8] border border-[#d2d6dc] text-[#333333]'}`}>
-                        <Icon className="w-5 h-5 md:w-6 md:h-6" />
+                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${active ? 'bg-primary text-on-primary shadow-md shadow-primary/20' : 'bg-surface border border-outline-variant/30 text-on-surface-variant'}`}>
+                        <Icon className="w-5 h-5" />
                      </div>
                      <div>
-                        <div className={`text-lg md:text-xl font-extrabold ${active ? 'text-[#356064]' : 'text-[#333333]'}`}>{r.title}</div>
-                        <div className={`text-xs md:text-sm font-medium mt-1 ${active ? 'text-[#356064]/80' : 'text-[#6a808f]'}`}>{r.desc}</div>
+                        <div className={`text-base md:text-lg font-black ${active ? 'text-primary' : 'text-on-surface'}`}>{r.title}</div>
+                        <div className={`text-xs font-bold mt-0.5 ${active ? 'text-primary-container' : 'text-on-surface-variant/75'}`}>{r.desc}</div>
                      </div>
                   </div>
                 )
               })}
             </div>
             <div className="flex gap-4">
-              <button onClick={() => setStep(1)} className="px-6 md:px-10 py-4 md:py-5 rounded-2xl border-2 border-[#e2e8f0] text-[#333333] font-bold uppercase tracking-wider hover:bg-[#f4f6f8] transition-colors text-xs md:text-sm">Back</button>
-              <button onClick={handleNext} disabled={!role} className="flex-1 bg-[#356064] text-white font-bold uppercase tracking-[0.1em] md:tracking-[0.15em] rounded-2xl py-4 md:py-5 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:bg-[#254548] transition-all text-xs md:text-sm">Complete Setup</button>
+              <button onClick={() => setStep(1)} className="px-6 py-4 rounded-2xl border-2 border-outline-variant/60 text-on-surface-variant font-bold uppercase tracking-wider hover:bg-slate-50 transition-colors text-xs">Back</button>
+              <button onClick={handleNext} disabled={!role} className="flex-1 bg-primary text-on-primary font-bold uppercase tracking-wider rounded-2xl py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:bg-primary/95 transition-all text-xs flex items-center justify-center gap-2">Complete Setup <ArrowRight className="w-4 h-4" /></button>
             </div>
           </motion.div>
         )}
@@ -1246,6 +1554,129 @@ function Signup() {
 
 function AppRoutes() {
   const location = useLocation();
+
+  useEffect(() => {
+    // Add demo properties to ensure they are visible on all routes
+    const demoLoaded = localStorage.getItem('demo_properties_loaded_v4');
+    if (!demoLoaded) {
+      const demoProperties = [
+        {
+          id: 'demo-1',
+          propertyId: '829410',
+          address: '42 Wallaby Way',
+          suburb: 'Sydney',
+          postcode: '2000',
+          state: 'NSW',
+          propertyType: 'House',
+          image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800',
+          rentAmount: '850',
+          paymentFrequency: 'Weekly',
+          tenantName: 'John Smith',
+          tenantEmail: 'john@example.com',
+          leaseStart: '2024-01-15',
+          leaseDuration: '12'
+        },
+        {
+          id: 'demo-2',
+          propertyId: '102934',
+          address: '12 Rosebery Ave',
+          suburb: 'Rosebery',
+          postcode: '2018',
+          state: 'NSW',
+          propertyType: 'Apartment',
+          image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800',
+          rentAmount: '600',
+          paymentFrequency: 'Weekly',
+          tenantName: 'Sarah Jenkins',
+          tenantEmail: 'sarah@example.com',
+          leaseStart: '2024-03-01',
+          leaseDuration: '6'
+        },
+        {
+          id: 'demo-3',
+          propertyId: '984321',
+          address: '7 Cooper St',
+          suburb: 'Surry Hills',
+          postcode: '2010',
+          state: 'NSW',
+          propertyType: 'Townhouse',
+          image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800',
+          rentAmount: '950',
+          paymentFrequency: 'Weekly',
+          tenantName: 'Michael Brown',
+          tenantEmail: 'michael@example.com',
+          leaseStart: '2023-11-01',
+          leaseDuration: '12'
+        },
+        {
+          id: 'demo-4',
+          propertyId: '458129',
+          address: '15 Ocean Drive',
+          suburb: 'Bondi Beach',
+          postcode: '2026',
+          state: 'NSW',
+          propertyType: 'Apartment',
+          image: 'https://images.unsplash.com/photo-1499955085172-a104c9463ece?auto=format&fit=crop&q=80&w=800',
+          rentAmount: '1200',
+          paymentFrequency: 'Weekly',
+          tenantName: 'Emma Watson',
+          tenantEmail: 'emma@example.com',
+          leaseStart: '2023-12-10',
+          leaseDuration: '12'
+        },
+        {
+          id: 'demo-5',
+          propertyId: '192837',
+          address: '88 Victoria Street',
+          suburb: 'Melbourne',
+          postcode: '3000',
+          state: 'VIC',
+          propertyType: 'Apartment',
+          image: 'https://images.unsplash.com/photo-1493809842364-4981ca24c859?auto=format&fit=crop&q=80&w=800',
+          rentAmount: '750',
+          paymentFrequency: 'Weekly',
+          tenantName: 'David Lee',
+          tenantEmail: 'david@example.com',
+          leaseStart: '2024-02-15',
+          leaseDuration: '6'
+        },
+        {
+          id: 'demo-6',
+          propertyId: '564738',
+          address: '22 Park Avenue',
+          suburb: 'Brisbane',
+          postcode: '4000',
+          state: 'QLD',
+          propertyType: 'House',
+          image: 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=800',
+          rentAmount: '900',
+          paymentFrequency: 'Weekly',
+          tenantName: 'Olivia Taylor',
+          tenantEmail: 'olivia@example.com',
+          leaseStart: '2024-04-01',
+          leaseDuration: '12'
+        },
+        {
+          id: 'demo-7',
+          propertyId: '345678',
+          address: '5 Sunset Boulevard',
+          suburb: 'Gold Coast',
+          postcode: '4217',
+          state: 'QLD',
+          propertyType: 'House',
+          image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&q=80&w=800',
+          rentAmount: '1100',
+          paymentFrequency: 'Weekly',
+          tenantName: 'James Anderson',
+          tenantEmail: 'james@example.com',
+          leaseStart: '2023-10-05',
+          leaseDuration: '12'
+        }
+      ];
+      localStorage.setItem('properties', JSON.stringify(demoProperties));
+      localStorage.setItem('demo_properties_loaded_v4', 'true');
+    }
+  }, []);
   
   return (
     <AnimatePresence mode="wait">
@@ -1254,6 +1685,7 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/properties" element={<Properties />} />
         <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
         <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
         <Route path="/dashboard/settings" element={<AccountSettings />} />
