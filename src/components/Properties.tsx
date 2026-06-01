@@ -39,7 +39,7 @@ export function Properties() {
       <div className="relative overflow-hidden min-h-screen pb-20">
         
         {/* Header */}
-        <header className="px-6 md:px-10 pt-8 pb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4 z-10 relative">
+        <header className="px-6 md:px-10 pt-8 pb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4 z-30 relative">
           <div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-on-surface font-display mb-1">
               Properties
