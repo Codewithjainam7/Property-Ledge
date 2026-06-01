@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
   Stepper, Step, StepLabel, Button, Typography, 
   TextField, Box, Paper, Select, MenuItem, InputLabel, FormControl,
-  ThemeProvider, createTheme, CssBaseline
+  ThemeProvider, createTheme, CssBaseline, LinearProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload } from 'lucide-react';
@@ -91,9 +91,21 @@ export function PropertyOnboarding() {
   };
 
   const handleNext = () => {
+    if (activeStep === 0) {
+      if (!formData.address.trim() || !formData.suburb.trim() || !formData.postcode.trim() || !formData.state || !formData.propertyType) {
+        alert("Please fill in all mandatory property location fields.");
+        return;
+      }
+    }
     if (activeStep === 1 && !formData.image.trim()) {
       alert("Property Image is a mandatory field. Please provide an image URL.");
       return;
+    }
+    if (activeStep === 2) {
+      if (!formData.rentAmount.trim() || !formData.paymentFrequency) {
+        alert("Please provide the rent amount and payment frequency.");
+        return;
+      }
     }
 
     if (activeStep === steps.length - 1) {
@@ -238,11 +250,7 @@ export function PropertyOnboarding() {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ p: 3, bgcolor: 'rgba(59, 34, 181, 0.05)', borderRadius: 2.5, border: '1px solid rgba(59, 34, 181, 0.2)' }}>
-              <Typography variant="body2" color="primary" sx={{ fontWeight: '600' }}>
-                PropertyLedge will automatically generate invoices based on this schedule and send them to the tenant on your behalf.
-              </Typography>
-            </Box>
+
           </Box>
         );
       case 3:
@@ -345,17 +353,29 @@ export function PropertyOnboarding() {
           Return to Dashboard
         </Button>
 
-        <Paper elevation={0} sx={{ maxWidth: 840, mx: 'auto', p: { xs: 4, md: 6 }, borderRadius: 5, border: '1px solid #ededf1', boxShadow: '0 24px 48px -12px rgba(59,34,181,0.06)' }}>
-          <Box sx={{ textAlign: 'center', mb: 6 }}>
-            <Typography variant="h3" component="h1" gutterBottom sx={{ letterSpacing: '-0.5px', fontWeight: '900', fontFamily: 'Space Grotesk' }}>
+        <Paper elevation={0} sx={{ maxWidth: 840, mx: 'auto', p: { xs: 2, sm: 4, md: 6 }, borderRadius: { xs: 3, sm: 4, md: 5 }, border: '1px solid #ededf1', boxShadow: '0 24px 48px -12px rgba(59,34,181,0.06)' }}>
+          <Box sx={{ textAlign: 'center', mb: { xs: 4, md: 6 } }}>
+            <Typography variant="h4" component="h1" gutterBottom sx={{ letterSpacing: '-0.5px', fontWeight: '900', fontFamily: 'Space Grotesk', fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
               Add a New Property
             </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
+            <Typography variant="subtitle1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
               Initialize a property in your automated portfolio and connect your tenant.
             </Typography>
           </Box>
 
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 6 }}>
+          {/* Mobile step indicator (Linear Progress) */}
+          <Box sx={{ display: { xs: 'block', sm: 'none' }, mb: 4 }}>
+            <Typography variant="overline" sx={{ display: 'block', textAlign: 'center', mb: 1, fontWeight: 'bold', color: 'primary.main' }}>
+              Step {activeStep + 1} of {steps.length}
+            </Typography>
+            <LinearProgress 
+              variant="determinate" 
+              value={((activeStep + 1) / steps.length) * 100} 
+              sx={{ height: 6, borderRadius: 3, backgroundColor: '#eaeceb', '& .MuiLinearProgress-bar': { borderRadius: 3, backgroundColor: '#22333b' } }} 
+            />
+          </Box>
+
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ display: { xs: 'none', sm: 'flex' }, mb: 6 }}>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
@@ -367,11 +387,11 @@ export function PropertyOnboarding() {
             {renderStepContent(activeStep)}
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 6, pt: 4, borderTop: '1px solid #ededf1' }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 2, sm: 0 }, justifyContent: 'space-between', mt: 6, pt: 4, borderTop: '1px solid #ededf1' }}>
             <Button
               disabled={activeStep === 0}
               onClick={handleBack}
-              sx={{ py: 1.5, px: 4, color: 'text.secondary', fontWeight: 'bold' }}
+              sx={{ py: 1.5, px: { xs: 0, sm: 4 }, color: 'text.secondary', fontWeight: 'bold', width: { xs: '100%', sm: 'auto' } }}
             >
               Previous Step
             </Button>
@@ -379,7 +399,7 @@ export function PropertyOnboarding() {
               onClick={handleNext} 
               variant="contained"
               disableElevation
-              sx={{ py: 1.5, px: 6, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem', fontWeight: 'bold' }}
+              sx={{ py: 1.5, px: { xs: 0, sm: 6 }, width: { xs: '100%', sm: 'auto' }, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem', fontWeight: 'bold' }}
             >
               {activeStep === steps.length - 1 ? 'Finalize & Save Property' : 'Proceed to Next'}
             </Button>

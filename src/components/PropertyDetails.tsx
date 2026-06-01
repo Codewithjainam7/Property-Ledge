@@ -155,6 +155,16 @@ export function PropertyDetails() {
 
         <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto relative z-10 space-y-8">
           
+          {/* Back Button */}
+          <div className="mb-4">
+            <Link 
+              to="/dashboard/properties" 
+              className="inline-flex items-center gap-2 text-sm font-bold text-on-surface-variant hover:text-on-surface transition-colors bg-surface-container-low hover:bg-surface-container px-4 py-2 rounded-full"
+            >
+              <ChevronLeft className="w-4 h-4" /> Back to Properties
+            </Link>
+          </div>
+
           {/* Hero Cover Image */}
           <div 
             className="w-full h-64 md:h-80 lg:h-96 rounded-[32px] overflow-hidden relative mb-[-40px] shadow-sm group cursor-pointer bg-surface-container"
@@ -194,7 +204,7 @@ export function PropertyDetails() {
 
             {/* Expand Icon */}
             {images.length > 0 && (
-              <div className="absolute bottom-12 right-6 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
+              <div className="absolute bottom-12 right-6 w-10 h-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20">
                 <Maximize2 className="w-4 h-4" />
               </div>
             )}
@@ -207,7 +217,7 @@ export function PropertyDetails() {
             >
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg text-on-surface hover:bg-white transition-all opacity-0 group-hover:opacity-100 transform -translate-y-2 group-hover:translate-y-0 duration-200"
+                className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg text-on-surface hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:-translate-y-2 md:group-hover:translate-y-0 duration-200"
               >
                 <Wrench className="w-4 h-4" /> Edit Cover Image
               </button>

@@ -10,7 +10,7 @@ export function Properties() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   useEffect(() => {
     const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
@@ -40,13 +40,19 @@ export function Properties() {
         
         {/* Header */}
         <header className="px-6 md:px-10 pt-8 pb-6 flex flex-col md:flex-row md:justify-between md:items-end gap-4 z-30 relative">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-on-surface font-display mb-1">
-              Properties
-            </h1>
-            <p className="text-sm text-on-surface-variant font-medium">Manage your portfolio and track performance.</p>
+          <div className="flex justify-between items-center w-full md:w-auto gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-on-surface font-display mb-1">
+                Properties
+              </h1>
+              <p className="text-sm text-on-surface-variant font-medium hidden sm:block">Manage your portfolio and track performance.</p>
+            </div>
+            {/* Mobile Add New Button */}
+            <Link to="/dashboard/onboarding" className="md:hidden bg-primary text-on-primary px-4 py-2 rounded-full font-bold text-sm flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0">
+              <Plus className="w-4 h-4" /> Add New
+            </Link>
           </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
             
             {/* View Mode Toggle */}
             <div className="hidden md:flex bg-surface-container-high/60 backdrop-blur-md p-1 rounded-full shadow-inner border border-outline-variant/40 items-center">
@@ -65,7 +71,7 @@ export function Properties() {
             </div>
 
             {/* Custom Filter Dropdown */}
-            <div className="relative" tabIndex={0} onBlur={(e) => {
+            <div className="relative flex-1 min-w-[140px] md:flex-none" tabIndex={0} onBlur={(e) => {
               // Ensure we don't close if clicking inside the dropdown
               if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                 setIsFilterOpen(false);
@@ -73,11 +79,13 @@ export function Properties() {
             }}>
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="flex items-center gap-2 pl-4 pr-3 py-2.5 bg-surface/80 backdrop-blur-md border border-outline-variant/40 rounded-full text-sm font-bold focus:outline-none focus:border-primary shadow-sm text-on-surface cursor-pointer hover:bg-surface-container-lowest transition-colors"
+                className="w-full flex justify-between items-center gap-2 pl-4 pr-3 py-2.5 bg-surface/80 backdrop-blur-md border border-outline-variant/40 rounded-full text-sm font-bold focus:outline-none focus:border-primary shadow-sm text-on-surface cursor-pointer hover:bg-surface-container-lowest transition-colors"
               >
-                <Filter className="h-4 w-4 text-primary" />
-                <span>{filterType === 'All' ? 'All Properties' : filterType}</span>
-                <ChevronDown className={`h-4 w-4 text-on-surface-variant transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+                <div className="flex items-center gap-2 truncate">
+                  <Filter className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate">{filterType === 'All' ? 'All Properties' : filterType}</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 shrink-0 text-on-surface-variant transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
               </button>
               
               <AnimatePresence>
@@ -87,7 +95,7 @@ export function Properties() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-full mt-2 left-0 w-48 bg-surface/90 backdrop-blur-xl border border-outline-variant/40 rounded-[20px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] overflow-hidden z-50 py-1.5"
+                    className="absolute top-full mt-2 left-0 w-full min-w-[160px] bg-surface/90 backdrop-blur-xl border border-outline-variant/40 rounded-[20px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] overflow-hidden z-50 py-1.5"
                   >
                     {['All', 'House', 'Apartment', 'Townhouse'].map((type) => (
                       <button
@@ -110,7 +118,7 @@ export function Properties() {
               </AnimatePresence>
             </div>
 
-            <div className="relative flex-1 md:w-64">
+            <div className="relative flex-[2] min-w-[200px] md:w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-on-surface-variant" />
               </div>
@@ -122,7 +130,9 @@ export function Properties() {
                 className="w-full pl-10 pr-4 py-2.5 bg-surface border border-outline-variant/50 rounded-full text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
               />
             </div>
-            <Link to="/dashboard/onboarding" className="bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.2)] hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0">
+            
+            {/* Desktop Add New Button */}
+            <Link to="/dashboard/onboarding" className="hidden md:flex bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm items-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.2)] hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0">
               <Plus className="w-4 h-4" /> Add New
             </Link>
           </div>
@@ -212,9 +222,9 @@ export function Properties() {
                     <thead>
                       <tr className="border-b border-outline-variant/40 bg-surface-container-low/50">
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Property</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Location</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Location</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Rent</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Tenant</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant hidden lg:table-cell">Tenant</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant text-right">Action</th>
                       </tr>
                     </thead>
@@ -237,7 +247,7 @@ export function Properties() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 hidden md:table-cell">
                             <div className="text-sm md:text-base font-bold text-on-surface">{property.suburb}</div>
                             <div className="text-xs md:text-sm font-medium text-on-surface-variant mt-0.5">{property.state} {property.postcode}</div>
                           </td>
@@ -247,7 +257,7 @@ export function Properties() {
                               <div className="text-[10px] text-on-surface-variant font-medium mt-1">Lease start: {new Date(property.leaseStart).toLocaleDateString()}</div>
                             )}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 hidden lg:table-cell">
                             {property.tenantName ? (
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-black shadow-inner shrink-0">

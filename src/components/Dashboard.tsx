@@ -252,7 +252,7 @@ export function Dashboard() {
               <motion.div variants={itemVariants} className="bg-surface rounded-[24px] border border-outline-variant/50 shadow-sm xl:col-span-3 overflow-hidden flex flex-col">
                  <div className="p-6 border-b border-outline-variant/50 flex justify-between items-center">
                    <h3 className="text-base font-bold text-on-surface">Properties Overview</h3>
-                   <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer bg-surface-container px-2 py-1 rounded-md">View All</span>
+                   <Link to="/dashboard/properties" className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer bg-surface-container px-2 py-1 rounded-md transition-colors">View All</Link>
                  </div>
                  <div className="overflow-x-auto">
                    <table className="w-full min-w-[800px] text-left border-collapse">
@@ -268,7 +268,7 @@ export function Dashboard() {
                        </tr>
                      </thead>
                      <tbody className="text-sm divide-y divide-outline-variant/30">
-                       {properties.length > 0 ? properties.map(p => (
+                       {properties.length > 0 ? properties.slice(0, 5).map(p => (
                          <tr key={p.id} className="hover:bg-surface-container-lowest transition-colors group cursor-pointer" onClick={() => navigate(`/dashboard/property/${p.id}`)}>
                            <td className="px-6 py-4">
                              <div className="flex items-center gap-3">
@@ -320,6 +320,11 @@ export function Dashboard() {
                      </tbody>
                    </table>
                  </div>
+                 {properties.length > 5 && (
+                   <Link to="/dashboard/properties" className="block text-center py-4 text-xs font-bold text-primary hover:underline bg-surface-container-lowest/50 border-t border-outline-variant/30 transition-colors">
+                     View all {properties.length} properties &rarr;
+                   </Link>
+                 )}
               </motion.div>
 
               <motion.div variants={itemVariants} className="bg-surface rounded-[24px] border border-outline-variant/50 shadow-sm xl:col-span-1 p-6 flex flex-col">
