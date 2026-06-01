@@ -31,7 +31,13 @@ export function PropertyDetails() {
     }
   };
 
-  const bentoTenantItems = [
+  const bentoTenantItems = property.tenantName ? [
+    { title: 'Tenant Profile', desc: `Current tenant: ${property.tenantName}. Contact: ${property.tenantEmail || 'N/A'}.`, icon: Users, action: 'View Profile', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/10' },
+    { title: 'Lease Agreement', desc: `Started: ${property.leaseStart ? new Date(property.leaseStart).toLocaleDateString() : 'N/A'}. Duration: ${property.leaseDuration || '12'} months.`, icon: FileText, action: 'View Lease', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Rent Status', desc: 'Rent is currently paid up to date. Next payment due in 4 days.', icon: Wallet, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Communication', desc: 'Message tenant, log calls, and view email history.', icon: Home, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Upcoming Inspections', desc: 'Routine inspection scheduled for next month.', icon: Clock, action: 'Manage', colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary-container text-on-secondary-container', accent: 'text-on-secondary-container', iconBg: 'bg-white/30' },
+  ] : [
     { title: 'Create Ad', desc: 'Craft your property listing and broadcast it to major real estate portals.', icon: FileText, action: 'Get Started', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/10' },
     { title: 'Applications', desc: 'Review background checks, rental history, and affordability scores.', icon: ClipboardList, action: 'Review', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
     { title: 'Enquiries', desc: 'Manage prospect messages, emails, and direct phone calls instantly.', icon: Home, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
@@ -81,8 +87,12 @@ export function PropertyDetails() {
             className="w-full max-w-4xl mx-auto bg-surface/80 backdrop-blur-2xl border border-white/50 rounded-[32px] md:rounded-full p-4 md:p-2.5 flex flex-col md:flex-row justify-between items-start md:items-center shadow-[0_8px_30px_rgba(0,0,0,0.06)] gap-4"
           >
             <div className="flex items-center gap-4 pl-2 md:pl-4">
-              <div className="w-12 h-12 bg-primary text-on-primary rounded-full flex items-center justify-center shrink-0 shadow-inner">
-                <Building className="w-5 h-5" />
+              <div className="w-14 h-14 bg-surface-container rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden border-2 border-surface relative">
+                {property.image ? (
+                  <img src={property.image} alt={property.address} className="w-full h-full object-cover" />
+                ) : (
+                  <Building className="w-6 h-6 text-on-surface-variant" />
+                )}
               </div>
               <div className="flex flex-col">
                 <h1 className="text-base md:text-lg font-black text-on-surface leading-tight tracking-tight">
@@ -114,7 +124,7 @@ export function PropertyDetails() {
                   onClick={() => setActiveTab(tab)}
                   className={`relative flex-1 py-3 text-center font-black text-xs uppercase tracking-widest z-10 transition-colors ${activeTab === tab ? 'text-on-surface' : 'text-on-surface-variant/70 hover:text-on-surface'}`}
                 >
-                  {tab === 'tenant' ? 'Find Tenant' : 'Manage Prop'}
+                  {tab === 'tenant' ? (property.tenantName ? 'Current Tenant' : 'Find Tenant') : 'Manage Prop'}
                   {activeTab === tab && (
                     <motion.div
                       layoutId="iosSegment"

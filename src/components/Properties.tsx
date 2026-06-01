@@ -147,6 +147,7 @@ export function Properties() {
             </div>
           ) : viewMode === 'grid' ? (
             <motion.div 
+              key="grid"
               variants={containerVariants} 
               initial="hidden" 
               animate="visible" 
