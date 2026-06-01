@@ -1557,7 +1557,7 @@ function AppRoutes() {
 
   useEffect(() => {
     // Add demo properties to ensure they are visible on all routes
-    const demoLoaded = localStorage.getItem('demo_properties_loaded_v4');
+    const demoLoaded = localStorage.getItem('demo_properties_loaded_v5');
     if (!demoLoaded) {
       const demoProperties = [
         {
@@ -1632,7 +1632,7 @@ function AppRoutes() {
           postcode: '3000',
           state: 'VIC',
           propertyType: 'Apartment',
-          image: 'https://images.unsplash.com/photo-1493809842364-4981ca24c859?auto=format&fit=crop&q=80&w=800',
+          image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800',
           rentAmount: '750',
           paymentFrequency: 'Weekly',
           tenantName: 'David Lee',
@@ -1674,7 +1674,7 @@ function AppRoutes() {
         }
       ];
       localStorage.setItem('properties', JSON.stringify(demoProperties));
-      localStorage.setItem('demo_properties_loaded_v4', 'true');
+      localStorage.setItem('demo_properties_loaded_v5', 'true');
     }
   }, []);
   

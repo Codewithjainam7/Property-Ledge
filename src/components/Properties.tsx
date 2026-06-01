@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, Clock, LayoutGrid, List } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, Clock, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 
 export function Properties() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [filterType, setFilterType] = useState('All');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   useEffect(() => {
     const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
     setProperties(loadedProps);
   }, []);
 
-  const filteredProperties = properties.filter((p: any) => 
-    p.address?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.suburb?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProperties = properties.filter((p: any) => {
+    const matchesSearch = p.address?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.suburb?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filterType === 'All' || p.propertyType === filterType;
+    return matchesSearch && matchesFilter;
+  });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -58,6 +62,52 @@ export function Properties() {
               >
                 <List className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Custom Filter Dropdown */}
+            <div className="relative" tabIndex={0} onBlur={(e) => {
+              // Ensure we don't close if clicking inside the dropdown
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setIsFilterOpen(false);
+              }
+            }}>
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="flex items-center gap-2 pl-4 pr-3 py-2.5 bg-surface/80 backdrop-blur-md border border-outline-variant/40 rounded-full text-sm font-bold focus:outline-none focus:border-primary shadow-sm text-on-surface cursor-pointer hover:bg-surface-container-lowest transition-colors"
+              >
+                <Filter className="h-4 w-4 text-primary" />
+                <span>{filterType === 'All' ? 'All Properties' : filterType}</span>
+                <ChevronDown className={`h-4 w-4 text-on-surface-variant transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              <AnimatePresence>
+                {isFilterOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full mt-2 left-0 w-48 bg-surface/90 backdrop-blur-xl border border-outline-variant/40 rounded-[20px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] overflow-hidden z-50 py-1.5"
+                  >
+                    {['All', 'House', 'Apartment', 'Townhouse'].map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          setFilterType(type);
+                          setIsFilterOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors ${
+                          filterType === type 
+                            ? 'bg-primary/10 text-primary' 
+                            : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                        }`}
+                      >
+                        {type === 'All' ? 'All Properties' : type}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="relative flex-1 md:w-64">
@@ -168,45 +218,52 @@ export function Properties() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredProperties.map((property) => (
-                        <tr key={property.id} className="border-b border-outline-variant/20 hover:bg-surface-container-lowest/80 transition-colors group cursor-pointer" onClick={() => navigate(`/dashboard/property/${property.id}`)}>
+                      {filteredProperties.map((property, index) => (
+                        <tr key={property.id} className={`border-b border-outline-variant/20 transition-colors group cursor-pointer ${index % 2 === 0 ? 'bg-transparent hover:bg-surface-container-low/50' : 'bg-surface-container-lowest/80 hover:bg-surface-container-low/80'}`} onClick={() => navigate(`/dashboard/property/${property.id}`)}>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-surface-container shrink-0 border border-outline-variant/30 shadow-sm">
+                              <div className="w-16 h-16 md:w-20 md:h-20 rounded-[14px] md:rounded-[20px] overflow-hidden bg-surface-container shrink-0 border border-outline-variant/30 shadow-sm relative">
                                 {property.image ? (
                                   <img src={property.image} alt={property.address} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center"><Home className="w-5 h-5 text-on-surface-variant/50" /></div>
+                                  <div className="w-full h-full flex items-center justify-center"><Home className="w-6 h-6 text-on-surface-variant/50" /></div>
                                 )}
                               </div>
-                              <div>
-                                <div className="font-black text-sm text-on-surface tracking-tight">{property.address}</div>
-                                <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mt-1">{property.propertyType}</div>
+                              <div className="flex flex-col justify-center">
+                                <div className="font-black text-sm md:text-base text-on-surface tracking-tight mb-0.5">{property.address}</div>
+                                <div className="text-[10px] md:text-xs font-bold text-on-surface-variant uppercase tracking-wider">{property.propertyType}</div>
+                                <div className="text-[10px] text-on-surface-variant/60 uppercase font-bold mt-1">ID: {property.propertyId || property.id}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm font-bold text-on-surface">{property.suburb}</div>
-                            <div className="text-xs font-medium text-on-surface-variant mt-0.5">{property.state} {property.postcode}</div>
+                            <div className="text-sm md:text-base font-bold text-on-surface">{property.suburb}</div>
+                            <div className="text-xs md:text-sm font-medium text-on-surface-variant mt-0.5">{property.state} {property.postcode}</div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm font-black text-on-surface">${property.rentAmount} <span className="text-[10px] font-bold text-on-surface-variant">/ {property.paymentFrequency === 'Monthly' ? 'mo' : 'wk'}</span></div>
+                            <div className="text-sm md:text-base font-black text-on-surface">${property.rentAmount} <span className="text-[10px] md:text-xs font-bold text-on-surface-variant">/ {property.paymentFrequency === 'Monthly' ? 'mo' : 'wk'}</span></div>
+                            {property.leaseStart && (
+                              <div className="text-[10px] text-on-surface-variant font-medium mt-1">Lease start: {new Date(property.leaseStart).toLocaleDateString()}</div>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             {property.tenantName ? (
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shadow-inner">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-black shadow-inner shrink-0">
                                   {property.tenantName.charAt(0)}
                                 </div>
-                                <span className="text-sm font-bold text-on-surface">{property.tenantName}</span>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-on-surface leading-tight">{property.tenantName}</span>
+                                  {property.tenantEmail && <span className="text-[10px] md:text-xs text-on-surface-variant truncate w-24 md:w-auto mt-0.5">{property.tenantEmail}</span>}
+                                </div>
                               </div>
                             ) : (
-                              <span className="text-[10px] font-black text-on-surface-variant px-2.5 py-1 bg-surface-container-high rounded-full uppercase tracking-wider">Vacant</span>
+                              <span className="text-[10px] font-black text-on-surface-variant px-3 py-1.5 bg-surface-container-high rounded-full uppercase tracking-wider inline-block">Vacant</span>
                             )}
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button className="text-primary hover:text-primary-fixed-dim bg-primary/5 hover:bg-primary/10 p-2.5 rounded-full transition-colors">
-                              <ArrowUpRight className="w-4 h-4" />
+                            <button className="text-primary hover:text-primary-fixed-dim bg-primary/5 hover:bg-primary/15 p-3 rounded-full transition-colors">
+                              <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5" />
                             </button>
                           </td>
                         </tr>
