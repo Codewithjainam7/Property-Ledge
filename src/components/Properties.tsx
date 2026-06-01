@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, Clock } from 'lucide-react';
+import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, Clock, LayoutGrid, List } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 
@@ -8,6 +8,7 @@ export function Properties() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   useEffect(() => {
     const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
@@ -42,6 +43,23 @@ export function Properties() {
             <p className="text-sm text-on-surface-variant font-medium">Manage your portfolio and track performance.</p>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
+            
+            {/* View Mode Toggle */}
+            <div className="hidden md:flex bg-surface-container-high/60 backdrop-blur-md p-1 rounded-full shadow-inner border border-outline-variant/40 items-center">
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-surface shadow text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setViewMode('table')}
+                className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-surface shadow text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
             <div className="relative flex-1 md:w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-on-surface-variant" />
@@ -77,7 +95,7 @@ export function Properties() {
                 </Link>
               )}
             </div>
-          ) : (
+          ) : viewMode === 'grid' ? (
             <motion.div 
               variants={containerVariants} 
               initial="hidden" 
@@ -132,7 +150,72 @@ export function Properties() {
                 </motion.div>
               ))}
             </motion.div>
-          )}
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-surface/80 backdrop-blur-2xl border border-white/50 rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+              >
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-outline-variant/40 bg-surface-container-low/50">
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Property</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Location</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Rent</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Tenant</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredProperties.map((property) => (
+                        <tr key={property.id} className="border-b border-outline-variant/20 hover:bg-surface-container-lowest/80 transition-colors group cursor-pointer" onClick={() => navigate(`/dashboard/property/${property.id}`)}>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-surface-container shrink-0 border border-outline-variant/30 shadow-sm">
+                                {property.image ? (
+                                  <img src={property.image} alt={property.address} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center"><Home className="w-5 h-5 text-on-surface-variant/50" /></div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-black text-sm text-on-surface tracking-tight">{property.address}</div>
+                                <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mt-1">{property.propertyType}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-bold text-on-surface">{property.suburb}</div>
+                            <div className="text-xs font-medium text-on-surface-variant mt-0.5">{property.state} {property.postcode}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-black text-on-surface">${property.rentAmount} <span className="text-[10px] font-bold text-on-surface-variant">/ {property.paymentFrequency === 'Monthly' ? 'mo' : 'wk'}</span></div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {property.tenantName ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shadow-inner">
+                                  {property.tenantName.charAt(0)}
+                                </div>
+                                <span className="text-sm font-bold text-on-surface">{property.tenantName}</span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-black text-on-surface-variant px-2.5 py-1 bg-surface-container-high rounded-full uppercase tracking-wider">Vacant</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button className="text-primary hover:text-primary-fixed-dim bg-primary/5 hover:bg-primary/10 p-2.5 rounded-full transition-colors">
+                              <ArrowUpRight className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
+            )}
 
         </div>
       </div>
