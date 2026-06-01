@@ -219,35 +219,37 @@ export function PropertyDetails() {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full right-0 mt-2 w-48 bg-surface rounded-2xl shadow-xl border border-outline-variant/30 overflow-hidden"
+                    className="absolute top-full right-0 pt-2 z-50"
                   >
-                    <div className="p-1">
-                      {images.length < 5 && (
-                        <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
-                          <Plus className="w-4 h-4" /> Add Image ({images.length}/5)
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'add')} />
-                        </label>
-                      )}
-                      {images.length > 0 && (
-                        <>
+                    <div className="w-48 bg-surface rounded-2xl shadow-xl border border-outline-variant/30 overflow-hidden">
+                      <div className="p-1">
+                        {images.length < 5 && (
                           <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
-                            <ImageIcon className="w-4 h-4" /> Replace Image
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'replace')} />
+                            <Plus className="w-4 h-4" /> Add Image ({images.length}/5)
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'add')} />
                           </label>
-                          <button 
-                            onClick={handleDeleteImage}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-error hover:bg-error/10 rounded-xl cursor-pointer transition-colors text-left"
-                          >
-                            <Trash2 className="w-4 h-4" /> Delete Image
-                          </button>
-                        </>
-                      )}
-                      {images.length === 0 && (
-                        <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
-                          <Plus className="w-4 h-4" /> Upload Image
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'add')} />
-                        </label>
-                      )}
+                        )}
+                        {images.length > 0 && (
+                          <>
+                            <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
+                              <ImageIcon className="w-4 h-4" /> Replace Image
+                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'replace')} />
+                            </label>
+                            <button 
+                              onClick={handleDeleteImage}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-error hover:bg-error/10 rounded-xl cursor-pointer transition-colors text-left"
+                            >
+                              <Trash2 className="w-4 h-4" /> Delete Image
+                            </button>
+                          </>
+                        )}
+                        {images.length === 0 && (
+                          <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
+                            <Plus className="w-4 h-4" /> Upload Image
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'add')} />
+                          </label>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 )}
