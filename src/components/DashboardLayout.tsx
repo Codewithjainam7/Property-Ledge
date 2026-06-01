@@ -42,8 +42,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { name: 'Overview', icon: PieChart, to: '/dashboard', exact: true },
     { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
     { name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false },
+    { name: 'Invoices', icon: FileText, to: '/dashboard/invoices', exact: false },
     { name: 'Accounting', icon: Wallet, to: '/dashboard/accounting', exact: false },
-    { name: 'Documents', icon: FileText, to: '/dashboard/documents', exact: false },
   ];
 
   const checkIsActive = (link: any) => {

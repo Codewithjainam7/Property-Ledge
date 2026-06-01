@@ -10,7 +10,7 @@ import { PropertyOnboarding } from './components/PropertyOnboarding';
 import { PropertyDetails } from './components/PropertyDetails';
 import { Properties } from './components/Properties';
 import { AccountSettings } from './components/AccountSettings';
-
+import { InvoiceManagement } from './components/InvoiceManagement';
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -1688,6 +1688,7 @@ function AppRoutes() {
         <Route path="/dashboard/properties" element={<Properties />} />
         <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
         <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
+        <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
         <Route path="/dashboard/settings" element={<AccountSettings />} />
       </Routes>
     </AnimatePresence>
