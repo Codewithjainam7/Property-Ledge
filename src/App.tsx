@@ -49,8 +49,8 @@ function Navigation() {
       <nav 
         className={`fixed left-1/2 -translate-x-1/2 w-[96%] sm:w-[94%] max-w-7xl transition-all duration-500 z-50 rounded-2xl border ${
           scrolled 
-            ? 'top-3 bg-white/95 backdrop-blur-2xl border-primary/10 shadow-[0_8px_32px_rgba(59,34,181,0.10),0_2px_8px_rgba(0,0,0,0.06)] py-3 px-4 sm:px-5' 
-            : 'top-4 bg-white/60 backdrop-blur-xl border-white/35 shadow-[0_4px_24px_rgba(0,0,0,0.04)] py-3.5 px-4 sm:px-6'
+            ? 'top-3 bg-surface/95 backdrop-blur-2xl border-outline-variant/50 shadow-sm py-3 px-4 sm:px-5' 
+            : 'top-4 bg-surface/60 backdrop-blur-xl border-outline-variant/30 shadow-sm py-3.5 px-4 sm:px-6'
         }`}
       >
         <div className="w-full flex justify-between items-center gap-3">
@@ -59,8 +59,8 @@ function Navigation() {
             className="flex items-center gap-2.5 group z-50 shrink-0"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-[#6B3AFF] flex items-center justify-center shadow-md shadow-primary/30 group-hover:scale-105 group-hover:shadow-primary/50 transition-all duration-300 shrink-0">
-              <Building className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm transition-all duration-300 shrink-0">
+              <Building className="w-5 h-5 text-on-primary" />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-[13px] xs:text-sm sm:text-base tracking-tight leading-none">
@@ -111,9 +111,8 @@ function Navigation() {
             
             <Link 
               to={isLoggedIn ? "/dashboard" : "/signup"} 
-              className="relative group overflow-hidden flex items-center gap-2 bg-primary text-on-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 whitespace-nowrap"
+              className="relative group flex items-center gap-2 bg-primary text-on-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-all shadow-sm whitespace-nowrap"
             >
-              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
               <span className="hidden sm:inline">{isLoggedIn ? 'Go to Dashboard' : 'Start Free Trial'}</span>
               <span className="sm:hidden">{isLoggedIn ? 'Dashboard' : 'Sign Up'}</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -159,18 +158,17 @@ function Navigation() {
 
               <div className="flex flex-col gap-6 relative z-10">
                 {/* Visual Card Intro in drawer */}
-                <div className="p-5 rounded-[24px] bg-gradient-to-br from-primary to-[#6B3AFF] shadow-lg shadow-primary/30 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-full blur-md pointer-events-none" />
+                <div className="p-5 rounded-[24px] bg-primary shadow-sm relative overflow-hidden group">
                   <div className="flex items-center gap-3 mb-2 relative z-10">
                     <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-inner border border-white/20">
-                      <Building className="w-5 h-5 text-white" />
+                      <Building className="w-5 h-5 text-on-primary" />
                     </div>
                     <div>
-                      <div className="text-white font-black tracking-tight leading-none text-lg">Property<span className="text-white/70">Ledge</span></div>
-                      <div className="text-white/80 font-bold text-[10px] uppercase tracking-widest mt-0.5">Mobile Access</div>
+                      <div className="text-on-primary font-black tracking-tight leading-none text-lg">Property<span className="text-on-primary/70">Ledge</span></div>
+                      <div className="text-on-primary/80 font-bold text-[10px] uppercase tracking-widest mt-0.5">Mobile Access</div>
                     </div>
                   </div>
-                  <div className="text-[13px] text-white/90 font-medium leading-tight relative z-10">Premium property management toolkit in your pocket.</div>
+                  <div className="text-[13px] text-on-primary/90 font-medium leading-tight relative z-10">Premium property management toolkit in your pocket.</div>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -200,7 +198,7 @@ function Navigation() {
                   <Link
                     to="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-4 text-center bg-gradient-to-r from-primary to-[#6B3AFF] text-white text-base font-black rounded-2xl hover:opacity-90 transition-all shadow-[0_8px_30px_rgba(59,34,181,0.3)] flex items-center justify-center gap-2 group active:scale-95"
+                    className="w-full py-4 text-center bg-primary text-on-primary text-base font-black rounded-2xl hover:bg-primary/90 transition-all shadow-sm flex items-center justify-center gap-2 group active:scale-95"
                   >
                     Go to Dashboard <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
@@ -216,7 +214,7 @@ function Navigation() {
                     <Link
                       to="/signup"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full py-4 text-center bg-gradient-to-r from-primary to-[#6B3AFF] text-white text-base font-black rounded-2xl hover:opacity-90 transition-all shadow-[0_8px_30px_rgba(59,34,181,0.3)] flex items-center justify-center gap-2 group active:scale-95"
+                      className="w-full py-4 text-center bg-primary text-on-primary text-base font-black rounded-2xl hover:bg-primary/90 transition-all shadow-sm flex items-center justify-center gap-2 group active:scale-95"
                     >
                       Start Free Trial <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </Link>
@@ -236,51 +234,51 @@ function SimulatedDashboardMockup() {
   return (
     <div className="w-full h-full flex flex-col md:flex-row text-on-surface bg-surface-container-lowest font-sans select-none text-left">
       {/* Mini Sidebar */}
-      <div className="w-full md:w-20 lg:w-24 bg-[#0c0628] text-white flex md:flex-col items-center justify-between p-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 shrink-0">
+      <div className="w-full md:w-20 lg:w-24 bg-surface text-on-surface flex md:flex-col items-center justify-between p-4 md:py-8 border-b md:border-b-0 md:border-r border-outline-variant/50 shrink-0">
         <div className="flex md:flex-col items-center gap-6 w-full">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-black text-white shadow-lg shadow-primary/30 text-sm">PL</div>
-          <div className="flex md:flex-col items-center gap-4 text-white/50 w-full justify-center">
-            <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-primary"><Home className="w-5 h-5" /></div>
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-black text-on-primary shadow-sm text-sm">PL</div>
+          <div className="flex md:flex-col items-center gap-4 text-on-surface-variant w-full justify-center">
+            <div className="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary"><Home className="w-5 h-5" /></div>
             <div className="w-9 h-9 rounded-lg flex items-center justify-center"><Building className="w-5 h-5" /></div>
             <div className="w-9 h-9 rounded-lg flex items-center justify-center"><Users className="w-5 h-5" /></div>
             <div className="w-9 h-9 rounded-lg flex items-center justify-center"><ClipboardList className="w-5 h-5" /></div>
             <div className="w-9 h-9 rounded-lg flex items-center justify-center"><PieChart className="w-5 h-5" /></div>
           </div>
         </div>
-        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-bold text-white text-xs">JD</div>
+        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-bold text-on-secondary text-xs">JD</div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 bg-[#f9f9fd] p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto min-h-[350px] sm:min-h-[450px] md:min-h-[500px]">
+      <div className="flex-1 bg-background p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto min-h-[350px] sm:min-h-[450px] md:min-h-[500px]">
         {/* Mock Top bar */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h4 className="text-base sm:text-lg font-black text-[#0f0b35] tracking-tight">Portfolio Ledger</h4>
+            <h4 className="text-base sm:text-lg font-black text-on-surface tracking-tight">Portfolio Ledger</h4>
             <p className="text-[10px] sm:text-xs text-on-surface-variant/80 font-bold">Welcome back, Jainam</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 bg-white border border-outline-variant/30 rounded-full px-3 py-1 text-xs text-on-surface-variant font-bold shadow-sm">
+            <div className="hidden sm:flex items-center gap-2 bg-surface border border-outline-variant/50 rounded-full px-3 py-1 text-xs text-on-surface-variant font-bold shadow-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Auto-sync active
             </div>
-            <div className="w-8 h-8 rounded-full bg-white border border-outline-variant/30 flex items-center justify-center text-on-surface shadow-sm"><Mail className="w-4 h-4" /></div>
+            <div className="w-8 h-8 rounded-full bg-surface border border-outline-variant/50 flex items-center justify-center text-on-surface shadow-sm"><Mail className="w-4 h-4" /></div>
           </div>
         </div>
 
         {/* 3 Metrics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+          <div className="bg-surface p-4 rounded-2xl border border-outline-variant/50 shadow-sm flex flex-col justify-between">
             <div className="text-[10px] text-on-surface-variant/85 font-black uppercase tracking-wider">Rent Collected</div>
             <div className="text-lg sm:text-xl font-black text-primary mt-2">$14,820.00</div>
             <div className="text-[9px] text-emerald-600 font-bold mt-1">↑ 12% vs last month</div>
           </div>
-          <div className="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+          <div className="bg-surface p-4 rounded-2xl border border-outline-variant/50 shadow-sm flex flex-col justify-between">
             <div className="text-[10px] text-on-surface-variant/85 font-black uppercase tracking-wider">Occupancy</div>
             <div className="text-lg sm:text-xl font-black text-secondary mt-2">100%</div>
-            <div className="text-[9px] text-[#5952af] font-bold mt-1">8 of 8 units occupied</div>
+            <div className="text-[9px] text-secondary font-bold mt-1">8 of 8 units occupied</div>
           </div>
-          <div className="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+          <div className="bg-surface p-4 rounded-2xl border border-outline-variant/50 shadow-sm flex flex-col justify-between">
             <div className="text-[10px] text-on-surface-variant/85 font-black uppercase tracking-wider">Expenses Scanned</div>
-            <div className="text-lg sm:text-xl font-black text-[#006461] mt-2">$3,420.50</div>
+            <div className="text-lg sm:text-xl font-black text-tertiary mt-2">$3,420.50</div>
             <div className="text-[9px] text-on-surface-variant font-bold mt-1">Matched EOFY deductions</div>
           </div>
         </div>
@@ -288,9 +286,9 @@ function SimulatedDashboardMockup() {
         {/* Bottom Split (Recent payments & Property stats) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Rent Schedule */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-outline-variant/30 p-4 sm:p-5 shadow-sm">
+          <div className="lg:col-span-2 bg-surface rounded-2xl border border-outline-variant/50 p-4 sm:p-5 shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-xs sm:text-sm font-black text-[#0f0b35]">Active Tenancies Ledger</span>
+              <span className="text-xs sm:text-sm font-black text-on-surface">Active Tenancies Ledger</span>
               <span className="text-[8px] sm:text-[9px] bg-primary/5 text-primary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Live Ledger</span>
             </div>
             <div className="space-y-3">
@@ -299,7 +297,7 @@ function SimulatedDashboardMockup() {
                 { address: "48 Collins Street, Melbourne", tenant: "Sarah Jenkins", amount: "$4,100/mo", status: "Paid", color: "bg-emerald-500/10 text-emerald-700" },
                 { address: "7a Boundary Rd, Brisbane", tenant: "David L.", amount: "$2,850/mo", status: "Pending", color: "bg-amber-500/10 text-amber-700" }
               ].map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 hover:bg-[#fcfdff] rounded-xl border border-transparent hover:border-outline-variant/20 transition-all">
+                <div key={idx} className="flex justify-between items-center p-3 hover:bg-surface-container-lowest rounded-xl border border-transparent hover:border-outline-variant/50 transition-all">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary font-bold text-[10px]">0{idx+1}</div>
                     <div>
@@ -314,8 +312,8 @@ function SimulatedDashboardMockup() {
           </div>
 
           {/* Quick Expense breakdown graph */}
-          <div className="bg-white rounded-2xl border border-outline-variant/30 p-4 sm:p-5 shadow-sm flex flex-col justify-between">
-            <span className="text-xs sm:text-sm font-black text-[#0f0b35] mb-3">EOFY Tax Readiness</span>
+          <div className="bg-surface rounded-2xl border border-outline-variant/50 p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+            <span className="text-xs sm:text-sm font-black text-on-surface mb-3">EOFY Tax Readiness</span>
             <div className="flex-1 flex items-center justify-center py-4">
               <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
                 {/* Circular ring representation */}
@@ -327,7 +325,7 @@ function SimulatedDashboardMockup() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-between text-[9px] text-on-surface-variant font-bold border-t border-outline-variant/30 pt-3">
+            <div className="flex justify-between text-[9px] text-on-surface-variant font-bold border-t border-outline-variant/50 pt-3">
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> Repairs</span>
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-secondary" /> Interest</span>
             </div>
@@ -362,37 +360,11 @@ function Hero() {
     <section 
       className="pt-28 pb-12 sm:pt-36 sm:pb-16 md:pt-40 md:pb-20 px-4 flex flex-col items-center justify-center relative overflow-hidden min-h-[90vh]"
     >
-      {/* Base gradient background for the Hero section */}
-      <div className="absolute inset-0 bg-gradient-to-b from-surface via-surface-container-low to-surface z-0"></div>
+      {/* Base background for the Hero section */}
+      <div className="absolute inset-0 bg-background z-0"></div>
 
-      {/* Geometric Grid Overlay for modern 2026 tech look */}
+      {/* Geometric Grid Overlay */}
       <div className="absolute inset-0 grid-pattern opacity-40 z-0 pointer-events-none" />
-
-      {/* Dynamic Animated Ambient Blobs under the glass layer */}
-      <motion.div 
-        animate={{
-          x: [0, 45, -25, 0],
-          y: [0, -35, 45, 0],
-        }}
-        transition={{
-          duration: 16,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute top-[10%] left-[10%] w-[350px] h-[350px] md:w-[500px] md:h-[500px] rounded-full bg-primary/15 blur-[130px] pointer-events-none z-0"
-      />
-      <motion.div 
-        animate={{
-          x: [0, -55, 35, 0],
-          y: [0, 45, -35, 0],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute bottom-[15%] right-[10%] w-[400px] h-[400px] md:w-[550px] md:h-[550px] rounded-full bg-secondary-container/20 blur-[140px] pointer-events-none z-0"
-      />
 
       <motion.div 
         variants={containerVariants}
@@ -402,18 +374,18 @@ function Hero() {
       >
         <motion.div 
           variants={itemVariants}
-          className="inline-flex items-center gap-2.5 bg-gradient-to-r from-primary/10 to-secondary/15 backdrop-blur-xl border border-primary/20 rounded-full px-4 py-2 mb-8 shadow-sm hover:border-primary/45 transition-colors"
+          className="inline-flex items-center gap-2.5 bg-surface backdrop-blur-xl border border-outline-variant/50 rounded-full px-4 py-2 mb-8 shadow-sm hover:border-outline-variant transition-colors"
         >
           <span className="bg-primary text-on-primary text-[10px] font-black uppercase tracking-widest py-0.5 px-2.5 rounded-full shadow-inner animate-pulse">Live</span>
-          <span className="text-primary font-bold text-xs sm:text-sm pr-1">🇦🇺 The New Standard for Australian Landlords</span>
+          <span className="text-on-surface font-bold text-xs sm:text-sm pr-1">🇦🇺 The New Standard for Australian Landlords</span>
         </motion.div>
         
         <motion.h1 
           variants={itemVariants}
-          className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-[80px] font-black tracking-tight leading-[1.05] text-on-surface mb-6 font-display text-glow"
+          className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-[80px] font-black tracking-tight leading-[1.05] text-on-surface mb-6 font-display"
         >
           Your entire property portfolio.<br />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-secondary-container tracking-tighter">Automated in one place.</span>
+          <span className="text-primary tracking-tighter">Automated in one place.</span>
         </motion.h1>
         
         <motion.p 
@@ -427,7 +399,7 @@ function Hero() {
           variants={itemVariants}
           className="flex flex-col sm:flex-row items-center gap-4 mb-14 w-full sm:w-auto px-4"
         >
-          <Link to="/signup" className="bg-primary text-on-primary w-full sm:w-auto text-base sm:text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-primary/95 transition-all shadow-xl glow-primary">
+          <Link to="/signup" className="bg-primary text-on-primary w-full sm:w-auto text-base sm:text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-primary/95 transition-all shadow-sm">
             Start Free Trial <ArrowRight className="w-5 h-5" />
           </Link>
           <button className="bg-white/80 border-2 border-outline-variant/60 text-on-surface w-full sm:w-auto text-base sm:text-lg font-bold uppercase tracking-wider rounded-full px-8 py-4 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors shadow-sm">
@@ -468,7 +440,7 @@ function Hero() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="w-full max-w-5xl mx-auto mt-12 md:mt-20 relative z-10 perspective-[1000px] group/hero-img px-4"
       >
-        <div className="bg-surface-container-lowest/80 backdrop-blur-2xl rounded-[32px] overflow-hidden border border-outline-variant shadow-[0_32px_64px_rgba(59,34,181,0.06),_0_0_0_1px_rgba(255,255,255,0.3)] transition-transform duration-300">
+        <div className="bg-surface rounded-[24px] overflow-hidden border border-outline-variant/50 shadow-sm transition-transform duration-300">
           <div className="h-12 border-b border-outline-variant flex items-center px-6 gap-2 bg-surface-container/50">
             <div className="flex gap-2">
               <div className="w-3 h-3 rounded-full bg-error hover:scale-110 transition-transform cursor-pointer"></div>
@@ -515,19 +487,19 @@ function LogoStrip() {
 function FeatureVisualMockup({ label }: { label: string }) {
   if (label === 'INVOICING') {
     return (
-      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+      <div className="w-full h-full bg-background p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
         <div className="flex justify-between items-center mb-3">
-          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Rent Invoice INV-00142</div>
+          <div className="text-xs sm:text-sm font-black text-on-surface">Rent Invoice INV-00142</div>
           <span className="text-[9px] bg-emerald-500/10 text-emerald-700 font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Paid</span>
         </div>
         <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 sm:p-4 shadow-sm space-y-2.5 flex-1 flex flex-col justify-center">
           <div className="flex justify-between text-xs">
             <span className="text-on-surface-variant font-bold">Tenant</span>
-            <span className="font-black text-[#0f0b35]">Smith Family</span>
+            <span className="font-black text-on-surface">Smith Family</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-on-surface-variant font-bold">Amount Due</span>
-            <span className="font-black text-[#0f0b35]">$480.00</span>
+            <span className="font-black text-on-surface">$480.00</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-on-surface-variant font-bold">Due Date</span>
@@ -535,7 +507,7 @@ function FeatureVisualMockup({ label }: { label: string }) {
           </div>
           <div className="border-t border-outline-variant/20 pt-2.5">
             <div className="text-[9px] text-on-surface-variant font-black uppercase tracking-wider mb-1">Direct Deposit Instructions:</div>
-            <div className="bg-[#fcfdff] p-2 rounded-xl border border-outline-variant/20 text-[9px] space-y-0.5 font-mono text-on-surface-variant">
+            <div className="bg-surface-container p-2 rounded-xl border border-outline-variant/20 text-[9px] space-y-0.5 font-mono text-on-surface-variant">
               <div><span className="font-black">BSB:</span> 082-902</div>
               <div><span className="font-black">Account:</span> 4892-0193</div>
               <div><span className="font-black">Ref:</span> INV-00142</div>
@@ -551,22 +523,22 @@ function FeatureVisualMockup({ label }: { label: string }) {
 
   if (label === 'PORTFOLIO') {
     return (
-      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+      <div className="w-full h-full bg-background p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
         <div className="flex justify-between items-center mb-3">
-          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Property Assets</div>
+          <div className="text-xs sm:text-sm font-black text-on-surface">Property Assets</div>
           <span className="text-[9px] bg-primary/10 text-primary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">2 Active</span>
         </div>
         <div className="space-y-2.5 flex-1 flex flex-col justify-center">
           <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 shadow-sm flex justify-between items-center">
             <div>
-              <div className="text-xs font-black text-[#0f0b35]">12 Acacia Avenue, Sydney</div>
+              <div className="text-xs font-black text-on-surface">12 Acacia Avenue, Sydney</div>
               <div className="text-[9px] text-on-surface-variant font-bold mt-0.5">3 Bed • 2 Bath • Residential</div>
             </div>
             <span className="text-[9px] bg-emerald-500/10 text-emerald-700 font-black px-2 py-0.5 rounded-full">100% Occupied</span>
           </div>
           <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 shadow-sm flex justify-between items-center">
             <div>
-              <div className="text-xs font-black text-[#0f0b35]">48 Collins Street, Melbourne</div>
+              <div className="text-xs font-black text-on-surface">48 Collins Street, Melbourne</div>
               <div className="text-[9px] text-on-surface-variant font-bold mt-0.5">2 Bed • 1.5 Bath • Apartment</div>
             </div>
             <span className="text-[9px] bg-emerald-500/10 text-emerald-700 font-black px-2 py-0.5 rounded-full">100% Occupied</span>
@@ -581,9 +553,9 @@ function FeatureVisualMockup({ label }: { label: string }) {
 
   if (label === 'REPORTS') {
     return (
-      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+      <div className="w-full h-full bg-background p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
         <div className="flex justify-between items-center mb-3">
-          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">ATO Tax Ledger</div>
+          <div className="text-xs sm:text-sm font-black text-on-surface">ATO Tax Ledger</div>
           <span className="text-[9px] bg-emerald-600/10 text-emerald-700 font-black uppercase tracking-wider px-2 py-0.5 rounded-full">EOFY Ready</span>
         </div>
         <div className="space-y-2 flex-1 flex flex-col justify-center">
@@ -595,7 +567,7 @@ function FeatureVisualMockup({ label }: { label: string }) {
           ].map((item, idx) => (
             <div key={idx} className="bg-white border border-outline-variant/35 rounded-xl p-2 sm:p-2.5 shadow-sm flex justify-between items-center text-xs">
               <div>
-                <div className="font-black text-[#0f0b35] text-[11px] sm:text-xs">{item.cat}</div>
+                <div className="font-black text-on-surface text-[11px] sm:text-xs">{item.cat}</div>
                 <div className="text-[8px] sm:text-[9px] text-on-surface-variant/80 font-bold mt-0.5">{item.rule}</div>
               </div>
               <span className="font-black text-primary text-[11px] sm:text-xs">{item.amount}</span>
@@ -608,13 +580,13 @@ function FeatureVisualMockup({ label }: { label: string }) {
 
   if (label === 'INSPECTIONS') {
     return (
-      <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+      <div className="w-full h-full bg-background p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
         <div className="flex justify-between items-center mb-3">
-          <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Routine Inspection</div>
-          <span className="text-[9px] bg-secondary/15 text-[#5952af] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Unit 3B</span>
+          <div className="text-xs sm:text-sm font-black text-on-surface">Routine Inspection</div>
+          <span className="text-[9px] bg-secondary/15 text-secondary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Unit 3B</span>
         </div>
         <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 sm:p-4 shadow-sm space-y-2.5 flex-1 flex flex-col justify-center">
-          <div className="text-[9px] font-black text-[#0f0b35] uppercase tracking-wider border-b border-outline-variant/20 pb-1">Checklist</div>
+          <div className="text-[9px] font-black text-on-surface uppercase tracking-wider border-b border-outline-variant/20 pb-1">Checklist</div>
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center gap-2 text-emerald-700 font-bold text-[11px] sm:text-xs">
               <span className="w-3.5 h-3.5 rounded bg-emerald-500/10 flex items-center justify-center text-[9px] font-black shrink-0">✓</span> Kitchen: Clean, oven functioning
@@ -639,28 +611,28 @@ function FeatureVisualMockup({ label }: { label: string }) {
 
   // LEASING
   return (
-    <div className="w-full h-full bg-[#f9f9fd] p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
+    <div className="w-full h-full bg-background p-5 sm:p-6 flex flex-col justify-between select-none text-left text-on-surface rounded-[28px] overflow-hidden">
       <div className="flex justify-between items-center mb-3">
-        <div className="text-xs sm:text-sm font-black text-[#0f0b35]">Tenancy Agreement</div>
+        <div className="text-xs sm:text-sm font-black text-on-surface">Tenancy Agreement</div>
         <span className="text-[9px] bg-primary/10 text-primary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Legally Signed</span>
       </div>
       <div className="bg-white border border-outline-variant/35 rounded-2xl p-3 sm:p-4 shadow-sm space-y-2.5 flex-1 flex flex-col justify-center">
-        <div className="text-[9px] font-black text-[#0f0b35] uppercase tracking-wider border-b border-outline-variant/20 pb-1">Key Terms</div>
+        <div className="text-[9px] font-black text-on-surface uppercase tracking-wider border-b border-outline-variant/20 pb-1">Key Terms</div>
         <div className="grid grid-cols-2 gap-2 text-[10px] sm:text-xs font-bold text-on-surface-variant">
           <div>
-            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Landlord</span>
+            <span className="block font-black text-on-surface text-[9px] uppercase tracking-wider">Landlord</span>
             Sarah Jenkins
           </div>
           <div>
-            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Tenant</span>
+            <span className="block font-black text-on-surface text-[9px] uppercase tracking-wider">Tenant</span>
             Smith Family
           </div>
           <div>
-            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Rent</span>
+            <span className="block font-black text-on-surface text-[9px] uppercase tracking-wider">Rent</span>
             $780 / week
           </div>
           <div>
-            <span className="block font-black text-[#0f0b35] text-[9px] uppercase tracking-wider">Term</span>
+            <span className="block font-black text-on-surface text-[9px] uppercase tracking-wider">Term</span>
             12 Months Fixed
           </div>
         </div>
@@ -680,17 +652,12 @@ function FeatureVisualMockup({ label }: { label: string }) {
 function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadge }: any) {
   return (
     <section className="py-16 sm:py-24 px-4 sm:px-6 overflow-hidden relative">
-      {/* Background soft glowing orb for each feature card */}
-      <div 
-        className={`absolute top-1/2 -translate-y-1/2 ${reversed ? 'left-1/4' : 'right-1/4'} w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px] pointer-events-none -z-10`} 
-      />
-
       <motion.div 
         initial={{ opacity: 0, y: 60 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-120px" }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className={`max-w-7xl mx-auto group bg-gradient-to-br from-white/95 via-white/70 to-[#f5f3ff]/40 backdrop-blur-3xl rounded-[40px] border border-white/60 p-5 sm:p-8 md:p-12 lg:p-16 flex flex-col ${reversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-8 lg:gap-20 shadow-[0_32px_80px_-20px_rgba(59,34,181,0.06),_0_0_0_1px_rgba(255,255,255,0.4)] hover:shadow-[0_48px_100px_-20px_rgba(59,34,181,0.12),_0_0_0_1px_rgba(255,255,255,0.5)] transition-all duration-700`}
+        className={`max-w-7xl mx-auto group bg-surface rounded-[40px] border border-outline-variant/50 p-5 sm:p-8 md:p-12 lg:p-16 flex flex-col ${reversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-8 lg:gap-20 shadow-sm transition-all duration-700`}
       >
         {/* Left Side: Content */}
         <div className="flex-1 space-y-6 sm:space-y-8 z-10 relative">
@@ -712,12 +679,12 @@ function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadg
               <motion.div
                 key={i}
                 whileHover={{ x: 8 }}
-                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-white/40 border border-white/40 backdrop-blur-sm shadow-sm transition-all duration-300 hover:bg-white/80 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(59,34,181,0.05)] group/bullet"
+                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-surface-container-low border border-outline-variant/30 shadow-sm transition-all duration-300 hover:bg-surface hover:border-primary/50 group/bullet"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover/bullet:bg-primary group-hover/bullet:text-white transition-all duration-300 shadow-inner shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover/bullet:bg-primary group-hover/bullet:text-on-primary transition-all duration-300 shadow-inner shrink-0">
                   <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
                 </div>
-                <span className="text-[#333333] font-bold text-sm sm:text-base md:text-lg tracking-tight leading-none">
+                <span className="text-on-surface font-bold text-sm sm:text-base md:text-lg tracking-tight leading-none">
                   {b}
                 </span>
               </motion.div>
@@ -740,12 +707,12 @@ function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadg
         {/* Right Side: Visual */}
         <div className="flex-1 relative w-full lg:w-1/2">
           {floatingBadge && (
-            <div className={`absolute -top-4 md:-top-6 ${reversed ? 'left-4 md:-left-6' : 'right-4 md:-right-6'} z-20 bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-3 md:p-4.5 rounded-2xl flex items-center gap-3 md:gap-4 transition-all duration-500 hover:scale-105 animate-float scale-[0.8] sm:scale-95 md:scale-100 origin-center`}>
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-inner ${floatingBadge.colorClass || 'bg-secondary-container text-on-secondary-container'}`}>
+            <div className={`absolute -top-4 md:-top-6 ${reversed ? 'left-4 md:-left-6' : 'right-4 md:-right-6'} z-20 bg-surface border border-outline-variant/50 shadow-sm p-3 md:p-4.5 rounded-2xl flex items-center gap-3 md:gap-4 transition-all duration-500 hover:scale-105 scale-[0.8] sm:scale-95 md:scale-100 origin-center`}>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-sm bg-secondary-container text-on-secondary-container`}>
                 {floatingBadge.icon || <Check className="w-6 h-6" />}
               </div>
               <div>
-                <div className="text-xs sm:text-sm font-black text-[#333333] tracking-tight">{floatingBadge.title}</div>
+                <div className="text-xs sm:text-sm font-black text-on-surface tracking-tight">{floatingBadge.title}</div>
                 <div className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-widest mt-0.5">{floatingBadge.subtitle}</div>
               </div>
             </div>
@@ -822,8 +789,8 @@ function Pricing() {
               key={i} 
               className={`relative flex flex-col rounded-[32px] transition-all duration-500
                 ${plan.isPopular 
-                  ? 'bg-gradient-to-b from-[#1A1A24] to-[#0D0D14] text-white border-none shadow-[0_32px_80px_-12px_rgba(59,34,181,0.50)] lg:scale-105 z-20 py-12 px-8 md:px-10' 
-                  : 'bg-white/60 backdrop-blur-3xl border border-outline-variant/50 shadow-xl shadow-black/5 hover:shadow-2xl hover:-translate-y-2 z-10 py-10 px-8 md:px-10'
+                  ? 'bg-primary text-on-primary border border-outline-variant/50 shadow-md lg:scale-105 z-20 py-12 px-8 md:px-10' 
+                  : 'bg-surface border border-outline-variant/50 shadow-sm z-10 py-10 px-8 md:px-10'
                 }
               `}
             >
@@ -998,7 +965,7 @@ function Footer() {
           {/* Logo & Intro Brand Column — full width on mobile */}
           <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex flex-col gap-5">
             <Link to="/" className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5 font-display w-fit">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[#6B3AFF] flex items-center justify-center shadow-md shadow-primary/40 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br bg-primary flex items-center justify-center shadow-md shadow-primary/40 shrink-0">
                 <Building className="w-5 h-5 text-white" />
               </div>
               Property<span className="text-primary">Ledge</span>
@@ -1454,21 +1421,21 @@ function Signup() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">First name</label>
-                  <input type="text" placeholder="Sarah" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
+                  <input type="text" placeholder="Sarah" required value={fname} onChange={(e) => setFname(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-on-surface-variant text-sm" />
                  </div>
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Last name</label>
-                  <input type="text" placeholder="Connor" required value={lname} onChange={(e) => setLname(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
+                  <input type="text" placeholder="Connor" required value={lname} onChange={(e) => setLname(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-on-surface-variant text-sm" />
                  </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Email address</label>
-                  <input type="email" placeholder="sarah@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
+                  <input type="email" placeholder="sarah@gmail.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-on-surface-variant text-sm" />
                  </div>
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Mobile number</label>
-                  <input type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="0412 345 678" className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
+                  <input type="tel" required value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="0412 345 678" className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-on-surface-variant text-sm" />
                  </div>
               </div>
               <div className="space-y-4">
@@ -1481,7 +1448,7 @@ function Signup() {
                         </button>
                       </div>
                       <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 pr-10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
+                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 pr-10 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-on-surface-variant text-sm" />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-on-surface transition-colors">
                             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -1490,7 +1457,7 @@ function Signup() {
                    <div className="space-y-2">
                       <label className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Confirm Password</label>
                       <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-[#a0acb5] text-sm" />
+                        <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white/70 border border-outline-variant/60 rounded-2xl px-4 py-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-on-surface-variant text-sm" />
                       </div>
                    </div>
                 </div>
