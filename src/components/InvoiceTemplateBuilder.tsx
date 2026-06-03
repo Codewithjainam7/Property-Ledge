@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { Box, Typography, Button, TextField, IconButton } from '@mui/material';
@@ -37,9 +38,9 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
       
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -113,11 +114,12 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
 
         <div className="p-6 bg-surface-container-lowest border-t border-outline-variant/30 flex justify-end gap-3">
           <Button onClick={onClose} sx={{ fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', px: 3, borderRadius: '50px' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disableElevation sx={{ borderRadius: '50px', px: 5, py: 1.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 8px 16px -4px rgba(59,34,181,0.2)' }}>
+          <Button variant="contained" onClick={handleSave} disableElevation sx={{ borderRadius: '50px', px: 5, py: 1.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.2)' }}>
             Save Template
           </Button>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
