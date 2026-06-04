@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, Clock, LayoutGrid, List, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
+import { supabase } from '../lib/supabase';
 
 export function Properties() {
   const navigate = useNavigate();
@@ -13,9 +14,30 @@ export function Properties() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   useEffect(() => {
-    const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
-    setProperties(loadedProps);
+    fetchProperties();
   }, []);
+
+  const fetchProperties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*');
+        
+      if (error) throw error;
+      if (data) {
+        const mappedData = data.map(p => ({
+          ...p,
+          rentAmount: p.rent_amount,
+          propertyType: p.property_type,
+          paymentFrequency: p.payment_frequency,
+          tenantName: p.tenant_name
+        }));
+        setProperties(mappedData);
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    }
+  };
 
   const filteredProperties = properties.filter((p: any) => {
     const matchesSearch = p.address?.toLowerCase().includes(searchQuery.toLowerCase()) || 

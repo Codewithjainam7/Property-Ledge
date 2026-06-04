@@ -4,29 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Building, FileText, Wallet, Search, Bell, Home, Users, Wrench, ChevronDown, Calendar, ArrowUpRight, CheckCircle2, Clock, MapPin, MoreHorizontal, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
-// --- MOCK DATA ---
-const upcomingEvents = [
-  { id: 1, month: 'MAY', day: '15', title: 'Rent Review', desc: '12 Rosebery Ave', time: '10:00 AM' },
-  { id: 2, month: 'MAY', day: '18', title: 'Inspection', desc: '42 Smith Street', time: '2:30 PM' },
-  { id: 3, month: 'MAY', day: '22', title: 'Lease Expiry', desc: '7 Cooper St', time: 'All day' },
-  { id: 4, month: 'MAY', day: '25', title: 'Maintenance', desc: 'Pipe leakage - Unit 3', time: '9:00 AM' },
-];
-
-const recentActivity = [
-  { id: 1, type: 'application', title: 'New application received for 42 Smith Street', author: 'by Sarah Johnson', time: '2h ago', icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
-  { id: 2, type: 'payment', title: 'Rent payment received from John Doe', author: '$2,450.00 for May 2024', time: '1d ago', icon: Wallet, color: 'text-success', bg: 'bg-success/10' },
-  { id: 3, type: 'maintenance', title: 'Maintenance request #MNT-123 created', author: 'Leaky tap in Kitchen - Unit 2', time: '2d ago', icon: Wrench, color: 'text-warning', bg: 'bg-warning/10' },
-  { id: 4, type: 'lease', title: 'Lease agreement signed for 12 Rosebery Ave', author: 'by Michael Brown', time: '3d ago', icon: FileText, color: 'text-info', bg: 'bg-info/10' },
-];
-
-const tasks = [
-  { id: 1, title: 'Review new applications', tag: '3 pending', tagColor: 'text-warning' },
-  { id: 2, title: 'Approve maintenance quote', tag: '2 pending', tagColor: 'text-warning' },
-  { id: 3, title: 'Rent review for 12 Rosebery Ave', tag: 'Due tomorrow', tagColor: 'text-error' },
-  { id: 4, title: 'Update lease agreement', tag: 'Due in 5 days', tagColor: 'text-on-surface-variant' },
-  { id: 5, title: 'Schedule property inspection', tag: 'Due in 7 days', tagColor: 'text-on-surface-variant' },
-];
+// Removed MOCK DATA
 
 const quickActions = [
   { title: 'Create Lease', icon: FileText },
@@ -36,21 +17,40 @@ const quickActions = [
 ];
 
 export function Dashboard() {
-  const [user, setUser] = useState<{name: string, role: string, email: string} | null>(null);
+  const { user } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loggedInUser = localStorage.getItem('user');
-    if (!loggedInUser) {
+    if (!user) {
       navigate('/login');
       return;
     }
-    setUser(JSON.parse(loggedInUser));
+    fetchProperties();
+  }, [user, navigate]);
 
-    const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
-    setProperties(loadedProps);
-  }, [navigate]);
+  const fetchProperties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*');
+        
+      if (error) throw error;
+      if (data) {
+        // Map snake_case database fields back to camelCase for the UI if needed
+        const mappedData = data.map(p => ({
+          ...p,
+          rentAmount: p.rent_amount,
+          propertyType: p.property_type,
+          paymentFrequency: p.payment_frequency,
+          tenantName: p.tenant_name
+        }));
+        setProperties(mappedData);
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    }
+  };
 
   if (!user) return null;
 
@@ -79,7 +79,7 @@ export function Dashboard() {
           <header className="px-6 md:px-10 pt-8 pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4 z-10 relative">
             <div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-on-surface font-display mb-1 flex items-center gap-2">
-                Good morning, {user.name.split(' ')[0]}! <span className="text-2xl">👋</span>
+                Good morning, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}! <span className="text-2xl">👋</span>
               </h1>
               <p className="text-sm text-on-surface-variant font-medium">Here's what's happening with your properties today.</p>
             </div>
@@ -105,7 +105,7 @@ export function Dashboard() {
                 </div>
                 <div className="flex flex-col mt-auto">
                   <span className="text-xs font-black text-on-primary/90 tracking-[0.08em] uppercase mb-1">Monthly Rent</span>
-                  <span className="text-4xl font-black font-display text-on-primary leading-none">${Math.round(totalRent * 4) || '29,450'}</span>
+                  <span className="text-4xl font-black font-display text-on-primary leading-none">${Math.round(totalRent * 4) || '0'}</span>
                 </div>
               </motion.div>
               
@@ -116,7 +116,7 @@ export function Dashboard() {
                 </div>
                 <div className="flex flex-col mt-auto">
                   <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Total Properties</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.length || 12}</span>
+                  <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.length || 0}</span>
                 </div>
               </motion.div>
               
@@ -127,7 +127,7 @@ export function Dashboard() {
                 </div>
                 <div className="flex flex-col mt-auto">
                   <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Tenancies</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.filter(p=>p.tenantName).length || 18}</span>
+                  <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.filter(p=>p.tenantName).length || 0}</span>
                 </div>
               </motion.div>
 
@@ -138,7 +138,7 @@ export function Dashboard() {
                 </div>
                 <div className="flex flex-col mt-auto">
                   <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Pending Apps</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">5</span>
+                  <span className="text-4xl font-black font-display text-on-surface leading-none">0</span>
                 </div>
               </motion.div>
 
@@ -149,7 +149,7 @@ export function Dashboard() {
                 </div>
                 <div className="flex flex-col mt-auto">
                   <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Maintenance</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">7</span>
+                  <span className="text-4xl font-black font-display text-on-surface leading-none">0</span>
                 </div>
               </motion.div>
 
@@ -164,26 +164,10 @@ export function Dashboard() {
                   <h3 className="text-base font-bold text-on-surface">Upcoming Events</h3>
                   <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer">View Calendar</span>
                 </div>
-                <div className="flex-1 space-y-4">
-                  {upcomingEvents.map(event => (
-                    <div key={event.id} className="flex gap-4">
-                      <div className="flex flex-col items-center w-10 shrink-0">
-                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{event.month}</span>
-                        <span className="text-base font-black text-on-surface leading-none">{event.day}</span>
-                      </div>
-                      <div className="flex-1 pb-4 border-b border-outline-variant/30 last:border-0">
-                        <div className="flex justify-between items-start mb-0.5">
-                          <span className="text-sm font-bold text-on-surface">{event.title}</span>
-                          <span className="text-[10px] font-bold text-on-surface-variant">{event.time}</span>
-                        </div>
-                        <span className="text-xs text-on-surface-variant font-medium">{event.desc}</span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex-1 space-y-4 flex flex-col items-center justify-center text-center opacity-50">
+                  <Calendar className="w-8 h-8 text-on-surface-variant mb-2" />
+                  <span className="text-sm font-bold text-on-surface-variant">No events scheduled</span>
                 </div>
-                <button className="w-full mt-2 py-2 text-xs font-bold text-primary hover:underline flex justify-center items-center gap-1">
-                  See all events &rarr;
-                </button>
               </motion.div>
 
               {/* Recent Activity */}
@@ -192,21 +176,9 @@ export function Dashboard() {
                   <h3 className="text-base font-bold text-on-surface">Recent Activity</h3>
                   <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer bg-surface-container px-2 py-1 rounded-md">View All</span>
                 </div>
-                <div className="flex-1 space-y-5">
-                  {recentActivity.map(activity => (
-                    <div key={activity.id} className="flex gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activity.bg}`}>
-                        <activity.icon className={`w-4 h-4 ${activity.color}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-bold text-on-surface leading-tight mb-0.5 pr-8 relative">
-                          {activity.title}
-                          <span className="absolute right-0 top-0 text-[10px] font-medium text-outline">{activity.time}</span>
-                        </div>
-                        <div className="text-xs text-on-surface-variant font-medium">{activity.author}</div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex-1 space-y-5 flex flex-col items-center justify-center text-center opacity-50">
+                  <Clock className="w-8 h-8 text-on-surface-variant mb-2" />
+                  <span className="text-sm font-bold text-on-surface-variant">No recent activity</span>
                 </div>
               </motion.div>
 
@@ -216,16 +188,9 @@ export function Dashboard() {
                   <h3 className="text-base font-bold text-on-surface">Tasks</h3>
                   <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer bg-surface-container px-2 py-1 rounded-md">View All</span>
                 </div>
-                <div className="flex-1 space-y-4">
-                  {tasks.map(task => (
-                    <div key={task.id} className="flex items-start gap-3 group cursor-pointer">
-                      <div className="w-4 h-4 rounded border border-outline mt-0.5 flex items-center justify-center group-hover:border-primary transition-colors"></div>
-                      <div className="flex-1 pb-3 border-b border-outline-variant/30 last:border-0 flex justify-between items-start gap-2">
-                        <span className="text-sm font-bold text-on-surface">{task.title}</span>
-                        <span className={`text-[10px] font-bold whitespace-nowrap ${task.tagColor}`}>{task.tag}</span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex-1 space-y-4 flex flex-col items-center justify-center text-center opacity-50">
+                  <CheckCircle2 className="w-8 h-8 text-on-surface-variant mb-2" />
+                  <span className="text-sm font-bold text-on-surface-variant">All tasks completed!</span>
                 </div>
               </motion.div>
 
@@ -335,16 +300,16 @@ export function Dashboard() {
                    </div>
                    <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer">View All</span>
                  </div>
-                 <div className="text-3xl font-black font-display text-on-surface mb-6">$8,450.00</div>
+                 <div className="text-3xl font-black font-display text-on-surface mb-6">$0.00</div>
                  
                  <div className="flex gap-4 mt-auto">
                    <div className="flex-1">
-                     <div className="text-lg font-black text-error mb-0.5">2</div>
+                     <div className="text-lg font-black text-error mb-0.5">0</div>
                      <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Overdue</div>
                    </div>
                    <div className="w-[1px] bg-outline-variant/50"></div>
                    <div className="flex-1">
-                     <div className="text-lg font-black text-warning mb-0.5">5</div>
+                     <div className="text-lg font-black text-warning mb-0.5">0</div>
                      <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Due Soon</div>
                    </div>
                  </div>

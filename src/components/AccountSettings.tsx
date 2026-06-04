@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { User, Image as ImageIcon, MapPin, CreditCard, Receipt, FileText, Tag, Briefcase, Mail, Phone, Shield, Edit2, Check, X, Camera, ChevronRight } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export function AccountSettings() {
   const [activeTab, setActiveTab] = useState('profile');
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{"name":"Jainam Jain","email":"jainam@gmail.com","mobile":"86000 59074"}'));
+  const { user } = useAuth();
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -23,10 +25,29 @@ export function AccountSettings() {
     setEditValue(currentValue);
   };
 
-  const handleSave = (field: string) => {
-    const updatedUser = { ...user, [field]: editValue };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+  const handleSave = async (field: string) => {
+    if (!user) return;
+    
+    // If it's the email field, it requires special handling in Supabase
+    if (field === 'email') {
+      await supabase.auth.updateUser({ email: editValue });
+    } else {
+      // For all other fields (name, mobile), update user_metadata
+      const fieldMap: Record<string, string> = {
+        name: 'full_name',
+        mobile: 'mobile',
+        billing_email: 'billing_email',
+        billing_phone: 'billing_phone',
+        provider_email: 'provider_email',
+        provider_phone: 'provider_phone'
+      };
+      
+      const metaField = fieldMap[field] || field;
+      await supabase.auth.updateUser({
+        data: { [metaField]: editValue }
+      });
+    }
+    
     setEditingField(null);
   };
 
@@ -128,7 +149,7 @@ export function AccountSettings() {
               </div>
               
               <div className="text-center">
-                <h2 className="text-2xl font-black text-on-surface tracking-tight">{user.name || 'Jainam Jain'}</h2>
+                <h2 className="text-2xl font-black text-on-surface tracking-tight">{user?.user_metadata?.full_name || 'User'}</h2>
                 <p className="text-[11px] font-bold text-on-surface-variant mt-2 uppercase tracking-widest flex items-center justify-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-primary" /> Member since {new Date().getFullYear()}
                 </p>
@@ -175,9 +196,9 @@ export function AccountSettings() {
                     <User className="w-6 h-6 text-primary" /> Personal Identity
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderField('name', 'Full Legal Name', user.name || 'Jainam Jain', <User className="w-5 h-5 text-primary" />, 'text', true)}
-                    {renderField('email', 'Primary Email', user.email || 'jainam@gmail.com', <Mail className="w-5 h-5 text-primary" />, 'email')}
-                    {renderField('mobile', 'Primary Phone', user.mobile || '86000 59074', <Phone className="w-5 h-5 text-primary" />, 'tel')}
+                    {renderField('name', 'Full Legal Name', user?.user_metadata?.full_name || '', <User className="w-5 h-5 text-primary" />, 'text', true)}
+                    {renderField('email', 'Primary Email', user?.email || '', <Mail className="w-5 h-5 text-primary" />, 'email')}
+                    {renderField('mobile', 'Primary Phone', user?.user_metadata?.mobile || '', <Phone className="w-5 h-5 text-primary" />, 'tel')}
                   </div>
                 </div>
               </motion.div>
@@ -209,8 +230,8 @@ export function AccountSettings() {
                            <span className="bg-on-surface w-2 h-2 rounded-full"></span>
                            <h4 className="font-bold text-on-surface uppercase tracking-wider text-sm">Billing Details</h4>
                         </div>
-                        {renderField('billing_email', 'Billing Email', user.billing_email || user.email || 'billing@example.com', <Mail className="w-5 h-5 text-primary" />, 'email')}
-                        {renderField('billing_phone', 'Billing Phone', user.billing_phone || user.mobile || '+91 86000 59074', <Phone className="w-5 h-5 text-primary" />, 'tel')}
+                        {renderField('billing_email', 'Billing Email', user?.user_metadata?.billing_email || user?.email || '', <Mail className="w-5 h-5 text-primary" />, 'email')}
+                        {renderField('billing_phone', 'Billing Phone', user?.user_metadata?.billing_phone || user?.user_metadata?.mobile || '', <Phone className="w-5 h-5 text-primary" />, 'tel')}
                       </div>
 
                       <div className="space-y-4">
@@ -218,8 +239,8 @@ export function AccountSettings() {
                            <span className="bg-primary w-2 h-2 rounded-full"></span>
                            <h4 className="font-bold text-on-surface uppercase tracking-wider text-sm">Rental Provider Details</h4>
                         </div>
-                        {renderField('provider_email', 'Provider Email', user.provider_email || user.email || 'provider@example.com', <Mail className="w-5 h-5 text-primary" />, 'email')}
-                        {renderField('provider_phone', 'Provider Phone', user.provider_phone || user.mobile || '+91 86000 59074', <Phone className="w-5 h-5 text-primary" />, 'tel')}
+                        {renderField('provider_email', 'Provider Email', user?.user_metadata?.provider_email || user?.email || '', <Mail className="w-5 h-5 text-primary" />, 'email')}
+                        {renderField('provider_phone', 'Provider Phone', user?.user_metadata?.provider_phone || user?.user_metadata?.mobile || '', <Phone className="w-5 h-5 text-primary" />, 'tel')}
                       </div>
                    </div>
                 </div>

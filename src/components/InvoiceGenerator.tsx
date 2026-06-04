@@ -5,6 +5,235 @@ import { X, Download, Send } from 'lucide-react';
 import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Card } from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, dueDate: string) => {
+  const doc = new jsPDF();
+  const total = selectedTemplate.items.reduce((acc: number, curr: any) => acc + (parseFloat(curr.amount) || 0), 0);
+  
+  // Base colors
+  const darkSlate: [number, number, number] = [28, 43, 51];
+  const grayText: [number, number, number] = [74, 74, 94];
+  const lightGray: [number, number, number] = [248, 249, 250];
+  const mochaGold: [number, number, number] = [169, 146, 125];
+
+  // Premium Left Border Accent
+  doc.setFillColor(...mochaGold);
+  doc.rect(0, 0, 3, 297, 'F');
+
+  // Top right decorative banner
+  doc.setFillColor(34, 51, 59); // Jet black
+  doc.triangle(60, 0, 210, 0, 210, 45, 'F');
+
+  // Thank you message inside banner
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(255, 255, 255);
+  doc.text('Thank you for your business!', 200, 25, { align: 'right' });
+
+  // Header Logo Circle Graphic
+  doc.setFillColor(245, 245, 248);
+  doc.circle(22, 25, 10, 'F');
+
+  // Header - Property Ledge
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...darkSlate);
+  doc.text('Property Ledge', 15, 25);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grayText);
+  doc.text('PROPERTY MANAGEMENT', 15, 31);
+
+  // Accent line under brand
+  doc.setDrawColor(...mochaGold);
+  doc.setLineWidth(1.5);
+  doc.line(15, 36, 45, 36);
+
+  // INVOICE Title
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(34, 51, 59);
+  doc.text('INVOICE', 15, 48);
+
+  // From Section
+  doc.setFontSize(8);
+  doc.setTextColor(...darkSlate);
+  doc.text('FROM', 15, 60);
+  doc.setFontSize(10);
+  doc.text('Michael Landlord', 15, 65);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grayText);
+  doc.text('ABN 17 234 567 890', 15, 70);
+  doc.text('8 Harbour View Road\nManly NSW 2095\nAustralia', 15, 75);
+  doc.text('0412 345 678\nmichael@landlord.com.au', 15, 90);
+
+  // Vertical Divider
+  doc.setDrawColor(230, 230, 230);
+  doc.setLineWidth(0.5);
+  doc.line(65, 60, 65, 95);
+
+  // Invoice Sent To Section
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...darkSlate);
+  doc.text('INVOICE SENT TO', 75, 60);
+  doc.setFontSize(10);
+  doc.text(selectedProperty.tenantName || 'Tenant Name', 75, 65);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grayText);
+  doc.text('ABN 45 678 123 456', 75, 70);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Attention: ${selectedProperty.tenantName?.split(' ')[0] || ''}`, 75, 75);
+  doc.setFont('helvetica', 'normal');
+  doc.text(selectedProperty.address, 75, 80);
+
+  // Invoice Details Box (Right Side)
+  doc.setFillColor(...lightGray);
+  doc.setDrawColor(230, 230, 230);
+  doc.roundedRect(140, 50, 56, 45, 3, 3, 'FD'); // Fill and stroke
+  
+  doc.setFontSize(9);
+  doc.setTextColor(...grayText);
+  doc.text('Invoice Date', 145, 57);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...darkSlate);
+  doc.text(new Date().toLocaleDateString('en-GB'), 191, 57, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grayText);
+  doc.text('Invoice No.', 145, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...darkSlate);
+  doc.text(`INV${Math.floor(1000 + Math.random() * 9000)}`, 191, 64, { align: 'right' }); // Random invoice num
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grayText);
+  doc.text('Due Date', 145, 71);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...darkSlate);
+  doc.text(dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '-', 191, 71, { align: 'right' });
+
+  // AMOUNT DUE Premium Badge
+  doc.setFillColor(34, 51, 59); // Jet black
+  doc.roundedRect(140, 77, 56, 18, 2, 2, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  doc.text('AMOUNT DUE', 145, 83);
+  doc.setFontSize(14);
+  doc.text(`$${total.toFixed(2)}`, 145, 91);
+
+  // Table
+  const tableData = selectedTemplate.items.map((item: any) => [
+    item.description,
+    '1',
+    `$${parseFloat(item.amount || '0').toFixed(2)}`,
+    `$${parseFloat(item.amount || '0').toFixed(2)}`
+  ]);
+
+  autoTable(doc, {
+    startY: 110,
+    head: [['DESCRIPTION', 'QTY', 'UNIT RATE', 'AMOUNT (AUD)']],
+    body: tableData,
+    theme: 'plain',
+    styles: { fontSize: 9, textColor: darkSlate, cellPadding: 5 },
+    headStyles: { 
+      fillColor: [34, 51, 59], // Jet Black
+      textColor: 255, 
+      fontStyle: 'bold', 
+      fontSize: 8 
+    },
+    alternateRowStyles: {
+      fillColor: [250, 250, 252] // Very faint gray for alternating rows
+    },
+    columnStyles: {
+      0: { cellWidth: 80 },
+      1: { halign: 'center' },
+      2: { halign: 'right' },
+      3: { halign: 'right' }
+    },
+    didDrawCell: (data) => {
+      if (data.row.section === 'body') {
+        doc.setDrawColor(230, 230, 230);
+        doc.setLineWidth(0.1);
+        doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
+      }
+    }
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY || 110;
+
+  // Subtotals
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grayText);
+  doc.text('Subtotal', 140, finalY + 10);
+  doc.setTextColor(...darkSlate);
+  doc.text(`$${total.toFixed(2)}`, 195, finalY + 10, { align: 'right' });
+
+  doc.setDrawColor(220, 220, 220);
+  doc.line(140, finalY + 15, 195, finalY + 15);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('TOTAL DUE', 140, finalY + 22);
+  doc.setFontSize(12);
+  doc.text(`$${total.toFixed(2)}`, 195, finalY + 22, { align: 'right' });
+
+  // Payment Instructions Box
+  doc.setFillColor(...lightGray);
+  doc.setDrawColor(230, 230, 230);
+  doc.roundedRect(14, finalY + 30, 182, 45, 4, 4, 'FD');
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...darkSlate);
+  doc.text('PAYMENT INSTRUCTIONS', 20, finalY + 40);
+  
+  doc.setFontSize(8);
+  doc.setTextColor(...grayText);
+  doc.text('Bank Name', 20, finalY + 47);
+  doc.setFontSize(9);
+  doc.setTextColor(...darkSlate);
+  doc.text('Commonwealth Bank', 20, finalY + 52);
+
+  doc.setFontSize(8);
+  doc.setTextColor(...grayText);
+  doc.text('BSB', 90, finalY + 47);
+  doc.setFontSize(9);
+  doc.setTextColor(...darkSlate);
+  doc.text('123-456', 90, finalY + 52);
+
+  doc.setFontSize(8);
+  doc.setTextColor(...grayText);
+  doc.text('Account Name', 20, finalY + 60);
+  doc.setFontSize(9);
+  doc.setTextColor(...darkSlate);
+  doc.text('Michael Landlord', 20, finalY + 65);
+
+  doc.setFontSize(8);
+  doc.setTextColor(...grayText);
+  doc.text('Account Number', 90, finalY + 60);
+  doc.setFontSize(9);
+  doc.setTextColor(...darkSlate);
+  doc.text('12345678', 90, finalY + 65);
+
+  // Signature
+  doc.setFontSize(28);
+  doc.setFont('times', 'italic');
+  doc.setTextColor(169, 146, 125); // Mocha/gold
+  doc.text('Thank you!', 150, finalY + 55, { angle: -5 });
+
+  doc.setDrawColor(220, 220, 220);
+  doc.line(14, 280, 195, 280);
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...grayText);
+  doc.text('ABN 17 234 567 890', 105, 285, { align: 'center' });
+
+  return doc;
+};
 
 export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => void, initialInvoice?: any }) {
   const [properties, setProperties] = useState<any[]>([]);
@@ -41,231 +270,8 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
   const handleGeneratePDF = () => {
     if (!selectedProperty || !selectedTemplate) return;
 
-    const doc = new jsPDF();
+    const doc = generatePDFDoc(selectedProperty, selectedTemplate, dueDate);
     const total = calculateTotal();
-    
-    // Base colors
-    const darkSlate: [number, number, number] = [28, 43, 51];
-    const grayText: [number, number, number] = [74, 74, 94];
-    const lightGray: [number, number, number] = [248, 249, 250];
-    const mochaGold: [number, number, number] = [169, 146, 125];
-
-    // Premium Left Border Accent
-    doc.setFillColor(...mochaGold);
-    doc.rect(0, 0, 3, 297, 'F');
-
-    // Top right decorative banner
-    doc.setFillColor(34, 51, 59); // Jet black
-    doc.triangle(60, 0, 210, 0, 210, 45, 'F');
-
-    // Thank you message inside banner
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(255, 255, 255);
-    doc.text('Thank you for your business!', 200, 25, { align: 'right' });
-
-    // Header Logo Circle Graphic
-    doc.setFillColor(245, 245, 248);
-    doc.circle(22, 25, 10, 'F');
-
-    // Header - Property Ledge
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...darkSlate);
-    doc.text('Property Ledge', 15, 25);
-    
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...grayText);
-    doc.text('PROPERTY MANAGEMENT', 15, 31);
-
-    // Accent line under brand
-    doc.setDrawColor(...mochaGold);
-    doc.setLineWidth(1.5);
-    doc.line(15, 36, 45, 36);
-
-    // INVOICE Title
-    doc.setFontSize(28);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(34, 51, 59);
-    doc.text('INVOICE', 15, 48);
-
-    // From Section
-    doc.setFontSize(8);
-    doc.setTextColor(...darkSlate);
-    doc.text('FROM', 15, 60);
-    doc.setFontSize(10);
-    doc.text('Michael Landlord', 15, 65);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...grayText);
-    doc.text('ABN 17 234 567 890', 15, 70);
-    doc.text('8 Harbour View Road\nManly NSW 2095\nAustralia', 15, 75);
-    doc.text('0412 345 678\nmichael@landlord.com.au', 15, 90);
-
-    // Vertical Divider
-    doc.setDrawColor(230, 230, 230);
-    doc.setLineWidth(0.5);
-    doc.line(65, 60, 65, 95);
-
-    // Invoice Sent To Section
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...darkSlate);
-    doc.text('INVOICE SENT TO', 75, 60);
-    doc.setFontSize(10);
-    doc.text(selectedProperty.tenantName || 'Tenant Name', 75, 65);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...grayText);
-    doc.text('ABN 45 678 123 456', 75, 70);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Attention: ${selectedProperty.tenantName?.split(' ')[0] || ''}`, 75, 75);
-    doc.setFont('helvetica', 'normal');
-    doc.text(selectedProperty.address, 75, 80);
-
-    // Invoice Details Box (Right Side)
-    doc.setFillColor(...lightGray);
-    doc.setDrawColor(230, 230, 230);
-    doc.roundedRect(140, 50, 56, 45, 3, 3, 'FD'); // Fill and stroke
-    
-    doc.setFontSize(9);
-    doc.setTextColor(...grayText);
-    doc.text('Invoice Date', 145, 57);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...darkSlate);
-    doc.text(new Date().toLocaleDateString('en-GB'), 191, 57, { align: 'right' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...grayText);
-    doc.text('Invoice No.', 145, 64);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...darkSlate);
-    doc.text('INV0020', 191, 64, { align: 'right' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...grayText);
-    doc.text('Due Date', 145, 71);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...darkSlate);
-    doc.text(dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '-', 191, 71, { align: 'right' });
-
-    // AMOUNT DUE Premium Badge
-    doc.setFillColor(34, 51, 59); // Jet black
-    doc.roundedRect(140, 77, 56, 18, 2, 2, 'F');
-    doc.setFontSize(8);
-    doc.setTextColor(255, 255, 255);
-    doc.text('AMOUNT DUE', 145, 83);
-    doc.setFontSize(14);
-    doc.text(`$${total.toFixed(2)}`, 145, 91);
-
-    // Table
-    const tableData = selectedTemplate.items.map((item: any) => [
-      item.description,
-      '1',
-      `$${parseFloat(item.amount || '0').toFixed(2)}`,
-      `$${parseFloat(item.amount || '0').toFixed(2)}`
-    ]);
-
-    autoTable(doc, {
-      startY: 110,
-      head: [['DESCRIPTION', 'QTY', 'UNIT RATE', 'AMOUNT (AUD)']],
-      body: tableData,
-      theme: 'plain',
-      styles: { fontSize: 9, textColor: darkSlate, cellPadding: 5 },
-      headStyles: { 
-        fillColor: [34, 51, 59], // Jet Black
-        textColor: 255, 
-        fontStyle: 'bold', 
-        fontSize: 8 
-      },
-      alternateRowStyles: {
-        fillColor: [250, 250, 252] // Very faint gray for alternating rows
-      },
-      columnStyles: {
-        0: { cellWidth: 80 },
-        1: { halign: 'center' },
-        2: { halign: 'right' },
-        3: { halign: 'right' }
-      },
-      didDrawCell: (data) => {
-        if (data.row.section === 'body') {
-          doc.setDrawColor(230, 230, 230);
-          doc.setLineWidth(0.1);
-          doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-        }
-      }
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY || 110;
-
-    // Subtotals
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...grayText);
-    doc.text('Subtotal', 140, finalY + 10);
-    doc.setTextColor(...darkSlate);
-    doc.text(`$${total.toFixed(2)}`, 195, finalY + 10, { align: 'right' });
-
-    doc.setDrawColor(220, 220, 220);
-    doc.line(140, finalY + 15, 195, finalY + 15);
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL DUE', 140, finalY + 22);
-    doc.setFontSize(12);
-    doc.text(`$${total.toFixed(2)}`, 195, finalY + 22, { align: 'right' });
-
-    // Payment Instructions Box
-    doc.setFillColor(...lightGray);
-    doc.setDrawColor(230, 230, 230);
-    doc.roundedRect(14, finalY + 30, 182, 45, 4, 4, 'FD');
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...darkSlate);
-    doc.text('PAYMENT INSTRUCTIONS', 20, finalY + 40);
-    
-    doc.setFontSize(8);
-    doc.setTextColor(...grayText);
-    doc.text('Bank Name', 20, finalY + 47);
-    doc.setFontSize(9);
-    doc.setTextColor(...darkSlate);
-    doc.text('Commonwealth Bank', 20, finalY + 52);
-
-    doc.setFontSize(8);
-    doc.setTextColor(...grayText);
-    doc.text('BSB', 90, finalY + 47);
-    doc.setFontSize(9);
-    doc.setTextColor(...darkSlate);
-    doc.text('123-456', 90, finalY + 52);
-
-    doc.setFontSize(8);
-    doc.setTextColor(...grayText);
-    doc.text('Account Name', 20, finalY + 60);
-    doc.setFontSize(9);
-    doc.setTextColor(...darkSlate);
-    doc.text('Michael Landlord', 20, finalY + 65);
-
-    doc.setFontSize(8);
-    doc.setTextColor(...grayText);
-    doc.text('Account Number', 90, finalY + 60);
-    doc.setFontSize(9);
-    doc.setTextColor(...darkSlate);
-    doc.text('12345678', 90, finalY + 65);
-
-    // Signature
-    doc.setFontSize(28);
-    doc.setFont('times', 'italic');
-    doc.setTextColor(169, 146, 125); // Mocha/gold
-    doc.text('Thank you!', 150, finalY + 55, { angle: -5 });
-
-    doc.setDrawColor(220, 220, 220);
-    doc.line(14, 280, 195, 280);
-    
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...grayText);
-    doc.text('ABN 17 234 567 890', 105, 285, { align: 'center' });
 
     // Save PDF
     doc.save(`Invoice_${selectedProperty.tenantName?.replace(/\s+/g, '_')}_${Date.now()}.pdf`);

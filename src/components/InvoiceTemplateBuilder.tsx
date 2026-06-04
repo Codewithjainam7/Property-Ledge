@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X, Plus, Trash2 } from 'lucide-react';
-import { Box, Typography, Button, TextField, IconButton } from '@mui/material';
-
+import { Box, Typography, Button, TextField, IconButton, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, Chip } from '@mui/material';
 interface TemplateItem {
   description: string;
   amount: string;
@@ -12,6 +11,13 @@ interface TemplateItem {
 export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
   const [items, setItems] = useState<TemplateItem[]>([{ description: 'Rent', amount: '' }]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [linkedProperties, setLinkedProperties] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
+    setProperties(loadedProps);
+  }, []);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: '' }]);
@@ -33,7 +39,7 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
       return;
     }
     const templates = JSON.parse(localStorage.getItem('invoice_templates') || '[]');
-    templates.push({ id: Date.now().toString(), name, items });
+    templates.push({ id: Date.now().toString(), name, items, linkedProperties });
     localStorage.setItem('invoice_templates', JSON.stringify(templates));
     onClose();
   };
@@ -57,7 +63,7 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
             </IconButton>
           </div>
 
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <TextField 
               label="Template Name" 
               placeholder="e.g. Monthly Rent + Water"
@@ -66,6 +72,34 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
               onChange={(e) => setName(e.target.value)}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
             />
+
+            <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}>
+              <InputLabel>Linked Properties (Optional)</InputLabel>
+              <Select
+                multiple
+                value={linkedProperties}
+                onChange={(e) => setLinkedProperties(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                input={<OutlinedInput label="Linked Properties (Optional)" />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => {
+                      const prop = properties.find(p => p.id === value);
+                      return <Chip key={value} label={prop ? prop.address : value} size="small" />;
+                    })}
+                  </Box>
+                )}
+              >
+                {properties.map((prop) => (
+                  <MenuItem key={prop.id} value={prop.id}>
+                    <Checkbox checked={linkedProperties.indexOf(prop.id) > -1} />
+                    <ListItemText primary={prop.address} secondary={prop.tenant?.name || 'No tenant'} />
+                  </MenuItem>
+                ))}
+                {properties.length === 0 && (
+                  <MenuItem disabled>No properties available</MenuItem>
+                )}
+              </Select>
+            </FormControl>
 
             <div>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 2, color: 'text.secondary' }}>Line Items</Typography>

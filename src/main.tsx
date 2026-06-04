@@ -47,10 +47,14 @@ const theme = createTheme({
   }
 });
 
+import { AuthProvider } from './contexts/AuthContext';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ThemeProvider>
   </StrictMode>,
 );

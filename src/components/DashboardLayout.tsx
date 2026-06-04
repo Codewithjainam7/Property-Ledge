@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Building, LogOut, PieChart, Wallet, Users, Home, Search, Bell, Menu, X, FileText, HelpCircle, UserPlus, Settings, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,29 +15,36 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      navigate('/login');
-    }
-  }, [navigate]);
-
+  const { session, user, signOut, loading } = useAuth();
+  
   const toggleSidebar = () => {
     const newVal = !isCollapsed;
     setIsCollapsed(newVal);
     localStorage.setItem('sidebarCollapsed', String(newVal));
   };
+  
+  useEffect(() => {
+    if (!loading) {
+      if (!session) {
+        navigate('/login');
+      } else if (user && (!user.user_metadata?.mobile || !user.user_metadata?.role)) {
+        navigate('/complete-profile');
+      }
+    }
+  }, [session, loading, user, navigate]);
 
-  const userStr = localStorage.getItem('user');
-  if (!userStr) {
-    return null;
-  }
-  const user = JSON.parse(userStr);
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!session) {
+    return null;
+  }
 
   const navLinks = [
     { name: 'Overview', icon: PieChart, to: '/dashboard', exact: true },
@@ -176,8 +184,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                </div>
                {!isCollapsed && (
                  <div className="truncate">
-                    <div className="font-extrabold text-[13px] text-on-surface truncate">{user.name}</div>
-                    <div className="font-semibold text-[11px] text-on-surface-variant truncate">{user.email || 'user@example.com'}</div>
+                    <div className="font-extrabold text-[13px] text-on-surface truncate">{user?.user_metadata?.full_name || 'User'}</div>
+                    <div className="font-semibold text-[11px] text-on-surface-variant truncate">{user?.email || 'user@example.com'}</div>
                  </div>
                )}
             </div>

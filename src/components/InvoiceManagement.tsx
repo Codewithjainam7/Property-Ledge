@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, FileText, Settings, CreditCard, ChevronRight, Calendar, Bell, ShieldCheck, Clock, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
-import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox } from '@mui/material';
 import { InvoiceTemplateBuilder } from './InvoiceTemplateBuilder';
-import { InvoiceGenerator } from './InvoiceGenerator';
+import { InvoiceGenerator, generatePDFDoc } from './InvoiceGenerator';
+import JSZip from 'jszip';
 
 export function InvoiceManagement() {
   const [activeTab, setActiveTab] = useState(0);
@@ -16,26 +17,72 @@ export function InvoiceManagement() {
   // State for mock data
   const [invoices, setInvoices] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
 
   useEffect(() => {
     // Load templates and invoices from localStorage
     const loadedTemplates = JSON.parse(localStorage.getItem('invoice_templates') || '[]');
     const loadedInvoices = JSON.parse(localStorage.getItem('generated_invoices') || '[]');
+    const loadedProperties = JSON.parse(localStorage.getItem('properties') || '[]');
     setTemplates(loadedTemplates);
     setInvoices(loadedInvoices);
+    setProperties(loadedProperties);
   }, [showTemplateBuilder, showGenerator]);
 
   const confirmDelete = () => {
     if (deleteConfirm.type === 'invoice' && typeof deleteConfirm.id === 'number') {
+      const deletedInvoice = invoices[deleteConfirm.id];
       const updated = invoices.filter((_, i) => i !== deleteConfirm.id);
       setInvoices(updated);
       localStorage.setItem('generated_invoices', JSON.stringify(updated));
+      
+      if (deletedInvoice) {
+        setSelectedInvoices(prev => prev.filter(id => id !== deletedInvoice.id));
+      }
     } else if (deleteConfirm.type === 'template' && typeof deleteConfirm.id === 'string') {
       const updated = templates.filter(t => t.id !== deleteConfirm.id);
       setTemplates(updated);
       localStorage.setItem('invoice_templates', JSON.stringify(updated));
     }
     setDeleteConfirm({ isOpen: false, type: 'invoice', id: null });
+  };
+
+
+
+  const handleBulkDownload = async () => {
+    if (selectedInvoices.length === 0) return;
+    
+    const zip = new JSZip();
+    
+    for (const invId of selectedInvoices) {
+      const inv = invoices.find(i => i.id === invId);
+      if (!inv) continue;
+      
+      const prop = properties.find(p => p.id === inv.propertyId);
+      const tpl = templates.find(t => t.id === inv.templateId);
+      
+      if (!prop || !tpl) continue;
+      
+      const doc = generatePDFDoc(prop, tpl, inv.dueDate);
+      const blob = doc.output('blob');
+      
+      const fileName = `Invoice_${inv.tenantName?.replace(/\s+/g, '_')}_${inv.id}.pdf`;
+      zip.file(fileName, blob);
+    }
+    
+    const content = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(content);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoices_Bulk_${Date.now()}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    setSelectedInvoices([]);
   };
 
   const tabs = [
@@ -63,13 +110,6 @@ export function InvoiceManagement() {
             </Typography>
           </div>
           <div className="flex gap-3 w-full md:w-auto">
-            <Button 
-              variant="outlined" 
-              startIcon={<Settings className="w-4 h-4" />}
-              sx={{ borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', borderColor: 'rgba(0,0,0,0.1)', color: 'text.primary', '&:hover': { bgcolor: 'rgba(0,0,0,0.02)', borderColor: 'rgba(0,0,0,0.2)' } }}
-            >
-              Settings
-            </Button>
             <Button 
               variant="contained" 
               startIcon={<Plus className="w-5 h-5" />}
@@ -146,7 +186,35 @@ export function InvoiceManagement() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center mb-4 px-2">
                     <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Space Grotesk', color: '#1c1c28' }}>All Invoices</Typography>
-                    <Button onClick={() => setShowGenerator(true)} variant="contained" size="small" disableElevation sx={{ bgcolor: '#22333b', '&:hover': { bgcolor: '#111a1e' }, borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.3)' }}>Generate New</Button>
+                    <div className="flex gap-3">
+                      {invoices.length > 0 && (
+                        <Button 
+                          onClick={() => {
+                            if (selectedInvoices.length === invoices.length) {
+                              setSelectedInvoices([]);
+                            } else {
+                              setSelectedInvoices(invoices.map(inv => inv.id));
+                            }
+                          }}
+                          variant="text" 
+                          size="small" 
+                          sx={{ color: '#4a4a5e', fontWeight: 900, px: 2, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' } }}
+                        >
+                          {selectedInvoices.length === invoices.length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                      )}
+                      {selectedInvoices.length > 0 && (
+                        <Button 
+                          onClick={handleBulkDownload} 
+                          variant="outlined" 
+                          size="small" 
+                          sx={{ borderColor: 'primary.main', color: 'primary.main', borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', '&:hover': { bgcolor: 'primary.main', color: 'white' } }}
+                        >
+                          Download ({selectedInvoices.length})
+                        </Button>
+                      )}
+                      <Button onClick={() => setShowGenerator(true)} variant="contained" size="small" disableElevation sx={{ bgcolor: '#22333b', '&:hover': { bgcolor: '#111a1e' }, borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.3)' }}>Generate New</Button>
+                    </div>
                   </div>
                   
                   <div className="grid gap-4">
@@ -159,6 +227,21 @@ export function InvoiceManagement() {
                         className="bg-white/70 backdrop-blur-xl border border-white/60 rounded-[32px] p-5 sm:p-6 shadow-[0_8px_32px_rgba(59,34,181,0.03)] hover:shadow-[0_16px_48px_rgba(59,34,181,0.08)] hover:border-primary/20 transition-all duration-300 hover:-translate-y-1 group flex flex-col md:flex-row justify-between items-start md:items-center gap-5"
                       >
                         <div className="flex items-center gap-5">
+                          <Checkbox 
+                            checked={selectedInvoices.includes(inv.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedInvoices([...selectedInvoices, inv.id]);
+                              } else {
+                                setSelectedInvoices(selectedInvoices.filter(id => id !== inv.id));
+                              }
+                            }}
+                            sx={{
+                              color: 'rgba(59,34,181,0.2)',
+                              '&.Mui-checked': { color: 'primary.main' },
+                              padding: 1
+                            }}
+                          />
                           <div className="w-16 h-16 rounded-[20px] bg-gradient-to-br from-[#f8f9fc] to-white flex items-center justify-center shrink-0 border border-black/5 shadow-inner group-hover:scale-105 transition-transform duration-300">
                             <FileText className="w-7 h-7 text-primary" />
                           </div>
@@ -274,7 +357,12 @@ export function InvoiceManagement() {
                         )}
                       </div>
                       
-                      <Button variant="outlined" fullWidth sx={{ borderRadius: '50px', fontWeight: 900, py: 2, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', borderColor: 'rgba(59,34,181,0.2)', color: 'primary.main', '&:hover': { bgcolor: 'primary.main', color: 'white', borderColor: 'primary.main' } }} onClick={() => setShowGenerator(true)}>
+                      <Button 
+                        variant="outlined" 
+                        fullWidth 
+                        sx={{ borderRadius: '50px', fontWeight: 900, py: 2, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', borderColor: 'rgba(59,34,181,0.2)', color: 'primary.main', '&:hover': { bgcolor: 'primary.main', color: 'white', borderColor: 'primary.main' } }} 
+                        onClick={() => setShowGenerator(true)}
+                      >
                         Generate from Template
                       </Button>
                     </motion.div>
