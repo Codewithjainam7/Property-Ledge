@@ -14,17 +14,17 @@ import { InvoiceManagement } from './components/InvoiceManagement';
 import { Login as SupabaseLogin } from './components/Login';
 import { Signup } from './components/Signup';
 import { CompleteProfile } from './components/CompleteProfile';
+import { useAuth } from './contexts/AuthContext';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { session } = useAuth();
+  const isLoggedIn = !!session;
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('user'));
-    
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
       const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
@@ -97,14 +97,7 @@ function Navigation() {
           </div>
 
           <div className="flex items-center gap-2 z-50 shrink-0">
-            {isLoggedIn ? (
-              <Link 
-                to="/dashboard" 
-                className="text-on-surface-variant hover:text-primary font-semibold text-sm hidden sm:block transition-colors px-2 py-1.5"
-              >
-                Dashboard
-              </Link>
-            ) : (
+            {isLoggedIn ? null : (
               <Link 
                 to="/login" 
                 className="text-on-surface-variant hover:text-primary font-semibold text-sm hidden sm:block transition-colors px-3 py-2 rounded-xl hover:bg-surface-container/60"
@@ -1103,6 +1096,15 @@ function Footer() {
 }
 
 function LandingPage() {
+  const { session } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (session) {
+      navigate('/dashboard');
+    }
+  }, [session, navigate]);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
