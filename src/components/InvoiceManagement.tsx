@@ -6,6 +6,7 @@ import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, Dia
 import { InvoiceTemplateBuilder } from './InvoiceTemplateBuilder';
 import { InvoiceGenerator, generatePDFDoc } from './InvoiceGenerator';
 import JSZip from 'jszip';
+import { supabase } from '../lib/supabase';
 
 export function InvoiceManagement() {
   const [activeTab, setActiveTab] = useState(0);
@@ -14,41 +15,38 @@ export function InvoiceManagement() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; type: 'invoice' | 'template'; id: number | string | null }>({ isOpen: false, type: 'invoice', id: null });
   
-  // State for mock data
   const [invoices, setInvoices] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
 
+  const loadData = async () => {
+    const [{ data: tpl }, { data: inv }, { data: props }] = await Promise.all([
+      supabase.from('invoice_templates').select('*').order('created_at', { ascending: false }),
+      supabase.from('invoices').select('*, properties(address), invoice_templates(name)').order('created_at', { ascending: false }),
+      supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency'),
+    ]);
+    if (tpl) setTemplates(tpl);
+    if (inv) setInvoices(inv);
+    if (props) setProperties(props.map(p => ({ ...p, tenantName: p.tenant_name, rentAmount: p.rent_amount, paymentFrequency: p.payment_frequency })));
+  };
+
   useEffect(() => {
-    // Load templates and invoices from localStorage
-    const loadedTemplates = JSON.parse(localStorage.getItem('invoice_templates') || '[]');
-    const loadedInvoices = JSON.parse(localStorage.getItem('generated_invoices') || '[]');
-    const loadedProperties = JSON.parse(localStorage.getItem('properties') || '[]');
-    setTemplates(loadedTemplates);
-    setInvoices(loadedInvoices);
-    setProperties(loadedProperties);
+    loadData();
   }, [showTemplateBuilder, showGenerator]);
 
-  const confirmDelete = () => {
-    if (deleteConfirm.type === 'invoice' && typeof deleteConfirm.id === 'number') {
-      const deletedInvoice = invoices[deleteConfirm.id];
-      const updated = invoices.filter((_, i) => i !== deleteConfirm.id);
-      setInvoices(updated);
-      localStorage.setItem('generated_invoices', JSON.stringify(updated));
-      
-      if (deletedInvoice) {
-        setSelectedInvoices(prev => prev.filter(id => id !== deletedInvoice.id));
-      }
-    } else if (deleteConfirm.type === 'template' && typeof deleteConfirm.id === 'string') {
-      const updated = templates.filter(t => t.id !== deleteConfirm.id);
-      setTemplates(updated);
-      localStorage.setItem('invoice_templates', JSON.stringify(updated));
+  const confirmDelete = async () => {
+    if (deleteConfirm.type === 'invoice' && deleteConfirm.id) {
+      await supabase.from('invoices').delete().eq('id', deleteConfirm.id);
+      setInvoices(prev => prev.filter(i => i.id !== deleteConfirm.id));
+      setSelectedInvoices(prev => prev.filter(id => id !== deleteConfirm.id));
+    } else if (deleteConfirm.type === 'template' && deleteConfirm.id) {
+      await supabase.from('invoice_templates').delete().eq('id', deleteConfirm.id);
+      setTemplates(prev => prev.filter(t => t.id !== deleteConfirm.id));
     }
     setDeleteConfirm({ isOpen: false, type: 'invoice', id: null });
   };
-
 
 
   const handleBulkDownload = async () => {

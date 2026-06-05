@@ -6,6 +6,7 @@ import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, Inpu
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../utils/format';
+import { supabase } from '../lib/supabase';
 
 export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, dueDate: string) => {
   const doc = new jsPDF();
@@ -246,19 +247,25 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
   const [dueDate, setDueDate] = useState('');
 
   useEffect(() => {
-    setProperties(JSON.parse(localStorage.getItem('properties') || '[]'));
-    setTemplates(JSON.parse(localStorage.getItem('invoice_templates') || '[]'));
-    
-    if (initialInvoice) {
-      setSelectedPropertyId(initialInvoice.propertyId || '');
-      setSelectedTemplateId(initialInvoice.templateId || '');
-      setDueDate(initialInvoice.dueDate || '');
-    } else {
-      // Set default due date to 7 days from now
-      const d = new Date();
-      d.setDate(d.getDate() + 7);
-      setDueDate(d.toISOString().split('T')[0]);
-    }
+    const loadData = async () => {
+      const [{ data: props }, { data: tpls }] = await Promise.all([
+        supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency'),
+        supabase.from('invoice_templates').select('*'),
+      ]);
+      if (props) setProperties(props.map(p => ({ ...p, tenantName: p.tenant_name, rentAmount: p.rent_amount, paymentFrequency: p.payment_frequency })));
+      if (tpls) setTemplates(tpls);
+
+      if (initialInvoice) {
+        setSelectedPropertyId(initialInvoice.property_id || initialInvoice.propertyId || '');
+        setSelectedTemplateId(initialInvoice.template_id || initialInvoice.templateId || '');
+        setDueDate(initialInvoice.due_date || initialInvoice.dueDate || '');
+      } else {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        setDueDate(d.toISOString().split('T')[0]);
+      }
+    };
+    loadData();
   }, [initialInvoice]);
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
@@ -269,32 +276,29 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
     return selectedTemplate.items.reduce((acc: number, curr: any) => acc + (parseFloat(curr.amount) || 0), 0);
   };
 
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!selectedProperty || !selectedTemplate) return;
 
     const doc = generatePDFDoc(selectedProperty, selectedTemplate, dueDate);
     const total = calculateTotal();
 
-    // Save PDF
+    // Save PDF locally
     doc.save(`Invoice_${selectedProperty.tenantName?.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
 
-    // Save to localStorage
-    const generated = JSON.parse(localStorage.getItem('generated_invoices') || '[]');
-    generated.push({
-      id: Date.now().toString(),
-      tenantName: selectedProperty.tenantName,
-      propertyName: selectedProperty.address,
-      dueDate,
-      totalAmount: total.toFixed(2),
-      status: 'Sent', // Auto marking as sent for MVP
-      templateId: selectedTemplate.id,
-      propertyId: selectedProperty.id,
-      createdAt: new Date().toISOString()
+    // Save invoice to Supabase
+    await supabase.from('invoices').insert({
+      user_id: (await supabase.auth.getUser()).data.user?.id,
+      property_id: selectedProperty.id,
+      template_id: selectedTemplate.id,
+      invoice_number: `INV-${Date.now()}`,
+      status: 'Unpaid',
+      total_amount: total,
+      due_date: dueDate,
     });
-    localStorage.setItem('generated_invoices', JSON.stringify(generated));
-    
+
     onClose();
   };
+
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">

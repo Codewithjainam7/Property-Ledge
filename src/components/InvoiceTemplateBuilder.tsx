@@ -1,22 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { Box, Typography, Button, TextField, IconButton, FormControl, InputLabel, Select, MenuItem, Checkbox, ListItemText, OutlinedInput, Chip } from '@mui/material';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+
 interface TemplateItem {
   description: string;
   amount: string;
 }
 
 export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
+  const { session } = useAuth();
   const [name, setName] = useState('');
   const [items, setItems] = useState<TemplateItem[]>([{ description: 'Rent', amount: '' }]);
   const [properties, setProperties] = useState<any[]>([]);
   const [linkedProperties, setLinkedProperties] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   React.useEffect(() => {
-    const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
-    setProperties(loadedProps);
+    const loadProperties = async () => {
+      const { data } = await supabase.from('properties').select('id, address');
+      if (data) setProperties(data);
+    };
+    loadProperties();
   }, []);
 
   const handleAddItem = () => {
@@ -33,15 +41,26 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
     setItems(newItems);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim() || items.some(i => !i.description.trim() || !i.amount.trim())) {
       alert("Please fill in all fields.");
       return;
     }
-    const templates = JSON.parse(localStorage.getItem('invoice_templates') || '[]');
-    templates.push({ id: Date.now().toString(), name, items, linkedProperties });
-    localStorage.setItem('invoice_templates', JSON.stringify(templates));
-    onClose();
+    if (!session?.user?.id) return;
+
+    setIsSaving(true);
+    const { error } = await supabase.from('invoice_templates').insert({
+      user_id: session.user.id,
+      name,
+      items: items as any,
+    });
+
+    if (error) {
+      alert(`Failed to save template: ${error.message}`);
+    } else {
+      onClose();
+    }
+    setIsSaving(false);
   };
 
   return createPortal(
@@ -58,99 +77,83 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
             <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Space Grotesk' }}>
               Create Invoice Template
             </Typography>
-            <IconButton onClick={onClose} sx={{ bgcolor: 'rgba(0,0,0,0.04)' }}>
-              <X className="w-5 h-5" />
-            </IconButton>
+            <IconButton onClick={onClose}><X /></IconButton>
           </div>
 
-          <div className="flex flex-col gap-6">
-            <TextField 
-              label="Template Name" 
-              placeholder="e.g. Monthly Rent + Water"
-              fullWidth 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
-            />
+          <TextField
+            label="Template Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            variant="outlined"
+            sx={{ mb: 3 }}
+          />
 
-            <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}>
-              <InputLabel>Linked Properties (Optional)</InputLabel>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Line Items</Typography>
+          {items.map((item, index) => (
+            <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+              <TextField
+                label="Description"
+                value={item.description}
+                onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                sx={{ flex: 2 }}
+                size="small"
+              />
+              <TextField
+                label="Amount ($)"
+                value={item.amount}
+                onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
+                type="number"
+                sx={{ flex: 1 }}
+                size="small"
+              />
+              <IconButton onClick={() => handleRemoveItem(index)} color="error" disabled={items.length === 1}>
+                <Trash2 size={16} />
+              </IconButton>
+            </Box>
+          ))}
+
+          <Button startIcon={<Plus size={16} />} onClick={handleAddItem} sx={{ mb: 3, textTransform: 'none' }}>
+            Add Line Item
+          </Button>
+
+          {properties.length > 0 && (
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Link to Properties (optional)</InputLabel>
               <Select
                 multiple
                 value={linkedProperties}
-                onChange={(e) => setLinkedProperties(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
-                input={<OutlinedInput label="Linked Properties (Optional)" />}
+                onChange={(e) => setLinkedProperties(e.target.value as string[])}
+                input={<OutlinedInput label="Link to Properties (optional)" />}
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((value) => {
-                      const prop = properties.find(p => p.id === value);
-                      return <Chip key={value} label={prop ? prop.address : value} size="small" />;
-                    })}
+                    {(selected as string[]).map((v) => (
+                      <Chip key={v} label={properties.find(p => p.id === v)?.address || v} size="small" />
+                    ))}
                   </Box>
                 )}
               >
-                {properties.map((prop) => (
-                  <MenuItem key={prop.id} value={prop.id}>
-                    <Checkbox checked={linkedProperties.indexOf(prop.id) > -1} />
-                    <ListItemText primary={prop.address} secondary={prop.tenant?.name || 'No tenant'} />
+                {properties.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    <Checkbox checked={linkedProperties.indexOf(p.id) > -1} />
+                    <ListItemText primary={p.address} />
                   </MenuItem>
                 ))}
-                {properties.length === 0 && (
-                  <MenuItem disabled>No properties available</MenuItem>
-                )}
               </Select>
             </FormControl>
+          )}
 
-            <div>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 2, color: 'text.secondary' }}>Line Items</Typography>
-              
-              <div className="space-y-3 mb-4">
-                {items.map((item, index) => (
-                  <div key={index} className="flex gap-3">
-                    <TextField 
-                      placeholder="Description (e.g. Rent)" 
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                      fullWidth
-                      size="small"
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                    <TextField 
-                      placeholder="Amount ($)" 
-                      value={item.amount}
-                      onChange={(e) => handleItemChange(index, 'amount', e.target.value)}
-                      sx={{ width: 150, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      size="small"
-                      type="number"
-                    />
-                    <IconButton 
-                      onClick={() => handleRemoveItem(index)}
-                      disabled={items.length === 1}
-                      sx={{ color: 'error.main', opacity: items.length === 1 ? 0.3 : 1 }}
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </IconButton>
-                  </div>
-                ))}
-              </div>
-
-              <Button 
-                variant="outlined" 
-                startIcon={<Plus className="w-4 h-4" />}
-                onClick={handleAddItem}
-                sx={{ borderRadius: '50px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', px: 3 }}
-              >
-                Add Line Item
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 bg-surface-container-lowest border-t border-outline-variant/30 flex justify-end gap-3">
-          <Button onClick={onClose} sx={{ fontWeight: 'bold', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', px: 3, borderRadius: '50px' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disableElevation sx={{ borderRadius: '50px', px: 5, py: 1.5, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.2)' }}>
-            Save Template
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button onClick={onClose} variant="outlined" sx={{ borderRadius: '50px' }}>Cancel</Button>
+            <Button
+              onClick={handleSave}
+              variant="contained"
+              disabled={isSaving}
+              sx={{ borderRadius: '50px', fontWeight: 700 }}
+            >
+              {isSaving ? 'Saving...' : 'Save Template'}
+            </Button>
+          </Box>
         </div>
       </motion.div>
     </div>,
