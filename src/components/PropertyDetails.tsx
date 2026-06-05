@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
+import { supabase } from '../lib/supabase';
 
 export function PropertyDetails() {
   const { id } = useParams();
@@ -19,16 +20,38 @@ export function PropertyDetails() {
   const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
-    const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
-    const found = loadedProps.find((p: any) => p.id === id);
-    if (found) {
-      setProperty(found);
-      const propsImages = found.images || (found.image ? [found.image] : []);
-      setImages(propsImages);
-    } else {
-      navigate('/dashboard');
-    }
+    const loadProperty = async () => {
+      if (!id) return;
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        navigate('/dashboard/properties');
+        return;
+      }
+
+      // Map snake_case to camelCase for UI
+      const mapped = {
+        ...data,
+        rentAmount: data.rent_amount,
+        propertyType: data.property_type,
+        paymentFrequency: data.payment_frequency,
+        tenantName: data.tenant_name,
+        tenantEmail: data.tenant_email,
+        leaseStart: data.lease_start,
+        leaseDuration: data.lease_duration,
+      };
+      setProperty(mapped);
+      const propImages = mapped.images || (mapped.image ? [mapped.image] : []);
+      setImages(propImages);
+    };
+    loadProperty();
   }, [id, navigate]);
+
+
 
   // Auto-rotation effect
   useEffect(() => {
@@ -47,7 +70,7 @@ export function PropertyDetails() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64String = reader.result as string;
         
         let newImages = [...images];
@@ -63,16 +86,19 @@ export function PropertyDetails() {
         setImages(newImages);
         setProperty({ ...property, images: newImages, image: newImages[0] });
         
-        const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
-        const updatedProps = loadedProps.map((p: any) => p.id === id ? { ...p, images: newImages, image: newImages[0] } : p);
-        localStorage.setItem('properties', JSON.stringify(updatedProps));
+        // Save to Supabase
+        await supabase
+          .from('properties')
+          .update({ image: newImages[0] })
+          .eq('id', id);
+
         setIsMenuOpen(false);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleDeleteImage = () => {
+  const handleDeleteImage = async () => {
     if (images.length === 0) return;
     
     const newImages = [...images];
@@ -82,9 +108,12 @@ export function PropertyDetails() {
     setCurrentImageIndex(prev => Math.min(prev, Math.max(0, newImages.length - 1)));
     setProperty({ ...property, images: newImages, image: newImages[0] || null });
     
-    const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
-    const updatedProps = loadedProps.map((p: any) => p.id === id ? { ...p, images: newImages, image: newImages[0] || null } : p);
-    localStorage.setItem('properties', JSON.stringify(updatedProps));
+    // Save to Supabase
+    await supabase
+      .from('properties')
+      .update({ image: newImages[0] || null })
+      .eq('id', id);
+
     setIsMenuOpen(false);
   };
 
@@ -98,12 +127,10 @@ export function PropertyDetails() {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this property? This action cannot be undone.")) {
-      const loadedProps = JSON.parse(localStorage.getItem('properties') || '[]');
-      const updatedProps = loadedProps.filter((p: any) => p.id !== id);
-      localStorage.setItem('properties', JSON.stringify(updatedProps));
-      navigate('/dashboard');
+      await supabase.from('properties').delete().eq('id', id);
+      navigate('/dashboard/properties');
     }
   };
 
