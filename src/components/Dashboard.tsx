@@ -18,17 +18,19 @@ const quickActions = [
 ];
 
 export function Dashboard() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect AFTER auth has finished loading — user=null during loading is normal
+    if (!loading && !user) {
       navigate('/login');
       return;
     }
-    fetchProperties();
-  }, [user, navigate]);
+    if (user) fetchProperties();
+  }, [user, loading]);
+
 
   const fetchProperties = async () => {
     try {
@@ -53,7 +55,7 @@ export function Dashboard() {
     }
   };
 
-  if (!user) return null;
+  if (loading || !user) return null;
 
   const totalRent = properties.reduce((sum, p) => {
      let amount = parseFloat(p.rentAmount) || 0;
