@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 export function Properties() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -18,10 +19,12 @@ export function Properties() {
   }, []);
 
   const fetchProperties = async () => {
+    setDataLoading(true);
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
         
       if (error) throw error;
       if (data) {
@@ -38,6 +41,8 @@ export function Properties() {
       }
     } catch (error) {
       console.error('Error fetching properties:', error);
+    } finally {
+      setDataLoading(false);
     }
   };
 
@@ -164,7 +169,24 @@ export function Properties() {
 
         <div className="px-6 md:px-10 max-w-[1600px] mx-auto relative z-10">
           
-          {filteredProperties.length === 0 ? (
+          {/* Skeleton loading grid */}
+          {dataLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-surface rounded-3xl overflow-hidden shadow-sm">
+                  <div className="h-40 bg-surface-container" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-4 w-3/4 bg-outline-variant/30 rounded" />
+                    <div className="h-3 w-1/2 bg-outline-variant/20 rounded" />
+                    <div className="pt-3 border-t border-outline-variant/20 flex justify-between items-center">
+                      <div className="h-6 w-16 bg-outline-variant/20 rounded" />
+                      <div className="h-5 w-20 bg-outline-variant/20 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProperties.length === 0 ? (
             <div className="text-center py-20 bg-surface rounded-3xl border border-outline-variant/30 mt-4 shadow-sm">
               <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Building className="w-8 h-8 text-on-surface-variant" />
@@ -180,6 +202,7 @@ export function Properties() {
               )}
             </div>
           ) : viewMode === 'grid' ? (
+
             <motion.div 
               key="grid"
               variants={containerVariants} 

@@ -8,8 +8,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/format';
 
-// Removed MOCK DATA
-
 const quickActions = [
   { title: 'Create Lease', icon: FileText },
   { title: 'Add Tenant', icon: Users },
@@ -17,51 +15,85 @@ const quickActions = [
   { title: 'Request Maintenance', icon: Wrench },
 ];
 
+// Skeleton card for loading state
+function SkeletonCard({ className = '' }: { className?: string }) {
+  return (
+    <div className={`animate-pulse bg-surface-container rounded-[20px] ${className}`}>
+      <div className="h-full p-6 flex flex-col">
+        <div className="w-10 h-10 rounded-xl bg-outline-variant/30 mb-6" />
+        <div className="mt-auto space-y-2">
+          <div className="h-2 w-16 bg-outline-variant/30 rounded" />
+          <div className="h-8 w-20 bg-outline-variant/30 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="animate-pulse border-b border-outline-variant/30">
+      <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-outline-variant/20" /><div className="space-y-1"><div className="h-3 w-32 bg-outline-variant/20 rounded" /><div className="h-2 w-24 bg-outline-variant/20 rounded" /></div></div></td>
+      <td className="px-6 py-4"><div className="h-3 w-16 bg-outline-variant/20 rounded" /></td>
+      <td className="px-6 py-4"><div className="h-5 w-14 bg-outline-variant/20 rounded-md" /></td>
+      <td className="px-6 py-4"><div className="h-3 w-20 bg-outline-variant/20 rounded" /></td>
+      <td className="px-6 py-4"><div className="h-2 w-16 bg-outline-variant/20 rounded" /></td>
+      <td className="px-6 py-4"><div className="h-3 w-20 bg-outline-variant/20 rounded" /></td>
+      <td className="px-6 py-4"><div className="w-6 h-6 bg-outline-variant/20 rounded-md mx-auto" /></td>
+    </tr>
+  );
+}
+
 export function Dashboard() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Fetch data immediately on mount — don't wait for auth
+  // Supabase RLS handles auth internally; if not authed it just returns []
   useEffect(() => {
-    // Only redirect AFTER auth has finished loading — user=null during loading is normal
-    if (!loading && !user) {
-      navigate('/login');
-      return;
-    }
-    if (user) fetchProperties();
-  }, [user, loading]);
+    fetchProperties();
+  }, []);
 
+  // Redirect only once we KNOW auth is done and user is null
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [authLoading, user]);
 
   const fetchProperties = async () => {
+    setDataLoading(true);
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
         
       if (error) throw error;
       if (data) {
-        // Map snake_case database fields back to camelCase for the UI if needed
-        const mappedData = data.map(p => ({
+        setProperties(data.map(p => ({
           ...p,
           rentAmount: p.rent_amount,
           propertyType: p.property_type,
           paymentFrequency: p.payment_frequency,
           tenantName: p.tenant_name
-        }));
-        setProperties(mappedData);
+        })));
       }
     } catch (error) {
       console.error('Error fetching properties:', error);
+    } finally {
+      setDataLoading(false);
     }
   };
 
-  if (loading || !user) return null;
-
+  // Don't block render — show skeleton while loading
   const totalRent = properties.reduce((sum, p) => {
-     let amount = parseFloat(p.rentAmount) || 0;
-     if (p.paymentFrequency === 'Fortnightly') amount = amount / 2;
-     if (p.paymentFrequency === 'Monthly') amount = (amount * 12) / 52;
-     return sum + amount;
+    let amount = parseFloat(p.rentAmount) || 0;
+    if (p.paymentFrequency === 'Fortnightly') amount = amount / 2;
+    if (p.paymentFrequency === 'Monthly') amount = (amount * 12) / 52;
+    return sum + amount;
   }, 0);
 
   const containerVariants = {
@@ -82,7 +114,7 @@ export function Dashboard() {
           <header className="px-6 md:px-10 pt-8 pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4 z-10 relative">
             <div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-on-surface font-display mb-1 flex items-center gap-2">
-                Good morning, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}! <span className="text-2xl">👋</span>
+                Good morning, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '...'} <span className="text-2xl">👋</span>
               </h1>
               <p className="text-sm text-on-surface-variant font-medium">Here's what's happening with your properties today.</p>
             </div>
@@ -99,71 +131,71 @@ export function Dashboard() {
           <div className="px-6 md:px-10 max-w-[1600px] mx-auto relative z-10">
             
             {/* 1. Top Stats Row */}
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-              
-              {/* Card 1: Monthly Rent (Colored) */}
-              <motion.div variants={itemVariants} className="bg-primary p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mb-6 backdrop-blur-sm">
-                  <Wallet className="w-5 h-5 text-on-primary" />
-                </div>
-                <div className="flex flex-col mt-auto">
-                  <div className="flex items-center gap-1 mb-1 opacity-90">
-                    <span className="text-xs font-black text-on-primary/90 tracking-[0.08em] uppercase">Expected Monthly Collection</span>
+            {dataLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                {[...Array(5)].map((_, i) => <SkeletonCard key={i} className="min-h-[140px]" />)}
+              </div>
+            ) : (
+              <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                
+                <motion.div variants={itemVariants} className="bg-primary p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mb-6 backdrop-blur-sm">
+                    <Wallet className="w-5 h-5 text-on-primary" />
                   </div>
-                  <span className="text-4xl font-black font-display text-on-primary leading-none">${formatCurrency(totalRent * 4)}</span>
-                </div>
-              </motion.div>
-              
-              {/* Card 2: Total Properties */}
-              <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
-                <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mb-6">
-                  <Building className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex flex-col mt-auto">
-                  <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Total Properties</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.length || 0}</span>
-                </div>
-              </motion.div>
-              
-              {/* Card 3: Tenancies */}
-              <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mb-6">
-                  <Users className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex flex-col mt-auto">
-                  <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Tenancies</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.filter(p=>p.tenantName).length || 0}</span>
-                </div>
-              </motion.div>
+                  <div className="flex flex-col mt-auto">
+                    <div className="flex items-center gap-1 mb-1 opacity-90">
+                      <span className="text-xs font-black text-on-primary/90 tracking-[0.08em] uppercase">Expected Monthly Collection</span>
+                    </div>
+                    <span className="text-4xl font-black font-display text-on-primary leading-none">${formatCurrency(totalRent * 4)}</span>
+                  </div>
+                </motion.div>
+                
+                <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
+                  <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mb-6">
+                    <Building className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex flex-col mt-auto">
+                    <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Total Properties</span>
+                    <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.length}</span>
+                  </div>
+                </motion.div>
+                
+                <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mb-6">
+                    <Users className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex flex-col mt-auto">
+                    <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Tenancies</span>
+                    <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.filter(p=>p.tenantName).length}</span>
+                  </div>
+                </motion.div>
 
-              {/* Card 4: Pending Applications */}
-              <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
-                <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mb-6">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex flex-col mt-auto">
-                  <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Pending Apps</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">0</span>
-                </div>
-              </motion.div>
+                <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
+                  <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mb-6">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex flex-col mt-auto">
+                    <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Pending Apps</span>
+                    <span className="text-4xl font-black font-display text-on-surface leading-none">0</span>
+                  </div>
+                </motion.div>
 
-              {/* Card 5: Open Maintenance */}
-              <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
-                <div className="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center shrink-0 mb-6">
-                  <Wrench className="w-5 h-5 text-error" />
-                </div>
-                <div className="flex flex-col mt-auto">
-                  <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Maintenance</span>
-                  <span className="text-4xl font-black font-display text-on-surface leading-none">0</span>
-                </div>
-              </motion.div>
+                <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[20px] shadow-sm flex flex-col min-h-[140px]">
+                  <div className="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center shrink-0 mb-6">
+                    <Wrench className="w-5 h-5 text-error" />
+                  </div>
+                  <div className="flex flex-col mt-auto">
+                    <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Maintenance</span>
+                    <span className="text-4xl font-black font-display text-on-surface leading-none">0</span>
+                  </div>
+                </motion.div>
 
-            </motion.div>
+              </motion.div>
+            )}
 
             {/* 2. Activity & Tasks Row */}
             <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               
-              {/* Upcoming Events */}
               <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[24px] border border-outline-variant/50 shadow-sm flex flex-col h-full min-h-[300px]">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-base font-bold text-on-surface">Upcoming Events</h3>
@@ -175,7 +207,6 @@ export function Dashboard() {
                 </div>
               </motion.div>
 
-              {/* Recent Activity */}
               <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[24px] border border-outline-variant/50 shadow-sm flex flex-col h-full min-h-[300px]">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-base font-bold text-on-surface">Recent Activity</h3>
@@ -187,7 +218,6 @@ export function Dashboard() {
                 </div>
               </motion.div>
 
-              {/* Tasks */}
               <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[24px] border border-outline-variant/50 shadow-sm flex flex-col h-full min-h-[300px]">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-base font-bold text-on-surface">Tasks</h3>
@@ -238,12 +268,14 @@ export function Dashboard() {
                        </tr>
                      </thead>
                      <tbody className="text-sm divide-y divide-outline-variant/30">
-                       {properties.length > 0 ? properties.slice(0, 5).map(p => (
+                       {dataLoading ? (
+                         [...Array(3)].map((_, i) => <SkeletonRow key={i} />)
+                       ) : properties.length > 0 ? properties.slice(0, 5).map(p => (
                          <tr key={p.id} className="hover:bg-surface-container-lowest transition-colors group cursor-pointer" onClick={() => navigate(`/dashboard/property/${p.id}`)}>
                            <td className="px-6 py-4">
                              <div className="flex items-center gap-3">
-                               <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0">
-                                 <Building className="w-5 h-5 text-on-surface-variant" />
+                               <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0 overflow-hidden">
+                                 {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Building className="w-5 h-5 text-on-surface-variant" />}
                                </div>
                                <div>
                                  <div className="font-bold text-on-surface mb-0.5">{p.address}</div>
@@ -253,7 +285,6 @@ export function Dashboard() {
                            </td>
                            <td className="px-6 py-4">
                              <div className="font-bold text-on-surface text-xs">{p.propertyType || 'House'}</div>
-                             <div className="text-[10px] text-on-surface-variant font-medium">3 Bed, 2 Bath</div>
                            </td>
                            <td className="px-6 py-4">
                              <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${p.tenantName ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
