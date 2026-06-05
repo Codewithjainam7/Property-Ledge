@@ -7,8 +7,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../utils/format';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
-export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, dueDate: string) => {
+export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, dueDate: string, landlordName = 'Property Landlord') => {
   const doc = new jsPDF();
   const total = selectedTemplate.items.reduce((acc: number, curr: any) => acc + (parseFloat(curr.amount) || 0), 0);
   
@@ -63,13 +64,13 @@ export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, due
   doc.setTextColor(...darkSlate);
   doc.text('FROM', 15, 60);
   doc.setFontSize(10);
-  doc.text('Michael Landlord', 15, 65);
+  doc.setFont('helvetica', 'bold');
+  doc.text(landlordName, 15, 65);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...grayText);
   doc.text('ABN 17 234 567 890', 15, 70);
-  doc.text('8 Harbour View Road\nManly NSW 2095\nAustralia', 15, 75);
-  doc.text('0412 345 678\nmichael@landlord.com.au', 15, 90);
+  doc.text('Property Ledge\nAustralia', 15, 75);
 
   // Vertical Divider
   doc.setDrawColor(230, 230, 230);
@@ -212,7 +213,7 @@ export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, due
   doc.text('Account Name', 20, finalY + 60);
   doc.setFontSize(9);
   doc.setTextColor(...darkSlate);
-  doc.text('Michael Landlord', 20, finalY + 65);
+  doc.text(landlordName, 20, finalY + 65);
 
   doc.setFontSize(8);
   doc.setTextColor(...grayText);
@@ -239,6 +240,7 @@ export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, due
 };
 
 export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => void, initialInvoice?: any }) {
+  const { user } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   
@@ -279,7 +281,8 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
   const handleGeneratePDF = async () => {
     if (!selectedProperty || !selectedTemplate) return;
 
-    const doc = generatePDFDoc(selectedProperty, selectedTemplate, dueDate);
+    const landlordName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Property Landlord';
+    const doc = generatePDFDoc(selectedProperty, selectedTemplate, dueDate, landlordName);
     const total = calculateTotal();
 
     // Save PDF locally
@@ -287,7 +290,7 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
 
     // Save invoice to Supabase
     await supabase.from('invoices').insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+      user_id: user?.id,
       property_id: selectedProperty.id,
       template_id: selectedTemplate.id,
       invoice_number: `INV-${Date.now()}`,
@@ -298,6 +301,7 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
 
     onClose();
   };
+
 
 
   return createPortal(

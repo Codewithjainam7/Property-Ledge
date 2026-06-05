@@ -24,11 +24,22 @@ export function InvoiceManagement() {
   const loadData = async () => {
     const [{ data: tpl }, { data: inv }, { data: props }] = await Promise.all([
       supabase.from('invoice_templates').select('*').order('created_at', { ascending: false }),
-      supabase.from('invoices').select('*, properties(address), invoice_templates(name)').order('created_at', { ascending: false }),
+      supabase.from('invoices').select('*, properties(address, tenant_name), invoice_templates(name)').order('created_at', { ascending: false }),
       supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency'),
     ]);
     if (tpl) setTemplates(tpl);
-    if (inv) setInvoices(inv);
+    if (inv) {
+      // Map Supabase snake_case fields to what the UI expects
+      setInvoices(inv.map(i => ({
+        ...i,
+        tenantName: i.properties?.tenant_name || 'Unknown Tenant',
+        propertyName: i.properties?.address || 'Unknown Property',
+        dueDate: i.due_date,
+        totalAmount: i.total_amount,
+        templateId: i.template_id,
+        propertyId: i.property_id,
+      })));
+    }
     if (props) setProperties(props.map(p => ({ ...p, tenantName: p.tenant_name, rentAmount: p.rent_amount, paymentFrequency: p.payment_frequency })));
   };
 
@@ -264,7 +275,7 @@ export function InvoiceManagement() {
                           </div>
                           <div className="flex gap-2">
                             <IconButton 
-                              onClick={() => setDeleteConfirm({ isOpen: true, type: 'invoice', id: idx })}
+                              onClick={() => setDeleteConfirm({ isOpen: true, type: 'invoice', id: inv.id })}
                               sx={{ bgcolor: 'rgba(239,68,68,0.05)', color: 'error.main', '&:hover': { bgcolor: 'error.main', color: 'white' }, transition: 'all 0.3s' }}
                             >
                               <Trash2 className="w-5 h-5" />
@@ -402,8 +413,8 @@ export function InvoiceManagement() {
 
       </div>
 
-      {showTemplateBuilder && <InvoiceTemplateBuilder onClose={() => setShowTemplateBuilder(false)} />}
-      {showGenerator && <InvoiceGenerator onClose={() => { setShowGenerator(false); setSelectedInvoice(null); }} initialInvoice={selectedInvoice} />}
+      {showTemplateBuilder && <InvoiceTemplateBuilder onClose={() => { setShowTemplateBuilder(false); loadData(); }} />}
+      {showGenerator && <InvoiceGenerator onClose={() => { setShowGenerator(false); setSelectedInvoice(null); loadData(); }} initialInvoice={selectedInvoice} />}
 
       <Dialog
         open={deleteConfirm.isOpen}
