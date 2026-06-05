@@ -19,13 +19,14 @@ const quickActions = [
 export function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const navigate = useNavigate();
 
   // Fetch data immediately on mount — don't wait for auth
   // Supabase RLS handles auth internally; if not authed it just returns []
   useEffect(() => {
-    fetchProperties();
+    fetchDashboardData();
   }, []);
 
   // Redirect only once we KNOW auth is done and user is null
@@ -35,17 +36,19 @@ export function Dashboard() {
     }
   }, [authLoading, user]);
 
-  const fetchProperties = async () => {
+  const fetchDashboardData = async () => {
     setDataLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const [propsRes, invsRes] = await Promise.all([
+        supabase.from('properties').select('*').order('created_at', { ascending: false }),
+        supabase.from('invoices').select('*').order('created_at', { ascending: false })
+      ]);
         
-      if (error) throw error;
-      if (data) {
-        setProperties(data.map(p => ({
+      if (propsRes.error) throw propsRes.error;
+      if (invsRes.error) throw invsRes.error;
+
+      if (propsRes.data) {
+        setProperties(propsRes.data.map(p => ({
           ...p,
           rentAmount: p.rent_amount,
           propertyType: p.property_type,
@@ -53,8 +56,12 @@ export function Dashboard() {
           tenantName: p.tenant_name
         })));
       }
+      
+      if (invsRes.data) {
+        setInvoices(invsRes.data);
+      }
     } catch (error) {
-      console.error('Error fetching properties:', error);
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setDataLoading(false);
     }
@@ -67,6 +74,13 @@ export function Dashboard() {
     if (p.paymentFrequency === 'Monthly') amount = (amount * 12) / 52;
     return sum + amount;
   }, 0);
+
+  const unpaidInvoices = invoices.filter(i => i.status === 'Unpaid');
+  const totalOutstanding = unpaidInvoices.reduce((sum, i) => sum + (parseFloat(i.total_amount) || 0), 0);
+  
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const overdueCount = unpaidInvoices.filter(i => i.due_date && new Date(i.due_date) < today).length;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -315,16 +329,16 @@ export function Dashboard() {
                    </div>
                    <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer">View All</span>
                  </div>
-                 <div className="text-3xl font-black font-display text-on-surface mb-6">$0.00</div>
+                 <div className="text-3xl font-black font-display text-on-surface mb-6">${formatCurrency(totalOutstanding)}</div>
                  
                  <div className="flex gap-4 mt-auto">
                    <div className="flex-1">
-                     <div className="text-lg font-black text-error mb-0.5">0</div>
+                     <div className="text-lg font-black text-error mb-0.5">{overdueCount}</div>
                      <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Overdue</div>
                    </div>
                    <div className="w-[1px] bg-outline-variant/50"></div>
                    <div className="flex-1">
-                     <div className="text-lg font-black text-warning mb-0.5">0</div>
+                     <div className="text-lg font-black text-warning mb-0.5">{unpaidInvoices.length - overdueCount}</div>
                      <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Due Soon</div>
                    </div>
                  </div>
