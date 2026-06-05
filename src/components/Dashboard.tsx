@@ -7,6 +7,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/format';
+import { SkeletonCard, SkeletonRow } from './Skeletons';
 
 const quickActions = [
   { title: 'Create Lease', icon: FileText, path: '/dashboard/onboarding' },
@@ -14,35 +15,6 @@ const quickActions = [
   { title: 'Record Payment', icon: Wallet, path: '/dashboard/invoices' },
   { title: 'Request Maintenance', icon: Wrench, path: '/dashboard' },
 ];
-
-// Skeleton card for loading state
-function SkeletonCard({ className = '' }: { className?: string }) {
-  return (
-    <div className={`animate-pulse bg-surface-container rounded-[20px] ${className}`}>
-      <div className="h-full p-6 flex flex-col">
-        <div className="w-10 h-10 rounded-xl bg-outline-variant/30 mb-6" />
-        <div className="mt-auto space-y-2">
-          <div className="h-2 w-16 bg-outline-variant/30 rounded" />
-          <div className="h-8 w-20 bg-outline-variant/30 rounded" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SkeletonRow() {
-  return (
-    <tr className="animate-pulse border-b border-outline-variant/30">
-      <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-outline-variant/20" /><div className="space-y-1"><div className="h-3 w-32 bg-outline-variant/20 rounded" /><div className="h-2 w-24 bg-outline-variant/20 rounded" /></div></div></td>
-      <td className="px-6 py-4"><div className="h-3 w-16 bg-outline-variant/20 rounded" /></td>
-      <td className="px-6 py-4"><div className="h-5 w-14 bg-outline-variant/20 rounded-md" /></td>
-      <td className="px-6 py-4"><div className="h-3 w-20 bg-outline-variant/20 rounded" /></td>
-      <td className="px-6 py-4"><div className="h-2 w-16 bg-outline-variant/20 rounded" /></td>
-      <td className="px-6 py-4"><div className="h-3 w-20 bg-outline-variant/20 rounded" /></td>
-      <td className="px-6 py-4"><div className="w-6 h-6 bg-outline-variant/20 rounded-md mx-auto" /></td>
-    </tr>
-  );
-}
 
 export function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -106,6 +78,13 @@ export function Dashboard() {
     visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } }
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
     <DashboardLayout>
         <div className="relative overflow-hidden min-h-screen pb-20">
@@ -114,7 +93,7 @@ export function Dashboard() {
           <header className="px-6 md:px-10 pt-8 pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-4 z-10 relative">
             <div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-on-surface font-display mb-1 flex items-center gap-2">
-                Good morning, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '...'} <span className="text-2xl">👋</span>
+                {getGreeting()}, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '...'} <span className="text-2xl">👋</span>
               </h1>
               <p className="text-sm text-on-surface-variant font-medium">Here's what's happening with your properties today.</p>
             </div>

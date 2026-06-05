@@ -5,6 +5,7 @@ import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Cl
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
+import { SkeletonDetails } from './Skeletons';
 
 export function PropertyDetails() {
   const { id } = useParams();
@@ -64,7 +65,13 @@ export function PropertyDetails() {
     return () => clearInterval(interval);
   }, [images.length, isFullScreenMode, isHovering, isMenuOpen]);
 
-  if (!property) return null;
+  if (!property) {
+    return (
+      <DashboardLayout>
+        <SkeletonDetails />
+      </DashboardLayout>
+    );
+  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, action: 'add' | 'replace' = 'replace') => {
     const file = e.target.files?.[0];

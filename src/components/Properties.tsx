@@ -4,6 +4,7 @@ import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
+import { SkeletonPropertyCard } from './Skeletons';
 
 export function Properties() {
   const navigate = useNavigate();
@@ -172,19 +173,7 @@ export function Properties() {
           {/* Skeleton loading grid */}
           {dataLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-surface rounded-3xl overflow-hidden shadow-sm">
-                  <div className="h-40 bg-surface-container" />
-                  <div className="p-5 space-y-3">
-                    <div className="h-4 w-3/4 bg-outline-variant/30 rounded" />
-                    <div className="h-3 w-1/2 bg-outline-variant/20 rounded" />
-                    <div className="pt-3 border-t border-outline-variant/20 flex justify-between items-center">
-                      <div className="h-6 w-16 bg-outline-variant/20 rounded" />
-                      <div className="h-5 w-20 bg-outline-variant/20 rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {[...Array(4)].map((_, i) => <SkeletonPropertyCard key={i} />)}
             </div>
           ) : filteredProperties.length === 0 ? (
             <div className="text-center py-20 bg-surface rounded-3xl border border-outline-variant/30 mt-4 shadow-sm">

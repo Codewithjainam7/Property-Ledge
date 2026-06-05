@@ -14,6 +14,7 @@ export function InvoiceManagement() {
   const [showGenerator, setShowGenerator] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; type: 'invoice' | 'template'; id: number | string | null }>({ isOpen: false, type: 'invoice', id: null });
+  const [dataLoading, setDataLoading] = useState(true);
   
   const [invoices, setInvoices] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
@@ -41,6 +42,7 @@ export function InvoiceManagement() {
       })));
     }
     if (props) setProperties(props.map(p => ({ ...p, tenantName: p.tenant_name, rentAmount: p.rent_amount, paymentFrequency: p.payment_frequency })));
+    setDataLoading(false);
   };
 
   useEffect(() => {
@@ -163,7 +165,13 @@ export function InvoiceManagement() {
           {/* Tab 0: Generated Invoices */}
           {activeTab === 0 && (
             <motion.div key="invoices" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
-              {invoices.length === 0 ? (
+              {dataLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-[104px] bg-white/40 backdrop-blur-md rounded-[32px] border border-white/60 animate-pulse shadow-sm" />
+                  ))}
+                </div>
+              ) : invoices.length === 0 ? (
                 <div className="bg-white/60 backdrop-blur-3xl border border-white/80 rounded-[40px] p-10 md:p-16 text-center shadow-[0_16px_40px_-12px_rgba(59,34,181,0.06)] relative overflow-hidden group">
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/5 rounded-full blur-[80px] group-hover:bg-primary/10 transition-colors duration-700" />
                   
@@ -302,7 +310,13 @@ export function InvoiceManagement() {
           {/* Tab 1: Templates */}
           {activeTab === 1 && (
             <motion.div key="templates" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
-              {templates.length === 0 ? (
+              {dataLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-[360px] bg-white/40 backdrop-blur-md rounded-[36px] border border-white/60 animate-pulse shadow-sm" />
+                  ))}
+                </div>
+              ) : templates.length === 0 ? (
                  <div className="bg-white/60 backdrop-blur-3xl border border-white/80 rounded-[40px] p-10 md:p-16 text-center shadow-[0_16px_40px_-12px_rgba(59,34,181,0.06)] relative overflow-hidden group">
                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-secondary/5 rounded-full blur-[80px] group-hover:bg-secondary/10 transition-colors duration-700" />
                    
