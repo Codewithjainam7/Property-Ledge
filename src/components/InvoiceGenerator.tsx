@@ -287,7 +287,7 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
       invoice_number: `INV-${Date.now()}`,
       status: 'Unpaid',
       total_amount: total,
-      due_date: dueDate,
+      due_date: dueDate || new Date().toISOString().split('T')[0],
     });
 
     onClose();

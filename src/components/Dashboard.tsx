@@ -205,9 +205,28 @@ export function Dashboard() {
                   <h3 className="text-base font-bold text-on-surface">Recent Activity</h3>
                   <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer bg-surface-container px-2 py-1 rounded-md">View All</span>
                 </div>
-                <div className="flex-1 space-y-5 flex flex-col items-center justify-center text-center opacity-50">
-                  <Clock className="w-8 h-8 text-on-surface-variant mb-2" />
-                  <span className="text-sm font-bold text-on-surface-variant">No recent activity</span>
+                <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+                  {[...invoices.map(i => ({ type: 'invoice', date: new Date(i.created_at), desc: `Invoice ${i.invoice_number} generated for ${formatCurrency(i.total_amount)}` })), 
+                    ...properties.map(p => ({ type: 'property', date: new Date(p.created_at), desc: `Property added: ${p.address}` }))]
+                    .sort((a, b) => b.date.getTime() - a.date.getTime())
+                    .slice(0, 5)
+                    .map((activity, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${activity.type === 'invoice' ? 'bg-primary/10 text-primary' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                        {activity.type === 'invoice' ? <FileText className="w-4 h-4" /> : <Building className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-on-surface line-clamp-2 leading-tight">{activity.desc}</p>
+                        <p className="text-[10px] text-on-surface-variant mt-1">{activity.date.toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {invoices.length === 0 && properties.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full opacity-50">
+                      <Clock className="w-8 h-8 text-on-surface-variant mb-2" />
+                      <span className="text-sm font-bold text-on-surface-variant">No recent activity</span>
+                    </div>
+                  )}
                 </div>
               </motion.div>
 
@@ -216,9 +235,22 @@ export function Dashboard() {
                   <h3 className="text-base font-bold text-on-surface">Tasks</h3>
                   <span className="text-[10px] font-bold text-on-surface-variant hover:text-primary cursor-pointer bg-surface-container px-2 py-1 rounded-md">View All</span>
                 </div>
-                <div className="flex-1 space-y-4 flex flex-col items-center justify-center text-center opacity-50">
-                  <CheckCircle2 className="w-8 h-8 text-on-surface-variant mb-2" />
-                  <span className="text-sm font-bold text-on-surface-variant">All tasks completed!</span>
+                <div className="flex-1 space-y-4 overflow-y-auto pr-2">
+                  {unpaidInvoices.length > 0 ? unpaidInvoices.map((inv, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-outline-variant/30 hover:border-primary/30 transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-error shrink-0"></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-on-surface truncate">Collect Rent: {inv.invoice_number}</p>
+                        <p className="text-[10px] text-on-surface-variant truncate">Due: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      <span className="text-sm font-black text-on-surface">${formatCurrency(inv.total_amount)}</span>
+                    </div>
+                  )) : (
+                    <div className="flex flex-col items-center justify-center h-full opacity-50">
+                      <CheckCircle2 className="w-8 h-8 text-on-surface-variant mb-2" />
+                      <span className="text-sm font-bold text-on-surface-variant">All tasks completed!</span>
+                    </div>
+                  )}
                 </div>
               </motion.div>
 
