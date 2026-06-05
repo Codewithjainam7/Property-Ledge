@@ -30,7 +30,9 @@ export function Properties() {
           rentAmount: p.rent_amount,
           propertyType: p.property_type,
           paymentFrequency: p.payment_frequency,
-          tenantName: p.tenant_name
+          tenantName: p.tenant_name,
+          tenantEmail: p.tenant_email,
+          leaseStart: p.lease_start
         }));
         setProperties(mappedData);
       }

@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload } from 'lucide-react';
 
 import { motion } from 'framer-motion';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 const theme = createTheme({
   palette: {
@@ -57,7 +59,9 @@ const steps = ['Property Location', 'Property Image', 'Financial Setup', 'Tenant
 
 export function PropertyOnboarding() {
   const [activeStep, setActiveStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { session } = useAuth();
 
   const [formData, setFormData] = useState({
     address: '',
@@ -90,7 +94,7 @@ export function PropertyOnboarding() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (activeStep === 0) {
       if (!formData.address.trim() || !formData.suburb.trim() || !formData.postcode.trim() || !formData.state || !formData.propertyType) {
         alert("Please fill in all mandatory property location fields.");
@@ -109,12 +113,91 @@ export function PropertyOnboarding() {
     }
 
     if (activeStep === steps.length - 1) {
-      // Save property and redirect
-      const properties = JSON.parse(localStorage.getItem('properties') || '[]');
-      const propertyId = Math.floor(100000 + Math.random() * 900000).toString();
-      properties.push({ ...formData, id: Date.now().toString(), propertyId });
-      localStorage.setItem('properties', JSON.stringify(properties));
-      navigate('/dashboard');
+      if (!session?.user?.id) {
+        alert("You must be logged in to add a property.");
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const propertyIdStr = 'PL-' + Math.floor(1000 + Math.random() * 9000).toString();
+        
+        // 1. Insert Property
+        const { data: propertyData, error: propertyError } = await supabase
+          .from('properties')
+          .insert({
+            user_id: session.user.id,
+            property_id: propertyIdStr,
+            address: formData.address,
+            suburb: formData.suburb,
+            postcode: formData.postcode,
+            state: formData.state,
+            property_type: formData.propertyType,
+            image: formData.image, // Base64 image
+            rent_amount: Number(formData.rentAmount),
+            payment_frequency: formData.paymentFrequency,
+            tenant_name: formData.tenantName,
+            tenant_email: formData.tenantEmail,
+            lease_start: formData.leaseStart || null,
+            lease_duration: formData.leaseDuration ? Number(formData.leaseDuration) : null
+          })
+          .select()
+          .single();
+
+        if (propertyError) throw propertyError;
+
+        // 2. Insert Tenant (if details provided)
+        if (formData.tenantName) {
+          const names = formData.tenantName.split(' ');
+          const firstName = names[0];
+          const lastName = names.slice(1).join(' ') || 'Unknown';
+
+          const { data: tenantData, error: tenantError } = await supabase
+            .from('tenants')
+            .insert({
+              user_id: session.user.id,
+              first_name: firstName,
+              last_name: lastName,
+              email: formData.tenantEmail || null
+            })
+            .select()
+            .single();
+
+          if (tenantError) throw tenantError;
+
+          // 3. Insert Lease
+          if (formData.leaseStart && propertyData && tenantData) {
+            let endDate = null;
+            if (formData.leaseDuration && Number(formData.leaseDuration) > 0) {
+              const start = new Date(formData.leaseStart);
+              start.setMonth(start.getMonth() + Number(formData.leaseDuration));
+              endDate = start.toISOString().split('T')[0];
+            }
+
+            const { error: leaseError } = await supabase
+              .from('leases')
+              .insert({
+                user_id: session.user.id,
+                property_id: propertyData.id,
+                tenant_id: tenantData.id,
+                start_date: formData.leaseStart,
+                end_date: endDate,
+                rent_amount: Number(formData.rentAmount),
+                payment_frequency: formData.paymentFrequency
+              });
+
+            if (leaseError) throw leaseError;
+          }
+        }
+
+        // Navigate to properties list instead of dashboard for immediate feedback
+        navigate('/dashboard/properties');
+      } catch (err: any) {
+        console.error("Error saving property:", err);
+        alert(`Failed to save property: ${err.message}`);
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       setActiveStep((prev) => prev + 1);
     }
@@ -399,9 +482,10 @@ export function PropertyOnboarding() {
               onClick={handleNext} 
               variant="contained"
               disableElevation
+              disabled={isSubmitting}
               sx={{ py: 1.5, px: { xs: 0, sm: 6 }, width: { xs: '100%', sm: 'auto' }, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem', fontWeight: 'bold' }}
             >
-              {activeStep === steps.length - 1 ? 'Finalize & Save Property' : 'Proceed to Next'}
+              {isSubmitting ? 'Saving...' : activeStep === steps.length - 1 ? 'Finalize & Save Property' : 'Proceed to Next'}
             </Button>
           </Box>
         </Paper>
