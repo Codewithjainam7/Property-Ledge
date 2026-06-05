@@ -17,8 +17,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Step 1: Read session from localStorage immediately — fast & synchronous.
+    // This sets loading=false before any redirect guard can fire.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Step 2: Listen for real-time auth events (login, logout, token refresh).
+    // Skip INITIAL_SESSION — getSession() above already handles the initial load.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);

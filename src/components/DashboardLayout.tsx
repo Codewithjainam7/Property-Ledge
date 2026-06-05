@@ -27,11 +27,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     if (!loading) {
       if (!session) {
         navigate('/login');
-      } else if (user && (!user.user_metadata?.mobile || !user.user_metadata?.role)) {
-        navigate('/complete-profile');
       }
+      // Note: Removed complete-profile redirect here — it was incorrectly
+      // kicking Google OAuth users who had partial metadata out of the dashboard.
     }
-  }, [session, loading, user, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, loading]);
 
   const handleLogout = async () => {
     await signOut();
