@@ -393,10 +393,11 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
                 <div className="flex flex-wrap justify-between items-start mb-8 gap-6">
                   <div>
                     <Typography sx={{ fontWeight: 900, color: '#1c2b33', mb: 2, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>From</Typography>
-                    <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#1c2b33', mb: 0.5 }}>Michael Landlord</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem', mb: 2 }}>ABN 17 234 567 890</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem' }}>8 Harbour View Road<br/>Manly NSW 2095<br/>Australia</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem', mt: 2 }}>0412 345 678<br/>michael@landlord.com.au</Typography>
+                    <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#1c2b33', mb: 0.5 }}>
+                      {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Property Landlord'}
+                    </Typography>
+                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem', mb: 2 }}>{user?.email}</Typography>
+                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem' }}>Property Ledge<br/>Australia</Typography>
                   </div>
                   
                   <div>
@@ -464,7 +465,9 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
                      </div>
                      <div>
                        <Typography sx={{ fontSize: '0.75rem', color: '#4a4a5e', fontWeight: 'bold', mb: 0.5 }}>Account Name</Typography>
-                       <Typography sx={{ fontSize: '0.85rem', color: '#1c2b33' }}>Michael Landlord</Typography>
+                       <Typography sx={{ fontSize: '0.85rem', color: '#1c2b33' }}>
+                         {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Landlord'}
+                       </Typography>
                      </div>
                      <div>
                        <Typography sx={{ fontSize: '0.75rem', color: '#4a4a5e', fontWeight: 'bold', mb: 0.5 }}>Account Number</Typography>
