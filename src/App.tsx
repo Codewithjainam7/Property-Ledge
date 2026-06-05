@@ -54,7 +54,7 @@ function Navigation() {
         className={`fixed left-1/2 -translate-x-1/2 w-[96%] sm:w-[94%] max-w-7xl transition-all duration-500 z-50 rounded-2xl border ${
           scrolled 
             ? 'top-3 bg-surface/95 backdrop-blur-2xl border-outline-variant/50 shadow-sm py-3 px-4 sm:px-5' 
-            : 'top-4 bg-surface/60 backdrop-blur-xl border-outline-variant/30 shadow-sm py-3.5 px-4 sm:px-6'
+            : 'top-4 bg-transparent border-transparent shadow-none py-3.5 px-4 sm:px-6'
         }`}
       >
         <div className="w-full flex justify-between items-center gap-3">
@@ -228,8 +228,27 @@ function Navigation() {
 }
 
 function SimulatedDashboardMockup() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15, delayChildren: 0.4 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100, damping: 20 } }
+  };
+
   return (
-    <div className="w-full h-full flex flex-col md:flex-row text-on-surface bg-surface-container-lowest font-sans select-none text-left">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      className="w-full h-full flex flex-col md:flex-row text-on-surface bg-surface-container-lowest font-sans select-none text-left"
+    >
       {/* Mini Sidebar */}
       <div className="w-full md:w-20 lg:w-24 bg-surface text-on-surface flex md:flex-col items-center justify-between p-4 md:py-8 border-b md:border-b-0 md:border-r border-outline-variant/50 shrink-0">
         <div className="flex md:flex-col items-center gap-6 w-full">
@@ -248,7 +267,7 @@ function SimulatedDashboardMockup() {
       {/* Main Content Area */}
       <div className="flex-1 bg-background p-4 sm:p-6 md:p-8 flex flex-col justify-between overflow-y-auto min-h-[350px] sm:min-h-[450px] md:min-h-[500px]">
         {/* Mock Top bar */}
-        <div className="flex justify-between items-center mb-6">
+        <motion.div variants={itemVariants} className="flex justify-between items-center mb-6">
           <div>
             <h4 className="text-base sm:text-lg font-black text-on-surface tracking-tight">Portfolio Ledger</h4>
             <p className="text-[10px] sm:text-xs text-on-surface-variant/80 font-bold">Welcome back, Jainam</p>
@@ -259,10 +278,10 @@ function SimulatedDashboardMockup() {
             </div>
             <div className="w-8 h-8 rounded-full bg-surface border border-outline-variant/50 flex items-center justify-center text-on-surface shadow-sm"><Mail className="w-4 h-4" /></div>
           </div>
-        </div>
+        </motion.div>
 
         {/* 3 Metrics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-surface p-4 rounded-2xl border border-outline-variant/50 shadow-sm flex flex-col justify-between">
             <div className="text-[10px] text-on-surface-variant/85 font-black uppercase tracking-wider">Rent Collected</div>
             <div className="text-lg sm:text-xl font-black text-primary mt-2">$14,820.00</div>
@@ -278,12 +297,12 @@ function SimulatedDashboardMockup() {
             <div className="text-lg sm:text-xl font-black text-tertiary mt-2">$3,420.50</div>
             <div className="text-[9px] text-on-surface-variant font-bold mt-1">Matched EOFY deductions</div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Bottom Split (Recent payments & Property stats) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Rent Schedule */}
-          <div className="lg:col-span-2 bg-surface rounded-2xl border border-outline-variant/50 p-4 sm:p-5 shadow-sm">
+          <motion.div variants={itemVariants} className="lg:col-span-2 bg-surface rounded-2xl border border-outline-variant/50 p-4 sm:p-5 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <span className="text-xs sm:text-sm font-black text-on-surface">Active Tenancies Ledger</span>
               <span className="text-[8px] sm:text-[9px] bg-primary/5 text-primary font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Live Ledger</span>
@@ -306,10 +325,10 @@ function SimulatedDashboardMockup() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Quick Expense breakdown graph */}
-          <div className="bg-surface rounded-2xl border border-outline-variant/50 p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+          <motion.div variants={itemVariants} className="bg-surface rounded-2xl border border-outline-variant/50 p-4 sm:p-5 shadow-sm flex flex-col justify-between">
             <span className="text-xs sm:text-sm font-black text-on-surface mb-3">EOFY Tax Readiness</span>
             <div className="flex-1 flex items-center justify-center py-4">
               <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
@@ -326,10 +345,10 @@ function SimulatedDashboardMockup() {
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> Repairs</span>
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-secondary" /> Interest</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -782,9 +801,14 @@ function Pricing() {
         {/* Pricing Cards Grid */}
         <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-center">
           {plans.map((plan, i) => (
-            <div 
+            <motion.div 
               key={i} 
-              className={`relative flex flex-col rounded-[32px] transition-all duration-500
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.6, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={plan.isPopular ? { y: -8, scale: 1.05 } : { y: -8 }}
+              className={`relative flex flex-col rounded-[32px] transition-all duration-300
                 ${plan.isPopular 
                   ? 'bg-primary text-on-primary border border-outline-variant/50 shadow-md lg:scale-105 z-20 py-12 px-8 md:px-10' 
                   : 'bg-surface border border-outline-variant/50 shadow-sm z-10 py-10 px-8 md:px-10'
@@ -838,7 +862,7 @@ function Pricing() {
               >
                 Get Started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
-            </div>
+              </motion.div>
           ))}
         </div>
       </div>

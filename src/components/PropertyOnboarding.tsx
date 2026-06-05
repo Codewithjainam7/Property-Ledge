@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload } from 'lucide-react';
+import { formatCurrency } from '../utils/format';
 
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -404,7 +405,7 @@ export function PropertyOnboarding() {
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Automated Rent Schedule</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>${formData.rentAmount} / {formData.paymentFrequency}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>${formatCurrency(formData.rentAmount)} / {formData.paymentFrequency}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tenant Identity</Typography>

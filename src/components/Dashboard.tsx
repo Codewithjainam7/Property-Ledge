@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { formatCurrency } from '../utils/format';
 
 // Removed MOCK DATA
 
@@ -104,8 +105,10 @@ export function Dashboard() {
                   <Wallet className="w-5 h-5 text-on-primary" />
                 </div>
                 <div className="flex flex-col mt-auto">
-                  <span className="text-xs font-black text-on-primary/90 tracking-[0.08em] uppercase mb-1">Monthly Rent</span>
-                  <span className="text-4xl font-black font-display text-on-primary leading-none">${Math.round(totalRent * 4) || '0'}</span>
+                  <div className="flex items-center gap-1 mb-1 opacity-90">
+                    <span className="text-xs font-black text-on-primary/90 tracking-[0.08em] uppercase">Expected Monthly Collection</span>
+                  </div>
+                  <span className="text-4xl font-black font-display text-on-primary leading-none">${formatCurrency(totalRent * 4)}</span>
                 </div>
               </motion.div>
               
@@ -256,7 +259,7 @@ export function Dashboard() {
                              </span>
                            </td>
                            <td className="px-6 py-4">
-                             <div className="font-bold text-on-surface text-xs">${p.rentAmount || '0'} / {p.paymentFrequency?.[0]||'W'}</div>
+                             <div className="font-bold text-on-surface text-xs">${formatCurrency(p.rentAmount)} / {p.paymentFrequency?.[0]||'W'}</div>
                            </td>
                            <td className="px-6 py-4">
                              <div className="flex items-center gap-2">
