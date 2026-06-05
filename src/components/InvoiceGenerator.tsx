@@ -5,6 +5,8 @@ import { X, Download, Send } from 'lucide-react';
 import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Card } from '@mui/material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatCurrency } from '../utils/format';
+
 export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, dueDate: string) => {
   const doc = new jsPDF();
   const total = selectedTemplate.items.reduce((acc: number, curr: any) => acc + (parseFloat(curr.amount) || 0), 0);
@@ -122,14 +124,14 @@ export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, due
   doc.setTextColor(255, 255, 255);
   doc.text('AMOUNT DUE', 145, 83);
   doc.setFontSize(14);
-  doc.text(`$${total.toFixed(2)}`, 145, 91);
+  doc.text(`$${formatCurrency(total)}`, 145, 91);
 
   // Table
   const tableData = selectedTemplate.items.map((item: any) => [
     item.description,
     '1',
-    `$${parseFloat(item.amount || '0').toFixed(2)}`,
-    `$${parseFloat(item.amount || '0').toFixed(2)}`
+    `$${formatCurrency(item.amount)}`,
+    `$${formatCurrency(item.amount)}`
   ]);
 
   autoTable(doc, {
@@ -170,7 +172,7 @@ export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, due
   doc.setTextColor(...grayText);
   doc.text('Subtotal', 140, finalY + 10);
   doc.setTextColor(...darkSlate);
-  doc.text(`$${total.toFixed(2)}`, 195, finalY + 10, { align: 'right' });
+  doc.text(`$${formatCurrency(total)}`, 195, finalY + 10, { align: 'right' });
 
   doc.setDrawColor(220, 220, 220);
   doc.line(140, finalY + 15, 195, finalY + 15);
@@ -178,7 +180,7 @@ export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, due
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL DUE', 140, finalY + 22);
   doc.setFontSize(12);
-  doc.text(`$${total.toFixed(2)}`, 195, finalY + 22, { align: 'right' });
+  doc.text(`$${formatCurrency(total)}`, 195, finalY + 22, { align: 'right' });
 
   // Payment Instructions Box
   doc.setFillColor(...lightGray);
@@ -411,7 +413,7 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
                       <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '-'}</Typography>
                     </div>
                     <Typography sx={{ fontSize: '0.8rem', fontWeight: 900, color: '#1c2b33', mb: 0.5 }}>AMOUNT DUE (AUD)</Typography>
-                    <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: '#1c2b33' }}>${calculateTotal().toFixed(2)}</Typography>
+                    <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: '#1c2b33' }}>${formatCurrency(calculateTotal())}</Typography>
                   </div>
                 </div>
 
@@ -424,18 +426,18 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
                     {selectedTemplate.items.map((item: any, i: number) => (
                       <div key={i} className="flex justify-between items-center pb-4 border-b border-gray-200/40 last:border-0">
                         <Typography sx={{ color: '#4a4a5e', fontSize: '0.95rem' }}>{item.description}</Typography>
-                        <Typography sx={{ fontWeight: 500, color: '#1c2b33', fontSize: '0.95rem' }}>${parseFloat(item.amount || '0').toFixed(2)}</Typography>
+                        <Typography sx={{ fontWeight: 500, color: '#1c2b33', fontSize: '0.95rem' }}>${formatCurrency(item.amount)}</Typography>
                       </div>
                     ))}
                   </div>
                   <div className="flex flex-col items-end px-4 pt-4 border-t border-gray-200/60">
                     <div className="flex justify-between w-[250px] mb-4">
                       <Typography sx={{ color: '#4a4a5e', fontSize: '0.95rem' }}>Subtotal</Typography>
-                      <Typography sx={{ color: '#1c2b33', fontSize: '0.95rem' }}>${calculateTotal().toFixed(2)}</Typography>
+                      <Typography sx={{ color: '#1c2b33', fontSize: '0.95rem' }}>${formatCurrency(calculateTotal())}</Typography>
                     </div>
                     <div className="flex justify-between w-[250px] pt-4 border-t border-gray-200/60">
                       <Typography sx={{ fontWeight: 900, color: '#1c2b33', fontSize: '0.95rem' }}>TOTAL AMOUNT DUE</Typography>
-                      <Typography sx={{ fontWeight: 900, color: '#1c2b33', fontSize: '1.2rem' }}>${calculateTotal().toFixed(2)}</Typography>
+                      <Typography sx={{ fontWeight: 900, color: '#1c2b33', fontSize: '1.2rem' }}>${formatCurrency(calculateTotal())}</Typography>
                     </div>
                   </div>
                 </div>
