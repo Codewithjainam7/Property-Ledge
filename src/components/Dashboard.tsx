@@ -9,10 +9,10 @@ import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/format';
 
 const quickActions = [
-  { title: 'Create Lease', icon: FileText },
-  { title: 'Add Tenant', icon: Users },
-  { title: 'Record Payment', icon: Wallet },
-  { title: 'Request Maintenance', icon: Wrench },
+  { title: 'Create Lease', icon: FileText, path: '/dashboard/onboarding' },
+  { title: 'Add Tenant', icon: Users, path: '/dashboard/onboarding' },
+  { title: 'Record Payment', icon: Wallet, path: '/dashboard/invoices' },
+  { title: 'Request Maintenance', icon: Wrench, path: '/dashboard' },
 ];
 
 // Skeleton card for loading state
@@ -144,9 +144,9 @@ export function Dashboard() {
                   </div>
                   <div className="flex flex-col mt-auto">
                     <div className="flex items-center gap-1 mb-1 opacity-90">
-                      <span className="text-xs font-black text-on-primary/90 tracking-[0.08em] uppercase">Expected Monthly Collection</span>
+                      <span className="text-xs font-black text-on-primary/90 tracking-[0.08em] uppercase">Total Rent Collection</span>
                     </div>
-                    <span className="text-4xl font-black font-display text-on-primary leading-none">${formatCurrency(totalRent * 4)}</span>
+                    <span className="text-4xl font-black font-display text-on-primary leading-none">${formatCurrency(totalRent)}</span>
                   </div>
                 </motion.div>
                 
@@ -156,7 +156,7 @@ export function Dashboard() {
                   </div>
                   <div className="flex flex-col mt-auto">
                     <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Total Properties</span>
-                    <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.length}</span>
+                    <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.length || 0}</span>
                   </div>
                 </motion.div>
                 
@@ -166,7 +166,7 @@ export function Dashboard() {
                   </div>
                   <div className="flex flex-col mt-auto">
                     <span className="text-xs font-black text-on-surface-variant tracking-[0.08em] uppercase mb-1">Tenancies</span>
-                    <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.filter(p=>p.tenantName).length}</span>
+                    <span className="text-4xl font-black font-display text-on-surface leading-none">{properties.filter(p=>p.tenantName).length || 0}</span>
                   </div>
                 </motion.div>
 
@@ -236,7 +236,7 @@ export function Dashboard() {
               <h3 className="text-base font-bold text-on-surface mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {quickActions.map((action, idx) => (
-                  <button key={idx} className="flex items-center gap-3 p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low hover:border-primary/50 transition-all text-left group shadow-sm hover:shadow-md">
+                  <button key={idx} onClick={() => navigate(action.path)} className="flex items-center gap-3 p-4 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low hover:border-primary/50 transition-all text-left group shadow-sm hover:shadow-md">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
                       <action.icon className="w-5 h-5 text-primary" />
                     </div>

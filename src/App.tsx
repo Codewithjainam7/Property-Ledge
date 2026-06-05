@@ -1,5 +1,5 @@
 import React, { useState, useEffect, FormEvent, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, Play, CheckCircle2, Star, Home, Users, Building, UserCircle2, Check, FileText, ClipboardList, PieChart, ShieldCheck, Eye, EyeOff, RefreshCw, Shield, Lock, Globe, Mail, Zap, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card as MuiCard, CardContent, Avatar as MuiAvatar, Rating as MuiRating, Chip as MuiChip, Box, Typography } from '@mui/material';
@@ -11,6 +11,8 @@ import { PropertyDetails } from './components/PropertyDetails';
 import { Properties } from './components/Properties';
 import { AccountSettings } from './components/AccountSettings';
 import { InvoiceManagement } from './components/InvoiceManagement';
+import { Tenants } from './components/Tenants';
+import { Accounting } from './components/Accounting';
 import { Login as SupabaseLogin } from './components/Login';
 import { Signup } from './components/Signup';
 import { CompleteProfile } from './components/CompleteProfile';
@@ -1362,6 +1364,9 @@ function AppRoutes() {
         <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
         <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
         <Route path="/dashboard/settings" element={<AccountSettings />} />
+        <Route path="/dashboard/tenants" element={<Tenants />} />
+        <Route path="/dashboard/accounting" element={<Accounting />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AnimatePresence>
   );
