@@ -9,126 +9,130 @@ import { formatCurrency } from '../utils/format';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
-export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, dueDate: string, landlordName = 'Property Landlord') => {
+export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, dueDate: string, landlordName = 'Landlord', landlordEmail = '') => {
   const doc = new jsPDF();
   const total = selectedTemplate.items.reduce((acc: number, curr: any) => acc + (parseFloat(curr.amount) || 0), 0);
-  
-  // Base colors
-  const darkSlate: [number, number, number] = [28, 43, 51];
-  const grayText: [number, number, number] = [74, 74, 94];
-  const lightGray: [number, number, number] = [248, 249, 250];
-  const mochaGold: [number, number, number] = [169, 146, 125];
 
-  // Premium Left Border Accent
-  doc.setFillColor(...mochaGold);
-  doc.rect(0, 0, 3, 297, 'F');
+  // ── Brand palette ──────────────────────────────────────────────────────────
+  const ink: [number, number, number]       = [22, 33, 41];      // #162129 — deepest text
+  const slate: [number, number, number]     = [34, 51, 59];      // #22333b — primary brand dark
+  const accent: [number, number, number]    = [59, 130, 246];    // blue-500 accent strip
+  const muted: [number, number, number]     = [100, 116, 130];   // muted label text
+  const border: [number, number, number]    = [226, 232, 240];   // light divider
+  const bg: [number, number, number]        = [248, 250, 252];   // subtle section bg
+  const white: [number, number, number]     = [255, 255, 255];
 
-  // Top right decorative banner
-  doc.setFillColor(34, 51, 59); // Jet black
-  doc.triangle(60, 0, 210, 0, 210, 45, 'F');
+  const W = 210, H = 297; // A4 mm
 
-  // Thank you message inside banner
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(255, 255, 255);
-  doc.text('Thank you for your business!', 200, 25, { align: 'right' });
+  // ── Background ─────────────────────────────────────────────────────────────
+  doc.setFillColor(...white);
+  doc.rect(0, 0, W, H, 'F');
 
-  // Header Logo Circle Graphic
-  doc.setFillColor(245, 245, 248);
-  doc.circle(22, 25, 10, 'F');
+  // ── Left accent bar (brand colour) ─────────────────────────────────────────
+  doc.setFillColor(...accent);
+  doc.rect(0, 0, 4, H, 'F');
 
-  // Header - Property Ledge
-  doc.setFontSize(18);
+  // ── Header block ──────────────────────────────────────────────────────────
+  doc.setFillColor(...slate);
+  doc.rect(4, 0, W - 4, 52, 'F');
+
+  // Brand name
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...darkSlate);
-  doc.text('Property Ledge', 15, 25);
-  
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayText);
-  doc.text('PROPERTY MANAGEMENT', 15, 31);
+  doc.setTextColor(...white);
+  doc.text('Property Ledge', 16, 22);
 
-  // Accent line under brand
-  doc.setDrawColor(...mochaGold);
-  doc.setLineWidth(1.5);
-  doc.line(15, 36, 45, 36);
-
-  // INVOICE Title
-  doc.setFontSize(28);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(34, 51, 59);
-  doc.text('INVOICE', 15, 48);
-
-  // From Section
   doc.setFontSize(8);
-  doc.setTextColor(...darkSlate);
-  doc.text('FROM', 15, 60);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 200, 210);
+  doc.text('PROPERTY MANAGEMENT', 16, 29);
+
+  // "INVOICE" on the right of header
+  doc.setFontSize(30);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...white);
+  doc.text('INVOICE', 195, 28, { align: 'right' });
+
+  // Invoice number + date under INVOICE
+  const invoiceNo = `INV-${Date.now().toString().slice(-6)}`;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 200, 210);
+  doc.text(`No. ${invoiceNo}`, 195, 36, { align: 'right' });
+  doc.text(`Issued: ${new Date().toLocaleDateString('en-GB')}`, 195, 43, { align: 'right' });
+
+  // ── FROM / BILL TO two-column ───────────────────────────────────────────────
+  const colY = 68;
+
+  // FROM
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...muted);
+  doc.text('FROM', 16, colY);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ink);
+  doc.text(landlordName, 16, colY + 7);
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...muted);
+  if (landlordEmail) doc.text(landlordEmail, 16, colY + 14);
+  doc.text('Property Ledge — Australia', 16, colY + 21);
+
+  // BILL TO
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...muted);
+  doc.text('BILL TO', 100, colY);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ink);
+  doc.text(selectedProperty.tenantName || 'Tenant', 100, colY + 7);
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...muted);
+  doc.text(selectedProperty.address || '', 100, colY + 14);
+
+  // ── DUE DATE / AMOUNT pill (right side) ───────────────────────────────────
+  doc.setFillColor(...bg);
+  doc.setDrawColor(...border);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(140, 60, 58, 38, 3, 3, 'FD');
+
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...muted);
+  doc.text('DUE DATE', 169, 68, { align: 'center' });
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(landlordName, 15, 65);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayText);
-  doc.text('ABN 17 234 567 890', 15, 70);
-  doc.text('Property Ledge\nAustralia', 15, 75);
+  doc.setTextColor(...ink);
+  doc.text(dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '—', 169, 75, { align: 'center' });
 
-  // Vertical Divider
-  doc.setDrawColor(230, 230, 230);
-  doc.setLineWidth(0.5);
-  doc.line(65, 60, 65, 95);
+  // divider inside box
+  doc.setDrawColor(...border);
+  doc.line(144, 80, 194, 80);
 
-  // Invoice Sent To Section
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...darkSlate);
-  doc.text('INVOICE SENT TO', 75, 60);
-  doc.setFontSize(10);
-  doc.text(selectedProperty.tenantName || 'Tenant Name', 75, 65);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayText);
-  doc.text('ABN 45 678 123 456', 75, 70);
+  doc.setTextColor(...muted);
+  doc.text('AMOUNT DUE (AUD)', 169, 87, { align: 'center' });
+
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Attention: ${selectedProperty.tenantName?.split(' ')[0] || ''}`, 75, 75);
-  doc.setFont('helvetica', 'normal');
-  doc.text(selectedProperty.address, 75, 80);
+  doc.setTextColor(...slate);
+  doc.text(`$${formatCurrency(total)}`, 169, 95, { align: 'center' });
 
-  // Invoice Details Box (Right Side)
-  doc.setFillColor(...lightGray);
-  doc.setDrawColor(230, 230, 230);
-  doc.roundedRect(140, 50, 56, 45, 3, 3, 'FD'); // Fill and stroke
-  
-  doc.setFontSize(9);
-  doc.setTextColor(...grayText);
-  doc.text('Invoice Date', 145, 57);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...darkSlate);
-  doc.text(new Date().toLocaleDateString('en-GB'), 191, 57, { align: 'right' });
+  // ── Horizontal rule ────────────────────────────────────────────────────────
+  doc.setDrawColor(...border);
+  doc.setLineWidth(0.4);
+  doc.line(16, 106, 194, 106);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayText);
-  doc.text('Invoice No.', 145, 64);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...darkSlate);
-  doc.text(`INV${Math.floor(1000 + Math.random() * 9000)}`, 191, 64, { align: 'right' }); // Random invoice num
-
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayText);
-  doc.text('Due Date', 145, 71);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...darkSlate);
-  doc.text(dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '-', 191, 71, { align: 'right' });
-
-  // AMOUNT DUE Premium Badge
-  doc.setFillColor(34, 51, 59); // Jet black
-  doc.roundedRect(140, 77, 56, 18, 2, 2, 'F');
-  doc.setFontSize(8);
-  doc.setTextColor(255, 255, 255);
-  doc.text('AMOUNT DUE', 145, 83);
-  doc.setFontSize(14);
-  doc.text(`$${formatCurrency(total)}`, 145, 91);
-
-  // Table
+  // ── Line items table ───────────────────────────────────────────────────────
   const tableData = selectedTemplate.items.map((item: any) => [
     item.description,
     '1',
@@ -137,104 +141,90 @@ export const generatePDFDoc = (selectedProperty: any, selectedTemplate: any, due
   ]);
 
   autoTable(doc, {
-    startY: 110,
-    head: [['DESCRIPTION', 'QTY', 'UNIT RATE', 'AMOUNT (AUD)']],
+    startY: 112,
+    head: [['DESCRIPTION', 'QTY', 'UNIT RATE', 'TOTAL']],
     body: tableData,
     theme: 'plain',
-    styles: { fontSize: 9, textColor: darkSlate, cellPadding: 5 },
-    headStyles: { 
-      fillColor: [34, 51, 59], // Jet Black
-      textColor: 255, 
-      fontStyle: 'bold', 
-      fontSize: 8 
+    styles: { fontSize: 9, textColor: ink as any, cellPadding: { top: 5, bottom: 5, left: 4, right: 4 } },
+    headStyles: {
+      fillColor: slate as any,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 7.5,
+      cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
     },
-    alternateRowStyles: {
-      fillColor: [250, 250, 252] // Very faint gray for alternating rows
-    },
+    alternateRowStyles: { fillColor: bg as any },
     columnStyles: {
-      0: { cellWidth: 80 },
-      1: { halign: 'center' },
-      2: { halign: 'right' },
-      3: { halign: 'right' }
+      0: { cellWidth: 90 },
+      1: { halign: 'center', cellWidth: 20 },
+      2: { halign: 'right', cellWidth: 35 },
+      3: { halign: 'right', cellWidth: 35 }
     },
-    didDrawCell: (data) => {
-      if (data.row.section === 'body') {
-        doc.setDrawColor(230, 230, 230);
-        doc.setLineWidth(0.1);
-        doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-      }
-    }
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY || 110;
+  const tableEnd = (doc as any).lastAutoTable.finalY || 140;
 
-  // Subtotals
+  // ── Totals block ──────────────────────────────────────────────────────────
+  const totY = tableEnd + 8;
+  doc.setDrawColor(...border);
+  doc.line(130, totY, 194, totY);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...muted);
+  doc.text('Subtotal', 130, totY + 8);
+  doc.setTextColor(...ink);
+  doc.text(`$${formatCurrency(total)}`, 194, totY + 8, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...muted);
+  doc.text('GST (0%)', 130, totY + 16);
+  doc.setTextColor(...ink);
+  doc.text('$0.00', 194, totY + 16, { align: 'right' });
+
+  // Total due row — highlighted
+  doc.setFillColor(...slate);
+  doc.roundedRect(126, totY + 21, 72, 12, 2, 2, 'F');
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayText);
-  doc.text('Subtotal', 140, finalY + 10);
-  doc.setTextColor(...darkSlate);
-  doc.text(`$${formatCurrency(total)}`, 195, finalY + 10, { align: 'right' });
-
-  doc.setDrawColor(220, 220, 220);
-  doc.line(140, finalY + 15, 195, finalY + 15);
-
   doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL DUE', 140, finalY + 22);
-  doc.setFontSize(12);
-  doc.text(`$${formatCurrency(total)}`, 195, finalY + 22, { align: 'right' });
+  doc.setTextColor(...white);
+  doc.text('TOTAL DUE', 131, totY + 29);
+  doc.text(`$${formatCurrency(total)}`, 194, totY + 29, { align: 'right' });
 
-  // Payment Instructions Box
-  doc.setFillColor(...lightGray);
-  doc.setDrawColor(230, 230, 230);
-  doc.roundedRect(14, finalY + 30, 182, 45, 4, 4, 'FD');
+  // ── Payment instructions ───────────────────────────────────────────────────
+  const payY = totY + 42;
+  doc.setFillColor(...bg);
+  doc.setDrawColor(...border);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(16, payY, 90, 38, 3, 3, 'FD');
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...darkSlate);
-  doc.text('PAYMENT INSTRUCTIONS', 20, finalY + 40);
-  
-  doc.setFontSize(8);
-  doc.setTextColor(...grayText);
-  doc.text('Bank Name', 20, finalY + 47);
-  doc.setFontSize(9);
-  doc.setTextColor(...darkSlate);
-  doc.text('Commonwealth Bank', 20, finalY + 52);
+  doc.setTextColor(...slate);
+  doc.text('PAYMENT INSTRUCTIONS', 21, payY + 8);
 
-  doc.setFontSize(8);
-  doc.setTextColor(...grayText);
-  doc.text('BSB', 90, finalY + 47);
-  doc.setFontSize(9);
-  doc.setTextColor(...darkSlate);
-  doc.text('123-456', 90, finalY + 52);
+  const pi: Array<[string, string]> = [
+    ['Bank', 'Please use bank transfer'],
+    ['Reference', `${selectedProperty.tenantName || 'Tenant'} — ${invoiceNo}`],
+    ['Due', dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '—'],
+  ];
+  pi.forEach(([label, value], i) => {
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...muted);
+    doc.text(label, 21, payY + 16 + i * 8);
+    doc.setTextColor(...ink);
+    doc.text(value, 21 + 22, payY + 16 + i * 8);
+  });
 
-  doc.setFontSize(8);
-  doc.setTextColor(...grayText);
-  doc.text('Account Name', 20, finalY + 60);
-  doc.setFontSize(9);
-  doc.setTextColor(...darkSlate);
-  doc.text(landlordName, 20, finalY + 65);
+  // ── Footer ─────────────────────────────────────────────────────────────────
+  doc.setFillColor(...slate);
+  doc.rect(0, H - 16, W, 16, 'F');
 
-  doc.setFontSize(8);
-  doc.setTextColor(...grayText);
-  doc.text('Account Number', 90, finalY + 60);
-  doc.setFontSize(9);
-  doc.setTextColor(...darkSlate);
-  doc.text('12345678', 90, finalY + 65);
-
-  // Signature
-  doc.setFontSize(28);
-  doc.setFont('times', 'italic');
-  doc.setTextColor(169, 146, 125); // Mocha/gold
-  doc.text('Thank you!', 150, finalY + 55, { angle: -5 });
-
-  doc.setDrawColor(220, 220, 220);
-  doc.line(14, 280, 195, 280);
-  
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...grayText);
-  doc.text('ABN 17 234 567 890', 105, 285, { align: 'center' });
+  doc.setTextColor(180, 200, 210);
+  doc.text(`${landlordName}  ·  Property Ledge  ·  propertyledge.vercel.app`, W / 2, H - 7, { align: 'center' });
 
   return doc;
 };
@@ -282,7 +272,8 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
     if (!selectedProperty || !selectedTemplate) return;
 
     const landlordName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Property Landlord';
-    const doc = generatePDFDoc(selectedProperty, selectedTemplate, dueDate, landlordName);
+    const landlordEmail = user?.email || '';
+    const doc = generatePDFDoc(selectedProperty, selectedTemplate, dueDate, landlordName, landlordEmail);
     const total = calculateTotal();
 
     // Save PDF locally
@@ -377,106 +368,110 @@ export function InvoiceGenerator({ onClose, initialInvoice }: { onClose: () => v
 
           <Card sx={{ flex: 1, borderRadius: '40px', border: '1px solid #ededf1', p: { xs: 4, md: 6 }, mb: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }} elevation={0}>
             {selectedProperty && selectedTemplate ? (
-              <div>
-                <div className="flex justify-between items-start mb-6">
+              <div className="bg-white text-[#162129]">
+                {/* Header */}
+                <div className="bg-[#22333b] text-white p-6 -mx-6 -mt-6 md:-mx-8 md:-mt-8 mb-8 flex justify-between items-start rounded-t-3xl">
                   <div>
-                    <Typography sx={{ fontWeight: 900, color: '#1c2b33', letterSpacing: '-1px', fontSize: '1.2rem' }}>Property Ledge</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem' }}>PROPERTY MANAGEMENT</Typography>
+                    <Typography sx={{ fontWeight: 900, letterSpacing: '-1px', fontSize: '1.4rem' }}>Property Ledge</Typography>
+                    <Typography sx={{ color: '#b4c8d2', fontSize: '0.75rem', letterSpacing: '1px' }}>PROPERTY MANAGEMENT</Typography>
                   </div>
                   <div className="text-right">
-                    <Typography sx={{ color: '#1c2b33', fontStyle: 'italic', fontSize: '0.9rem' }}>Thank you for your business!</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-1px' }}>INVOICE</Typography>
+                    <Typography sx={{ color: '#b4c8d2', fontSize: '0.75rem' }}>No. INV-{Date.now().toString().slice(-6)}</Typography>
+                    <Typography sx={{ color: '#b4c8d2', fontSize: '0.75rem' }}>Issued: {new Date().toLocaleDateString('en-GB')}</Typography>
                   </div>
                 </div>
 
-                <Typography variant="h3" sx={{ fontWeight: 900, mb: 8, color: '#1c2b33', letterSpacing: '-1px' }}>INVOICE</Typography>
-                
-                <div className="flex flex-wrap justify-between items-start mb-8 gap-6">
-                  <div>
-                    <Typography sx={{ fontWeight: 900, color: '#1c2b33', mb: 2, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>From</Typography>
-                    <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#1c2b33', mb: 0.5 }}>
-                      {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Property Landlord'}
+                <div className="flex flex-col md:flex-row justify-between gap-8 mb-10">
+                  {/* From & Bill To */}
+                  <div className="flex-1 grid grid-cols-2 gap-6">
+                    <div>
+                      <Typography sx={{ fontWeight: 900, color: '#647482', mb: 1.5, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px' }}>From</Typography>
+                      <Typography sx={{ fontWeight: 900, fontSize: '0.95rem', color: '#162129', mb: 0.5 }}>
+                        {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Property Landlord'}
+                      </Typography>
+                      <Typography sx={{ color: '#647482', fontSize: '0.8rem', mb: 1 }}>{user?.email}</Typography>
+                      <Typography sx={{ color: '#647482', fontSize: '0.8rem' }}>Property Ledge — Australia</Typography>
+                    </div>
+                    
+                    <div>
+                      <Typography sx={{ fontWeight: 900, color: '#647482', mb: 1.5, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Bill To</Typography>
+                      <Typography sx={{ fontWeight: 900, fontSize: '0.95rem', color: '#162129', mb: 0.5 }}>{selectedProperty.tenantName || 'Tenant Name'}</Typography>
+                      <Typography sx={{ color: '#647482', fontSize: '0.8rem' }}>{selectedProperty.address}</Typography>
+                    </div>
+                  </div>
+
+                  {/* Due Date / Amount Pill */}
+                  <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-4 min-w-[180px] text-center">
+                    <Typography sx={{ fontSize: '0.7rem', color: '#647482', fontWeight: 900, mb: 1 }}>DUE DATE</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 900, color: '#162129', mb: 3 }}>
+                      {dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '—'}
                     </Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem', mb: 2 }}>{user?.email}</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem' }}>Property Ledge<br/>Australia</Typography>
-                  </div>
-                  
-                  <div>
-                    <Typography sx={{ fontWeight: 900, color: '#1c2b33', mb: 2, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Invoice Sent To</Typography>
-                    <Typography sx={{ fontWeight: 900, fontSize: '1rem', color: '#1c2b33', mb: 0.5 }}>{selectedProperty.tenantName || 'Tenant Name'}</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem', mb: 2 }}>ABN 45 678 123 456</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem', fontWeight: 600 }}>Attention: {selectedProperty.tenantName?.split(' ')[0]}</Typography>
-                    <Typography sx={{ color: '#4a4a5e', fontSize: '0.85rem', mt: 2 }}>{selectedProperty.address}</Typography>
-                  </div>
-
-                  <div className="bg-[#f8f9fa] rounded-2xl p-5 border border-[#ededf1] min-w-[220px]">
-                    <div className="flex justify-between mb-3">
-                      <Typography sx={{ fontSize: '0.85rem', color: '#4a4a5e' }}>Invoice Date</Typography>
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{new Date().toLocaleDateString('en-GB')}</Typography>
+                    
+                    <div className="border-t border-[#e2e8f0] pt-3 mb-1">
+                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 900, color: '#647482' }}>AMOUNT DUE (AUD)</Typography>
                     </div>
-                    <div className="flex justify-between mb-3">
-                      <Typography sx={{ fontSize: '0.85rem', color: '#4a4a5e' }}>Invoice Number</Typography>
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }}>INV0020</Typography>
-                    </div>
-                    <div className="flex justify-between mb-5 pb-5 border-b border-[#ededf1]">
-                      <Typography sx={{ fontSize: '0.85rem', color: '#4a4a5e' }}>Due Date</Typography>
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '-'}</Typography>
-                    </div>
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 900, color: '#1c2b33', mb: 0.5 }}>AMOUNT DUE (AUD)</Typography>
-                    <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: '#1c2b33' }}>${formatCurrency(calculateTotal())}</Typography>
+                    <Typography sx={{ fontSize: '1.4rem', fontWeight: 900, color: '#22333b' }}>${formatCurrency(calculateTotal())}</Typography>
                   </div>
                 </div>
 
-                <div className="bg-[#f8f9fa] rounded-[32px] p-6 pb-8 border border-gray-200/50">
-                  <div className="flex justify-between items-center px-4 mb-4 pb-2 border-b border-gray-200/50">
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: '#1c2b33', textTransform: 'uppercase' }}>Description</Typography>
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, color: '#1c2b33', textTransform: 'uppercase' }}>Amount (AUD)</Typography>
+                {/* Line Items Table */}
+                <div className="mb-8 border-b border-[#e2e8f0]">
+                  <div className="flex bg-[#22333b] text-white px-4 py-2 text-xs font-bold rounded-md mb-2">
+                    <div className="flex-1">DESCRIPTION</div>
+                    <div className="w-16 text-center">QTY</div>
+                    <div className="w-24 text-right">UNIT RATE</div>
+                    <div className="w-24 text-right">TOTAL</div>
                   </div>
-                  <div className="space-y-4 mb-6 px-4">
+                  <div className="px-2">
                     {selectedTemplate.items.map((item: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center pb-4 border-b border-gray-200/40 last:border-0">
-                        <Typography sx={{ color: '#4a4a5e', fontSize: '0.95rem' }}>{item.description}</Typography>
-                        <Typography sx={{ fontWeight: 500, color: '#1c2b33', fontSize: '0.95rem' }}>${formatCurrency(item.amount)}</Typography>
+                      <div key={i} className="flex py-3 border-b border-[#f1f5f9] last:border-0 text-sm">
+                        <div className="flex-1 text-[#162129]">{item.description}</div>
+                        <div className="w-16 text-center text-[#647482]">1</div>
+                        <div className="w-24 text-right text-[#647482]">${formatCurrency(item.amount)}</div>
+                        <div className="w-24 text-right font-medium">${formatCurrency(item.amount)}</div>
                       </div>
                     ))}
                   </div>
-                  <div className="flex flex-col items-end px-4 pt-4 border-t border-gray-200/60">
-                    <div className="flex justify-between w-[250px] mb-4">
-                      <Typography sx={{ color: '#4a4a5e', fontSize: '0.95rem' }}>Subtotal</Typography>
-                      <Typography sx={{ color: '#1c2b33', fontSize: '0.95rem' }}>${formatCurrency(calculateTotal())}</Typography>
+                </div>
+
+                {/* Totals */}
+                <div className="flex justify-end mb-10">
+                  <div className="w-64">
+                    <div className="flex justify-between py-2 text-sm">
+                      <Typography sx={{ color: '#647482' }}>Subtotal</Typography>
+                      <Typography sx={{ color: '#162129' }}>${formatCurrency(calculateTotal())}</Typography>
                     </div>
-                    <div className="flex justify-between w-[250px] pt-4 border-t border-gray-200/60">
-                      <Typography sx={{ fontWeight: 900, color: '#1c2b33', fontSize: '0.95rem' }}>TOTAL AMOUNT DUE</Typography>
-                      <Typography sx={{ fontWeight: 900, color: '#1c2b33', fontSize: '1.2rem' }}>${formatCurrency(calculateTotal())}</Typography>
+                    <div className="flex justify-between py-2 text-sm">
+                      <Typography sx={{ color: '#647482' }}>GST (0%)</Typography>
+                      <Typography sx={{ color: '#162129' }}>$0.00</Typography>
+                    </div>
+                    <div className="flex justify-between py-3 px-4 mt-2 bg-[#22333b] text-white rounded-lg items-center">
+                      <Typography sx={{ fontWeight: 900, fontSize: '0.9rem' }}>TOTAL DUE</Typography>
+                      <Typography sx={{ fontWeight: 900, fontSize: '1.1rem' }}>${formatCurrency(calculateTotal())}</Typography>
                     </div>
                   </div>
                 </div>
 
-                {/* payment instructions */}
-                <div className="mt-10 pt-8 border-t border-gray-200/60">
-                   <Typography sx={{ fontWeight: 900, color: '#1c2b33', mb: 4, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Payment Instructions</Typography>
-                   <div className="grid grid-cols-2 gap-6 max-w-md">
-                     <div>
-                       <Typography sx={{ fontSize: '0.75rem', color: '#4a4a5e', fontWeight: 'bold', mb: 0.5 }}>Bank Name</Typography>
-                       <Typography sx={{ fontSize: '0.85rem', color: '#1c2b33' }}>Commonwealth Bank</Typography>
+                {/* Payment Instructions & Footer */}
+                <div className="flex flex-col md:flex-row justify-between items-end gap-6 pt-6 border-t border-[#e2e8f0]">
+                  <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-4 flex-1 max-w-sm">
+                     <Typography sx={{ fontWeight: 900, color: '#22333b', mb: 2, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Payment Instructions</Typography>
+                     <div className="space-y-2">
+                       <div className="flex">
+                         <Typography sx={{ width: '80px', fontSize: '0.75rem', color: '#647482' }}>Bank</Typography>
+                         <Typography sx={{ fontSize: '0.75rem', color: '#162129', fontWeight: 500 }}>Please use bank transfer</Typography>
+                       </div>
+                       <div className="flex">
+                         <Typography sx={{ width: '80px', fontSize: '0.75rem', color: '#647482' }}>Reference</Typography>
+                         <Typography sx={{ fontSize: '0.75rem', color: '#162129', fontWeight: 500 }}>{selectedProperty.tenantName || 'Tenant'} — INV-{Date.now().toString().slice(-6)}</Typography>
+                       </div>
+                       <div className="flex">
+                         <Typography sx={{ width: '80px', fontSize: '0.75rem', color: '#647482' }}>Due</Typography>
+                         <Typography sx={{ fontSize: '0.75rem', color: '#162129', fontWeight: 500 }}>{dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '—'}</Typography>
+                       </div>
                      </div>
-                     <div>
-                       <Typography sx={{ fontSize: '0.75rem', color: '#4a4a5e', fontWeight: 'bold', mb: 0.5 }}>BSB</Typography>
-                       <Typography sx={{ fontSize: '0.85rem', color: '#1c2b33' }}>123-456</Typography>
-                     </div>
-                     <div>
-                       <Typography sx={{ fontSize: '0.75rem', color: '#4a4a5e', fontWeight: 'bold', mb: 0.5 }}>Account Name</Typography>
-                       <Typography sx={{ fontSize: '0.85rem', color: '#1c2b33' }}>
-                         {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Landlord'}
-                       </Typography>
-                     </div>
-                     <div>
-                       <Typography sx={{ fontSize: '0.75rem', color: '#4a4a5e', fontWeight: 'bold', mb: 0.5 }}>Account Number</Typography>
-                       <Typography sx={{ fontSize: '0.85rem', color: '#1c2b33' }}>12345678</Typography>
-                     </div>
-                   </div>
-                </div>
-                <div className="mt-8 text-center border-t border-gray-200/60 pt-4">
-                  <Typography sx={{ fontSize: '0.75rem', color: '#a0a0ab', letterSpacing: '2px' }}>ABN 17 234 567 890</Typography>
+                  </div>
                 </div>
               </div>
             ) : (
