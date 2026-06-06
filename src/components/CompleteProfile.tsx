@@ -117,7 +117,7 @@ export function CompleteProfile() {
               disabled={!role || !mobile || loading} 
               className="flex-1 bg-[#22333b] text-white font-bold uppercase tracking-wider rounded-2xl py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:bg-[#111a1e] transition-all text-xs flex items-center justify-center gap-2"
             >
-              {loading ? 'Saving...' : <>Complete Setup <ArrowRight className="w-4 h-4" /></>}
+              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <>Complete Setup <ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
         </motion.div>

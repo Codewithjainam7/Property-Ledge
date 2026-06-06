@@ -40,17 +40,85 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-surface relative overflow-hidden">
+        {/* Dynamic Backgrounds */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-surface to-surface pointer-events-none" />
+        <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px] pointer-events-none animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] rounded-full bg-secondary-container/10 blur-[100px] pointer-events-none animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
+        
+        <div className="relative z-10 flex flex-col items-center">
+          <motion.div
+            animate={{
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, -5, 0],
+            }}
+            transition={{
+              duration: 4,
+              ease: "easeInOut",
+              repeat: Infinity
+            }}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-[32px] bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-2xl shadow-primary/30 mb-8 relative"
+          >
+            <div className="absolute inset-0 rounded-[32px] border-2 border-white/20" />
+            <Building className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+            
+            {/* Spinning rings */}
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, ease: "linear", repeat: Infinity }}
+              className="absolute -inset-4 border-[3px] border-transparent border-t-primary/40 border-r-primary/10 rounded-full"
+            />
+            <motion.div 
+              animate={{ rotate: -360 }}
+              transition={{ duration: 4, ease: "linear", repeat: Infinity }}
+              className="absolute -inset-8 border-[3px] border-transparent border-b-secondary/30 border-l-secondary/10 rounded-full"
+            />
+          </motion.div>
+          
+          <motion.h2
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="text-xl sm:text-2xl font-black text-on-surface tracking-tight font-display mb-3 uppercase tracking-widest"
+          >
+            Loading Workspace
+          </motion.h2>
+          
+          <div className="flex gap-2 mt-2">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-primary"
+                animate={{
+                  y: ["0%", "-100%", "0%"],
+                  opacity: [0.3, 1, 0.3],
+                  scale: [0.8, 1.2, 0.8]
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.2
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!session) {
     return null;
   }
 
-  const navLinks = [
+  const organiseLinks = [
     { name: 'Overview', icon: PieChart, to: '/dashboard', exact: true },
     { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
     { name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false },
+  ];
+
+  const toolsLinks = [
     { name: 'Invoices', icon: FileText, to: '/dashboard/invoices', exact: false },
     { name: 'Accounting', icon: Wallet, to: '/dashboard/accounting', exact: false },
   ];
@@ -87,14 +155,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar Navigation */}
       <motion.div 
-        animate={{ width: isCollapsed ? 90 : 288 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="hidden md:flex flex-col relative inset-y-0 left-0 z-40 bg-surface/80 backdrop-blur-2xl border-r border-outline-variant/50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
+        animate={{ width: isCollapsed ? 90 : 280 }}
+        transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+        className="hidden md:flex flex-col relative inset-y-0 left-0 z-40 bg-white/90 backdrop-blur-3xl border-r border-slate-200/60 shadow-[8px_0_32px_rgba(0,0,0,0.02)]"
       >
-        <div className="p-8 hidden md:flex items-center justify-center h-24 border-b border-outline-variant/50">
-          <Link to="/" className="text-2xl font-extrabold tracking-tighter text-primary flex items-center justify-center gap-3 overflow-hidden whitespace-nowrap">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Home className="w-5 h-5 text-primary" />
+        <div className="p-6 hidden md:flex items-center justify-center h-[90px] border-b border-slate-200/50 relative">
+          <Link to="/" className="text-2xl font-extrabold tracking-tighter text-[#0f172a] flex items-center justify-center gap-3 overflow-hidden whitespace-nowrap group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform duration-300">
+              <Home className="w-5 h-5 text-white" />
             </div>
             <AnimatePresence>
               {!isCollapsed && (
@@ -111,104 +179,166 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
         
-        <nav className={`flex-1 py-4 space-y-2 overflow-y-auto mt-16 md:mt-0 overflow-x-hidden ${isCollapsed ? 'flex flex-col items-center px-0' : 'px-4'}`}>
-          <div className={`h-6 mb-4 mt-2 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-2'}`}>
-            <AnimatePresence>
-              {!isCollapsed ? (
-                <motion.span 
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="text-[11px] font-black text-on-surface uppercase tracking-[0.1em] w-full"
+        <nav className={`flex-1 py-6 overflow-y-auto mt-16 md:mt-0 overflow-x-hidden ${isCollapsed ? 'flex flex-col items-center px-0 gap-6' : 'px-5 space-y-8'}`}>
+          <div className="space-y-1.5">
+            <div className={`h-6 mb-3 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-3'}`}>
+              <AnimatePresence>
+                {!isCollapsed ? (
+                  <motion.span 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
+                  >
+                    Organise
+                  </motion.span>
+                ) : (
+                  <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
+                )}
+              </AnimatePresence>
+            </div>
+            
+            {organiseLinks.map((link, idx) => {
+              const isActive = checkIsActive(link);
+              return (
+                <Link 
+                  key={`org-${idx}`} 
+                  to={link.to} 
+                  title={isCollapsed ? link.name : ''}
+                  className={`flex items-center font-bold rounded-xl transition-all duration-300 relative group ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-900'}`}
                 >
-                  Organise
-                </motion.span>
-              ) : (
-                <div className="w-8 h-[1px] bg-outline-variant/50" />
-              )}
-            </AnimatePresence>
-          </div>
-          
-          {navLinks.map((link, idx) => {
-            const isActive = checkIsActive(link);
-            return (
-              <Link 
-                key={idx} 
-                to={link.to} 
-                title={isCollapsed ? link.name : ''}
-                className={`flex items-center font-bold rounded-2xl transition-all ${isCollapsed ? 'w-12 h-12 justify-center p-0' : 'px-4 py-3.5 gap-4'} ${isActive ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'}`}
-              >
-                <link.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-on-primary' : ''}`} />
-                <AnimatePresence>
-                  {!isCollapsed && (
-                    <motion.span 
-                      initial={{ opacity: 0, width: 0 }} 
-                      animate={{ opacity: 1, width: 'auto' }} 
-                      exit={{ opacity: 0, width: 0 }}
-                      className="whitespace-nowrap overflow-hidden text-sm"
-                    >
-                      {link.name}
-                    </motion.span>
+                  {isActive && !isCollapsed && (
+                    <motion.div layoutId="activeNavOrg" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
                   )}
-                </AnimatePresence>
-              </Link>
-            )
-          })}
+                  {isActive && isCollapsed && (
+                    <motion.div layoutId="activeNavCollapsedOrg" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+                  )}
+                  <link.icon className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}`} />
+                  <AnimatePresence>
+                    {!isCollapsed && (
+                      <motion.span 
+                        initial={{ opacity: 0, width: 0 }} 
+                        animate={{ opacity: 1, width: 'auto' }} 
+                        exit={{ opacity: 0, width: 0 }}
+                        className="whitespace-nowrap overflow-hidden text-[14.5px]"
+                      >
+                        {link.name}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              )
+            })}
+          </div>
+
+          <div className="space-y-1.5">
+            <div className={`h-6 mb-3 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-3'}`}>
+              <AnimatePresence>
+                {!isCollapsed ? (
+                  <motion.span 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
+                  >
+                    Tools
+                  </motion.span>
+                ) : (
+                  <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
+                )}
+              </AnimatePresence>
+            </div>
+            
+            {toolsLinks.map((link, idx) => {
+              const isActive = checkIsActive(link);
+              return (
+                <Link 
+                  key={`tool-${idx}`} 
+                  to={link.to} 
+                  title={isCollapsed ? link.name : ''}
+                  className={`flex items-center font-bold rounded-xl transition-all duration-300 relative group ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-900'}`}
+                >
+                  {isActive && !isCollapsed && (
+                    <motion.div layoutId="activeNavTool" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                  )}
+                  {isActive && isCollapsed && (
+                    <motion.div layoutId="activeNavCollapsedTool" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+                  )}
+                  <link.icon className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}`} />
+                  <AnimatePresence>
+                    {!isCollapsed && (
+                      <motion.span 
+                        initial={{ opacity: 0, width: 0 }} 
+                        animate={{ opacity: 1, width: 'auto' }} 
+                        exit={{ opacity: 0, width: 0 }}
+                        className="whitespace-nowrap overflow-hidden text-[14.5px]"
+                      >
+                        {link.name}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              )
+            })}
+          </div>
         </nav>
         
-        <nav className={`py-4 space-y-2 overflow-x-hidden border-t border-outline-variant/50 ${isCollapsed ? 'flex flex-col items-center px-0' : 'px-4'}`}>
-           <Link to="#" title="Help centre" className={`flex items-center text-on-surface-variant hover:bg-surface-container-low font-bold rounded-2xl transition-all ${isCollapsed ? 'w-12 h-12 justify-center p-0' : 'px-4 py-3.5 gap-4'} hover:text-on-surface`}>
-             <HelpCircle className="w-5 h-5 shrink-0" /> 
+        <nav className={`py-6 space-y-1.5 overflow-x-hidden border-t border-slate-200/50 ${isCollapsed ? 'flex flex-col items-center px-0' : 'px-5'}`}>
+           <Link to="#" title="Help centre" className={`flex items-center text-slate-500 hover:bg-slate-100/80 font-bold rounded-xl transition-all duration-300 group ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} hover:text-slate-900`}>
+             <HelpCircle className="w-[22px] h-[22px] shrink-0 group-hover:scale-110 transition-transform duration-300" /> 
              <AnimatePresence>
                 {!isCollapsed && (
-                  <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-sm whitespace-nowrap overflow-hidden">
-                    Help centre
+                  <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[14.5px] whitespace-nowrap overflow-hidden">
+                    Help Centre
                   </motion.span>
                 )}
              </AnimatePresence>
            </Link>
-           <Link to="/dashboard/settings" title="Account settings" className={`flex items-center font-bold rounded-2xl transition-all ${isCollapsed ? 'w-12 h-12 justify-center p-0' : 'px-4 py-3.5 gap-4'} ${location.pathname.startsWith('/dashboard/settings') ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'}`}>
-             <Settings className={`w-5 h-5 shrink-0`} /> 
+           <Link to="/dashboard/settings" title="Account settings" className={`flex items-center font-bold rounded-xl transition-all duration-300 relative group ${isCollapsed ? 'w-11 h-11 justify-center p-0' : 'px-4 py-3 gap-4'} ${location.pathname.startsWith('/dashboard/settings') ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-900'}`}>
+             {location.pathname.startsWith('/dashboard/settings') && !isCollapsed && (
+               <motion.div layoutId="activeNav" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+             )}
+             <Settings className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${location.pathname.startsWith('/dashboard/settings') ? 'text-primary scale-110' : 'group-hover:scale-110'}`} /> 
              <AnimatePresence>
                 {!isCollapsed && (
-                  <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-sm whitespace-nowrap overflow-hidden">
-                    Account settings
+                  <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[14.5px] whitespace-nowrap overflow-hidden">
+                    Settings
                   </motion.span>
                 )}
              </AnimatePresence>
            </Link>
         </nav>
 
-        <div className="p-4 border-t border-outline-variant/50 overflow-hidden mt-auto">
-          <div className={`flex items-center bg-surface-container-low border border-outline-variant/50 rounded-2xl shadow-sm ${isCollapsed ? 'w-12 h-12 mx-auto justify-center p-0 mb-4' : 'p-3 mb-4 justify-between'}`}>
+        <div className="p-5 border-t border-slate-200/50 overflow-hidden mt-auto bg-slate-50/50">
+          <div className={`flex items-center bg-white border border-slate-200 rounded-2xl shadow-sm ${isCollapsed ? 'w-11 h-11 mx-auto justify-center p-0 mb-4' : 'p-3 mb-5 justify-between'}`}>
             <div className="flex items-center gap-3 overflow-hidden">
-               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 shadow-inner border border-primary/20">
-                 <User className="w-5 h-5 text-primary" />
+               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-white flex items-center justify-center shrink-0 shadow-inner border border-slate-200/60">
+                 <User className="w-5 h-5 text-indigo-500" />
                </div>
                {!isCollapsed && (
                  <div className="truncate">
-                    <div className="font-extrabold text-[13px] text-on-surface truncate">{user?.user_metadata?.full_name || 'User'}</div>
-                    <div className="font-semibold text-[11px] text-on-surface-variant truncate">{user?.email || 'user@example.com'}</div>
+                    <div className="font-extrabold text-[13px] text-slate-800 truncate tracking-tight">{user?.user_metadata?.full_name || 'Admin User'}</div>
+                    <div className="font-semibold text-[11px] text-slate-400 truncate">{user?.email || 'admin@example.com'}</div>
                  </div>
                )}
             </div>
           </div>
           
-          <button 
-            onClick={toggleSidebar}
-            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-            className={`hidden md:flex items-center justify-center text-on-surface-variant bg-transparent hover:bg-surface-container hover:text-on-surface rounded-2xl font-bold transition-all mb-2 ${isCollapsed ? 'w-12 h-12 mx-auto p-0' : 'w-full px-4 py-3.5 gap-3'}`}
-          >
-            {isCollapsed ? <ChevronRight className="w-5 h-5 shrink-0" /> : <ChevronLeft className="w-5 h-5 shrink-0" />}
-            {!isCollapsed && <span className="text-sm whitespace-nowrap">Collapse Menu</span>}
-          </button>
+          <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'gap-2'}`}>
+            <button 
+              onClick={toggleSidebar}
+              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              className={`flex items-center justify-center text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-800 rounded-xl font-bold transition-all ${isCollapsed ? 'w-11 h-11 p-0' : 'w-1/2 py-2.5 gap-2 shadow-sm'}`}
+            >
+              {isCollapsed ? <ChevronRight className="w-[18px] h-[18px] shrink-0" /> : <ChevronLeft className="w-[18px] h-[18px] shrink-0" />}
+              {!isCollapsed && <span className="text-[13px] whitespace-nowrap">Collapse</span>}
+            </button>
 
-          <button 
-            onClick={handleLogout}
-            title={isCollapsed ? 'Sign Out' : ''}
-            className={`flex items-center justify-center text-error bg-error-container/50 border border-error/30 hover:bg-error-container rounded-2xl font-bold transition-all ${isCollapsed ? 'w-12 h-12 mx-auto p-0' : 'w-full px-4 py-3.5 gap-2'}`}
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            {!isCollapsed && <span className="text-sm whitespace-nowrap">Sign Out</span>}
-          </button>
+            <button 
+              onClick={handleLogout}
+              title={isCollapsed ? 'Sign Out' : ''}
+              className={`flex items-center justify-center text-red-500 bg-red-50/50 border border-red-100 hover:bg-red-50 hover:border-red-200 rounded-xl font-bold transition-all ${isCollapsed ? 'w-11 h-11 p-0' : 'w-1/2 py-2.5 gap-2 shadow-sm'}`}
+            >
+              <LogOut className="w-[18px] h-[18px] shrink-0" />
+              {!isCollapsed && <span className="text-[13px] whitespace-nowrap">Sign Out</span>}
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -240,53 +370,93 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-4/5 max-w-[320px] bg-surface z-[100] md:hidden shadow-2xl flex flex-col border-l border-outline-variant/50 pt-20"
+              className="fixed inset-y-0 right-0 w-4/5 max-w-[340px] bg-white z-[100] md:hidden shadow-[0_0_40px_rgba(0,0,0,0.1)] flex flex-col border-l border-slate-200/50"
             >
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
-                <div className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.1em] mb-4">Organise</div>
-                {navLinks.map((link, idx) => {
-                  const isActive = checkIsActive(link);
-                  return (
-                    <Link 
-                      key={idx} 
-                      to={link.to} 
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center font-bold rounded-2xl px-4 py-4 gap-4 transition-all ${isActive ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'}`}
-                    >
-                      <link.icon className={`w-6 h-6 shrink-0 ${isActive ? 'text-on-primary' : ''}`} />
-                      <span className="text-base">{link.name}</span>
-                    </Link>
-                  )
-                })}
+              {/* Drawer Header with explicit Close button */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <div className="text-lg font-extrabold tracking-tight text-slate-800">Menu</div>
+                <button 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+                <div className="space-y-2">
+                  <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mb-4">Organise</div>
+                  {organiseLinks.map((link, idx) => {
+                    const isActive = checkIsActive(link);
+                    return (
+                      <Link 
+                        key={`m-org-${idx}`} 
+                        to={link.to} 
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center font-bold rounded-xl px-4 py-3.5 gap-4 transition-all duration-300 relative ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                      >
+                        {isActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                        )}
+                        <link.icon className={`w-[22px] h-[22px] shrink-0 ${isActive ? 'text-primary scale-110' : ''}`} />
+                        <span className="text-[15px]">{link.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mb-4">Tools</div>
+                  {toolsLinks.map((link, idx) => {
+                    const isActive = checkIsActive(link);
+                    return (
+                      <Link 
+                        key={`m-tool-${idx}`} 
+                        to={link.to} 
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center font-bold rounded-xl px-4 py-3.5 gap-4 transition-all duration-300 relative ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                      >
+                        {isActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                        )}
+                        <link.icon className={`w-[22px] h-[22px] shrink-0 ${isActive ? 'text-primary scale-110' : ''}`} />
+                        <span className="text-[15px]">{link.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
                 
-                <div className="pt-6 mt-6 border-t border-outline-variant/50 space-y-2">
-                   <Link to="#" className="flex items-center text-on-surface-variant hover:bg-surface-container-low font-bold rounded-2xl px-4 py-4 gap-4 hover:text-on-surface">
-                     <HelpCircle className="w-6 h-6 shrink-0" /> 
-                     <span className="text-base">Help centre</span>
+                <div className="pt-6 mt-6 border-t border-slate-100 space-y-2">
+                   <Link to="#" className="flex items-center text-slate-500 hover:bg-slate-100 font-bold rounded-xl px-4 py-3.5 gap-4 hover:text-slate-900 transition-colors">
+                     <HelpCircle className="w-[22px] h-[22px] shrink-0" /> 
+                     <span className="text-[15px]">Help centre</span>
                    </Link>
-                   <Link to="/dashboard/settings" onClick={() => setMobileMenuOpen(false)} className={`flex items-center font-bold rounded-2xl px-4 py-4 gap-4 ${location.pathname.startsWith('/dashboard/settings') ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'}`}>
-                     <Settings className={`w-6 h-6 shrink-0`} /> 
-                     <span className="text-base">Account settings</span>
+                   <Link to="/dashboard/settings" onClick={() => setMobileMenuOpen(false)} className={`flex items-center font-bold rounded-xl px-4 py-3.5 gap-4 transition-colors relative ${location.pathname.startsWith('/dashboard/settings') ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}>
+                     {location.pathname.startsWith('/dashboard/settings') && (
+                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                     )}
+                     <Settings className={`w-[22px] h-[22px] shrink-0`} /> 
+                     <span className="text-[15px]">Settings</span>
                    </Link>
                 </div>
               </div>
               
-              <div className="p-6 border-t border-outline-variant/50">
-                <div className="flex items-center gap-4 mb-6">
-                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                     <User className="w-6 h-6 text-primary" />
+              <div className="p-6 border-t border-slate-100 bg-slate-50">
+                <div className="flex items-center gap-3 mb-6 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-white flex items-center justify-center shrink-0 border border-slate-200/60 shadow-inner">
+                     <User className="w-5 h-5 text-indigo-500" />
                    </div>
                    <div className="overflow-hidden">
-                      <div className="font-extrabold text-base text-on-surface truncate">{user.name}</div>
-                      <div className="font-semibold text-sm text-on-surface-variant truncate">{user.email || 'user@example.com'}</div>
+                      <div className="font-extrabold text-[14px] text-slate-800 truncate tracking-tight">{user?.user_metadata?.full_name || 'Admin User'}</div>
+                      <div className="font-medium text-[12px] text-slate-400 truncate">{user?.email || 'admin@example.com'}</div>
                    </div>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="flex items-center justify-center text-error bg-error-container/50 border border-error/30 rounded-2xl font-bold w-full px-4 py-4 gap-3"
+                  className="flex items-center justify-center text-red-500 bg-red-50/50 border border-red-100 rounded-xl font-bold w-full px-4 py-3 gap-2 hover:bg-red-50 transition-colors shadow-sm"
                 >
-                  <LogOut className="w-6 h-6 shrink-0" />
-                  <span className="text-base">Sign Out</span>
+                  <LogOut className="w-[18px] h-[18px] shrink-0" />
+                  <span className="text-[14px]">Sign Out</span>
                 </button>
               </div>
             </motion.div>

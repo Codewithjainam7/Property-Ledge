@@ -178,7 +178,7 @@ export function Signup() {
                 disabled={loading || otpCode.length < 6}
                 className="w-full relative group overflow-hidden bg-[#22333b] text-white font-bold uppercase tracking-wider rounded-2xl py-4 mt-4 hover:bg-[#111a1e] transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {loading ? 'Verifying...' : 'VERIFY & CONTINUE'}
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'VERIFY & CONTINUE'}
               </button>
             </form>
           </motion.div>
@@ -317,7 +317,7 @@ export function Signup() {
                 disabled={!role || loading} 
                 className="flex-1 bg-[#22333b] text-white font-bold uppercase tracking-wider rounded-2xl py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:bg-[#111a1e] transition-all text-xs flex items-center justify-center gap-2"
               >
-                {loading ? 'Creating Account...' : <>Complete Setup <ArrowRight className="w-4 h-4" /></>}
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <>Complete Setup <ArrowRight className="w-4 h-4" /></>}
               </button>
             </div>
           </motion.div>
