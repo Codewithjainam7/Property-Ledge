@@ -622,68 +622,55 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
               )}
 
               {state.templateStyle === 'google' && (
-                <div className="font-sans text-[#1f1f1f] h-full flex flex-col bg-[#f3f4f6] -mx-[60px] -my-[60px] px-[60px] py-[60px]">
-                  <div className="bg-[#f8fafd] rounded-[28px] p-10 flex-1 flex flex-col shadow-sm">
-                    <div className="flex justify-between items-start mb-12">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-[#d3e3fd] text-[#0b57d0] rounded-full flex items-center justify-center font-medium text-2xl">
-                          {state.landlordName.charAt(0) || 'L'}
+                <div className="font-sans text-[#202124] h-full flex flex-col bg-white -mx-[60px] -my-[60px] px-[60px] py-[60px]">
+                  <div className="flex justify-between items-start mb-16">
+                    <div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded bg-[#1a73e8] flex items-center justify-center text-white font-bold text-lg">
+                          {state.landlordName.charAt(0) || 'G'}
                         </div>
-                        <div>
-                          <h1 className="text-2xl font-medium text-[#1f1f1f]">{state.landlordName}</h1>
-                          <p className="text-sm text-[#444746] whitespace-pre-line mt-1">{state.landlordAddress}</p>
-                        </div>
+                        <h1 className="text-2xl font-normal text-[#202124] tracking-tight">{state.landlordName}</h1>
                       </div>
-                      <div className="text-right">
-                        <h2 className="text-4xl font-normal text-[#1f1f1f] tracking-tight">Invoice</h2>
-                        <div className="mt-3 inline-flex items-center bg-[#e8def8] text-[#1d192b] px-3 py-1 rounded-full text-xs font-medium">
-                          #{state.invoiceNumber}
-                        </div>
+                      <p className="text-sm text-[#5f6368] whitespace-pre-line">{state.landlordAddress}</p>
+                    </div>
+                    <div className="text-right">
+                      <h2 className="text-4xl font-light text-[#1a73e8] tracking-tight mb-2">INVOICE</h2>
+                      <p className="text-sm font-medium text-[#202124]">#{state.invoiceNumber}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-16 mb-16 border-t border-b border-[#dadce0] py-6">
+                    <div className="flex-1">
+                      <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-2">Bill To</p>
+                      <p className="text-base font-medium text-[#202124] mb-1">{state.tenantName}</p>
+                      <p className="text-sm text-[#5f6368] whitespace-pre-line">{state.tenantAddress}</p>
+                    </div>
+                    <div className="w-48">
+                      <div className="mb-4">
+                        <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-1">Issue Date</p>
+                        <p className="text-sm font-medium text-[#202124]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-1">Due Date</p>
+                        <p className="text-sm font-bold text-[#d93025]">{new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-8 mb-10">
-                      <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e1e3e1]/50">
-                        <h3 className="text-xs font-medium text-[#0b57d0] uppercase tracking-wider mb-3">Billed To</h3>
-                        <p className="text-lg font-medium text-[#1f1f1f] mb-2">{state.tenantName}</p>
-                        <p className="text-sm text-[#444746] whitespace-pre-line">{state.tenantAddress}</p>
-                      </div>
-                      <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e1e3e1]/50 flex flex-col justify-center">
-                        <div className="flex justify-between mb-4">
-                          <span className="text-sm text-[#444746]">Date of Issue</span>
-                          <span className="text-sm font-medium text-[#1f1f1f]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-[#444746]">Due Date</span>
-                          <span className="text-sm font-medium text-[#ba1a1a] bg-[#ffdad6] px-2 py-0.5 rounded-md">{new Date(state.dueDate).toLocaleDateString('en-GB')}</span>
-                        </div>
-                      </div>
+                  {renderItemsTable('transparent', '#202124', '#dadce0', false, '#f8f9fa')}
+
+                  <div className="flex justify-end mb-16">
+                    <div className="w-80">
+                      <div className="flex justify-between py-2 text-sm"><span className="text-[#5f6368]">Subtotal</span><span className="text-[#202124]">${formatCurrency(subtotal)}</span></div>
+                      <div className="flex justify-between py-2 text-sm border-b border-[#dadce0] mb-3 pb-3"><span className="text-[#5f6368]">Tax (GST)</span><span className="text-[#202124]">${formatCurrency(totalGst)}</span></div>
+                      <div className="flex justify-between items-center"><span className="text-base font-bold text-[#202124]">Total Due</span><span className="text-2xl font-normal text-[#1a73e8]">${formatCurrency(total)}</span></div>
                     </div>
+                  </div>
 
-                    {renderItemsTable('#f8fafd', '#444746', '#e1e3e1', false, '#ffffff')}
-
-                    <div className="flex justify-end mb-10 mt-[-10px]">
-                      <div className="w-80 bg-[#f0f4f9] rounded-2xl p-6">
-                        <div className="flex justify-between text-sm mb-3">
-                          <span className="text-[#444746]">Subtotal</span>
-                          <span className="text-[#1f1f1f] font-medium">${formatCurrency(subtotal)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm mb-4 pb-4 border-b border-[#e1e3e1]">
-                          <span className="text-[#444746]">Tax (GST)</span>
-                          <span className="text-[#1f1f1f] font-medium">${formatCurrency(totalGst)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-base font-medium text-[#1f1f1f]">Total Due</span>
-                          <span className="text-3xl font-normal text-[#0b57d0]">${formatCurrency(total)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-auto pt-6 border-t border-[#e1e3e1]">
-                      <p className="text-xs font-medium text-[#0b57d0] uppercase tracking-wider mb-2">Instructions</p>
-                      {state.notes && <p className="text-sm text-[#444746] whitespace-pre-line mb-3">{state.notes}</p>}
-                      <p className="text-sm text-[#444746] whitespace-pre-line">{state.paymentInstructions}</p>
-                    </div>
+                  <div className="mt-auto pt-6 border-t border-[#dadce0]">
+                    <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-2">Instructions & Notes</p>
+                    {state.notes && <p className="text-sm text-[#5f6368] whitespace-pre-line mb-3">{state.notes}</p>}
+                    <p className="text-sm text-[#5f6368] whitespace-pre-line">{state.paymentInstructions}</p>
                   </div>
                 </div>
               )}
@@ -941,53 +928,55 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
                     )}
 
                     {state.templateStyle === 'google' && (
-                      <div className="font-sans text-[#1f1f1f] h-full flex flex-col bg-[#f3f4f6] -mx-[60px] -my-[60px] px-[60px] py-[60px]">
-                        <div className="bg-[#f8fafd] rounded-[28px] p-10 flex-1 flex flex-col shadow-sm">
-                          <div className="flex justify-between items-start mb-12">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 bg-[#d3e3fd] text-[#0b57d0] rounded-full flex items-center justify-center font-medium text-2xl">
-                                {state.landlordName.charAt(0) || 'L'}
+                      <div className="font-sans text-[#202124] h-full flex flex-col bg-white -mx-[60px] -my-[60px] px-[60px] py-[60px]">
+                        <div className="flex justify-between items-start mb-16">
+                          <div>
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-8 h-8 rounded bg-[#1a73e8] flex items-center justify-center text-white font-bold text-lg">
+                                {state.landlordName.charAt(0) || 'G'}
                               </div>
-                              <div>
-                                <h1 className="text-2xl font-medium text-[#1f1f1f]">{state.landlordName}</h1>
-                                <p className="text-sm text-[#444746] whitespace-pre-line mt-1">{state.landlordAddress}</p>
-                              </div>
+                              <h1 className="text-2xl font-normal text-[#202124] tracking-tight">{state.landlordName}</h1>
                             </div>
-                            <div className="text-right">
-                              <h2 className="text-4xl font-normal text-[#1f1f1f] tracking-tight">Invoice</h2>
-                              <div className="mt-3 inline-flex items-center bg-[#e8def8] text-[#1d192b] px-3 py-1 rounded-full text-xs font-medium">
-                                #{state.invoiceNumber}
-                              </div>
+                            <p className="text-sm text-[#5f6368] whitespace-pre-line">{state.landlordAddress}</p>
+                          </div>
+                          <div className="text-right">
+                            <h2 className="text-4xl font-light text-[#1a73e8] tracking-tight mb-2">INVOICE</h2>
+                            <p className="text-sm font-medium text-[#202124]">#{state.invoiceNumber}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-16 mb-16 border-t border-b border-[#dadce0] py-6">
+                          <div className="flex-1">
+                            <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-2">Bill To</p>
+                            <p className="text-base font-medium text-[#202124] mb-1">{state.tenantName}</p>
+                            <p className="text-sm text-[#5f6368] whitespace-pre-line">{state.tenantAddress}</p>
+                          </div>
+                          <div className="w-48">
+                            <div className="mb-4">
+                              <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-1">Issue Date</p>
+                              <p className="text-sm font-medium text-[#202124]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-1">Due Date</p>
+                              <p className="text-sm font-bold text-[#d93025]">{new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
                             </div>
                           </div>
+                        </div>
 
-                          <div className="grid grid-cols-2 gap-8 mb-10">
-                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e1e3e1]/50">
-                              <h3 className="text-xs font-medium text-[#0b57d0] uppercase tracking-wider mb-3">Billed To</h3>
-                              <p className="text-lg font-medium text-[#1f1f1f] mb-2">{state.tenantName}</p>
-                              <p className="text-sm text-[#444746] whitespace-pre-line">{state.tenantAddress}</p>
-                            </div>
-                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e1e3e1]/50 flex flex-col justify-center">
-                              <div className="flex justify-between mb-4">
-                                <span className="text-sm text-[#444746]">Date of Issue</span>
-                                <span className="text-sm font-medium text-[#1f1f1f]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-sm text-[#444746]">Due Date</span>
-                                <span className="text-sm font-medium text-[#ba1a1a] bg-[#ffdad6] px-2 py-0.5 rounded-md">{new Date(state.dueDate).toLocaleDateString('en-GB')}</span>
-                              </div>
-                            </div>
+                        {renderItemsTable('transparent', '#202124', '#dadce0', false, '#f8f9fa')}
+
+                        <div className="flex justify-end mb-16">
+                          <div className="w-80">
+                            <div className="flex justify-between py-2 text-sm"><span className="text-[#5f6368]">Subtotal</span><span className="text-[#202124]">${formatCurrency(subtotal)}</span></div>
+                            <div className="flex justify-between py-2 text-sm border-b border-[#dadce0] mb-3 pb-3"><span className="text-[#5f6368]">Tax (GST)</span><span className="text-[#202124]">${formatCurrency(totalGst)}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-base font-bold text-[#202124]">Total Due</span><span className="text-2xl font-normal text-[#1a73e8]">${formatCurrency(total)}</span></div>
                           </div>
+                        </div>
 
-                          {renderItemsTable('#f8fafd', '#444746', '#e1e3e1', false, '#ffffff')}
-
-                          <div className="flex justify-end mb-10 mt-[-10px]">
-                            <div className="w-80 bg-[#f0f4f9] rounded-2xl p-6">
-                              <div className="flex justify-between text-sm mb-3">
-                                <p className="text-sm text-[#202124] whitespace-pre-line leading-relaxed">{state.paymentInstructions}</p>
-                              </div>
-                            </div>
-                          </div>
+                        <div className="mt-auto pt-6 border-t border-[#dadce0]">
+                          <p className="text-[11px] font-bold text-[#5f6368] uppercase tracking-wider mb-2">Instructions & Notes</p>
+                          {state.notes && <p className="text-sm text-[#5f6368] whitespace-pre-line mb-3">{state.notes}</p>}
+                          <p className="text-sm text-[#5f6368] whitespace-pre-line">{state.paymentInstructions}</p>
                         </div>
                       </div>
                     )}
