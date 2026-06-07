@@ -232,7 +232,7 @@ export function InvoiceManagement() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="bg-white/70 backdrop-blur-xl border border-white/60 rounded-[32px] p-5 sm:p-6 shadow-[0_8px_32px_rgba(59,34,181,0.03)] hover:shadow-[0_16px_48px_rgba(59,34,181,0.08)] hover:border-primary/20 transition-all duration-300 hover:-translate-y-1 group flex flex-col md:flex-row justify-between items-start md:items-center gap-5"
+                        className="bg-white/70 backdrop-blur-xl border border-white/60 rounded-[32px] p-5 sm:p-6 shadow-[0_8px_32px_rgba(59,34,181,0.03)] hover:shadow-[0_16px_48px_rgba(59,34,181,0.08)] hover:border-primary/20 transition-all duration-300 hover:-translate-y-1 group flex flex-col md:flex-row justify-between items-start md:items-center gap-5 min-w-0"
                       >
                         <div className="flex items-start sm:items-center gap-3 sm:gap-5 w-full min-w-0">
                           <Checkbox 
