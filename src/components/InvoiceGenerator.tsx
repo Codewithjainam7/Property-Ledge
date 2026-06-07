@@ -622,80 +622,84 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
               )}
 
               {state.templateStyle === 'google' && (
-                <div className="font-sans text-[rgba(0,0,0,0.87)] h-full flex flex-col bg-[#f5f5f5] -mx-[60px] -my-[60px] px-[40px] py-[40px]">
-                  <div className="bg-white flex-1 flex flex-col shadow-[0px_3px_5px_-1px_rgba(0,0,0,0.2),0px_6px_10px_0px_rgba(0,0,0,0.14),0px_1px_18px_0px_rgba(0,0,0,0.12)] rounded-lg overflow-hidden">
-                    <div className="bg-[#1976d2] text-white px-10 py-8 flex justify-between items-center shadow-md z-10 relative">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-white font-medium text-2xl backdrop-blur-sm border border-white/30">
+                <div className="font-sans text-slate-800 h-full flex flex-col bg-[#fafcff] -mx-[60px] -my-[60px] px-[60px] py-[60px] relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-100/40 to-purple-100/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 z-0 pointer-events-none" />
+                  
+                  <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-[32px] p-12 flex-1 flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.02)] z-10 relative">
+                    <div className="flex justify-between items-start mb-16">
+                      <div className="flex items-center gap-5">
+                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg shadow-blue-500/20">
                           {state.landlordName.charAt(0) || 'L'}
                         </div>
                         <div>
-                          <h1 className="text-3xl font-medium tracking-tight">{state.landlordName}</h1>
-                          <p className="text-sm text-white/80 mt-1">{state.landlordAddress}</p>
+                          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{state.landlordName}</h1>
+                          <p className="text-sm text-slate-500 mt-1">{state.landlordAddress}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <h2 className="text-4xl font-light tracking-tight mb-1">INVOICE</h2>
-                        <div className="inline-block bg-white/20 px-3 py-1 rounded text-sm font-medium border border-white/30">
-                          #{state.invoiceNumber}
+                        <h2 className="text-5xl font-black tracking-tighter text-slate-200 mb-2 uppercase">Invoice</h2>
+                        <div className="inline-flex items-center gap-2 bg-slate-100/80 text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold">
+                          <span>NO.</span>
+                          <span className="text-slate-900">{state.invoiceNumber}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-10 flex-1 flex flex-col">
-                      <div className="grid grid-cols-2 gap-10 mb-12">
-                        <div>
-                          <p className="text-xs font-medium text-[#1976d2] uppercase tracking-[0.1em] mb-3">Bill To</p>
-                          <p className="text-xl font-medium text-[rgba(0,0,0,0.87)] mb-1">{state.tenantName}</p>
-                          <p className="text-sm text-[rgba(0,0,0,0.6)] whitespace-pre-line leading-relaxed">{state.tenantAddress}</p>
+                    <div className="grid grid-cols-12 gap-8 mb-16">
+                      <div className="col-span-7 bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
+                        <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-4">Billed To</p>
+                        <p className="text-2xl font-bold text-slate-900 mb-2">{state.tenantName}</p>
+                        <p className="text-sm text-slate-500 leading-relaxed max-w-sm">{state.tenantAddress}</p>
+                      </div>
+                      
+                      <div className="col-span-5 flex flex-col gap-3">
+                        <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100 flex justify-between items-center">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issue Date</p>
+                          <p className="text-sm font-semibold text-slate-900">{new Date(state.issueDate).toLocaleDateString('en-GB')}</p>
                         </div>
-                        
-                        <div className="flex flex-col justify-center bg-[#fafafa] rounded px-6 py-4 border border-[#e0e0e0]">
-                          <div className="flex justify-between items-center border-b border-[#e0e0e0] pb-3 mb-3">
-                            <div>
-                              <p className="text-[10px] font-medium text-[rgba(0,0,0,0.6)] uppercase tracking-wider mb-1">Issue Date</p>
-                              <p className="text-sm font-medium text-[rgba(0,0,0,0.87)]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[10px] font-medium text-[rgba(0,0,0,0.6)] uppercase tracking-wider mb-1">Due Date</p>
-                              <p className="text-sm font-medium text-[#d32f2f]">{new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center pt-1">
-                            <p className="text-[11px] font-bold text-[#1976d2] uppercase tracking-wider">Amount Due</p>
-                            <p className="text-2xl font-bold text-[#1976d2]">${formatCurrency(total)}</p>
-                          </div>
+                        <div className="bg-rose-50/50 rounded-2xl p-5 border border-rose-100 flex justify-between items-center">
+                          <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Due Date</p>
+                          <p className="text-sm font-bold text-rose-600">{new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="mb-8">
-                        {renderItemsTable('#f5f5f5', 'rgba(0,0,0,0.87)', '#e0e0e0', false, '#ffffff')}
-                      </div>
+                    <div className="mb-10">
+                      {renderItemsTable('transparent', '#1e293b', '#e2e8f0', false, '#f8fafc')}
+                    </div>
 
-                      <div className="flex justify-end mb-12">
-                        <div className="w-80">
-                          <div className="flex justify-between py-2 text-sm"><span className="text-[rgba(0,0,0,0.6)]">Subtotal</span><span className="text-[rgba(0,0,0,0.87)] font-medium">${formatCurrency(subtotal)}</span></div>
-                          <div className="flex justify-between py-2 text-sm border-b border-[#e0e0e0] mb-3 pb-3"><span className="text-[rgba(0,0,0,0.6)]">Tax (GST)</span><span className="text-[rgba(0,0,0,0.87)] font-medium">${formatCurrency(totalGst)}</span></div>
-                          <div className="flex justify-between items-center bg-[#e3f2fd] p-4 rounded text-[#1976d2]">
-                            <span className="text-sm font-bold uppercase tracking-wider">Total Due</span>
-                            <span className="text-2xl font-bold">${formatCurrency(total)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-auto pt-6 border-t border-[#e0e0e0]">
-                        <div className="grid grid-cols-2 gap-10">
+                    <div className="flex justify-end mb-16">
+                      <div className="w-[380px]">
+                        <div className="flex justify-between py-3 text-sm"><span className="text-slate-500">Subtotal</span><span className="text-slate-900 font-semibold">${formatCurrency(subtotal)}</span></div>
+                        <div className="flex justify-between py-3 text-sm border-b border-slate-200 mb-6"><span className="text-slate-500">Tax (GST)</span><span className="text-slate-900 font-semibold">${formatCurrency(totalGst)}</span></div>
+                        <div className="flex justify-between items-center bg-gradient-to-r from-indigo-500 to-blue-600 p-6 rounded-2xl text-white shadow-xl shadow-blue-500/20">
                           <div>
-                            <p className="text-[10px] font-medium text-[#1976d2] uppercase tracking-[0.1em] mb-2">Instructions</p>
-                            <p className="text-sm text-[rgba(0,0,0,0.6)] whitespace-pre-line leading-relaxed">{state.paymentInstructions}</p>
+                            <span className="block text-[11px] font-bold text-blue-100 uppercase tracking-widest mb-1">Total Due</span>
+                            <span className="block text-sm text-blue-100 opacity-80">By {new Date(state.dueDate).toLocaleDateString('en-GB')}</span>
                           </div>
-                          {state.notes && (
-                            <div>
-                              <p className="text-[10px] font-medium text-[#1976d2] uppercase tracking-[0.1em] mb-2">Notes</p>
-                              <p className="text-sm text-[rgba(0,0,0,0.6)] whitespace-pre-line leading-relaxed">{state.notes}</p>
-                            </div>
-                          )}
+                          <span className="text-4xl font-black tracking-tight">${formatCurrency(total)}</span>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-auto pt-8 border-t border-slate-200/60">
+                      <div className="grid grid-cols-2 gap-12">
+                        <div>
+                          <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                            Payment Instructions
+                          </p>
+                          <p className="text-sm text-slate-500 leading-relaxed">{state.paymentInstructions}</p>
+                        </div>
+                        {state.notes && (
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <span className="w-1 h-1 rounded-full bg-slate-400"></span>
+                              Additional Notes
+                            </p>
+                            <p className="text-sm text-slate-500 leading-relaxed">{state.notes}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -955,80 +959,84 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
                     )}
 
                     {state.templateStyle === 'google' && (
-                      <div className="font-sans text-[rgba(0,0,0,0.87)] h-full flex flex-col bg-[#f5f5f5] -mx-[60px] -my-[60px] px-[40px] py-[40px]">
-                        <div className="bg-white flex-1 flex flex-col shadow-[0px_3px_5px_-1px_rgba(0,0,0,0.2),0px_6px_10px_0px_rgba(0,0,0,0.14),0px_1px_18px_0px_rgba(0,0,0,0.12)] rounded-lg overflow-hidden">
-                          <div className="bg-[#1976d2] text-white px-10 py-8 flex justify-between items-center shadow-md z-10 relative">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-white font-medium text-2xl backdrop-blur-sm border border-white/30">
+                      <div className="font-sans text-slate-800 h-full flex flex-col bg-[#fafcff] -mx-[60px] -my-[60px] px-[60px] py-[60px] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-100/40 to-purple-100/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 z-0 pointer-events-none" />
+                        
+                        <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-[32px] p-12 flex-1 flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.02)] z-10 relative">
+                          <div className="flex justify-between items-start mb-16">
+                            <div className="flex items-center gap-5">
+                              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg shadow-blue-500/20">
                                 {state.landlordName.charAt(0) || 'L'}
                               </div>
                               <div>
-                                <h1 className="text-3xl font-medium tracking-tight">{state.landlordName}</h1>
-                                <p className="text-sm text-white/80 mt-1">{state.landlordAddress}</p>
+                                <h1 className="text-3xl font-bold tracking-tight text-slate-900">{state.landlordName}</h1>
+                                <p className="text-sm text-slate-500 mt-1">{state.landlordAddress}</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <h2 className="text-4xl font-light tracking-tight mb-1">INVOICE</h2>
-                              <div className="inline-block bg-white/20 px-3 py-1 rounded text-sm font-medium border border-white/30">
-                                #{state.invoiceNumber}
+                              <h2 className="text-5xl font-black tracking-tighter text-slate-200 mb-2 uppercase">Invoice</h2>
+                              <div className="inline-flex items-center gap-2 bg-slate-100/80 text-slate-600 px-4 py-1.5 rounded-full text-sm font-semibold">
+                                <span>NO.</span>
+                                <span className="text-slate-900">{state.invoiceNumber}</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="p-10 flex-1 flex flex-col">
-                            <div className="grid grid-cols-2 gap-10 mb-12">
-                              <div>
-                                <p className="text-xs font-medium text-[#1976d2] uppercase tracking-[0.1em] mb-3">Bill To</p>
-                                <p className="text-xl font-medium text-[rgba(0,0,0,0.87)] mb-1">{state.tenantName}</p>
-                                <p className="text-sm text-[rgba(0,0,0,0.6)] whitespace-pre-line leading-relaxed">{state.tenantAddress}</p>
+                          <div className="grid grid-cols-12 gap-8 mb-16">
+                            <div className="col-span-7 bg-slate-50/50 rounded-2xl p-6 border border-slate-100">
+                              <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-4">Billed To</p>
+                              <p className="text-2xl font-bold text-slate-900 mb-2">{state.tenantName}</p>
+                              <p className="text-sm text-slate-500 leading-relaxed max-w-sm">{state.tenantAddress}</p>
+                            </div>
+                            
+                            <div className="col-span-5 flex flex-col gap-3">
+                              <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100 flex justify-between items-center">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issue Date</p>
+                                <p className="text-sm font-semibold text-slate-900">{new Date(state.issueDate).toLocaleDateString('en-GB')}</p>
                               </div>
-                              
-                              <div className="flex flex-col justify-center bg-[#fafafa] rounded px-6 py-4 border border-[#e0e0e0]">
-                                <div className="flex justify-between items-center border-b border-[#e0e0e0] pb-3 mb-3">
-                                  <div>
-                                    <p className="text-[10px] font-medium text-[rgba(0,0,0,0.6)] uppercase tracking-wider mb-1">Issue Date</p>
-                                    <p className="text-sm font-medium text-[rgba(0,0,0,0.87)]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-[10px] font-medium text-[rgba(0,0,0,0.6)] uppercase tracking-wider mb-1">Due Date</p>
-                                    <p className="text-sm font-medium text-[#d32f2f]">{new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
-                                  </div>
-                                </div>
-                                <div className="flex justify-between items-center pt-1">
-                                  <p className="text-[11px] font-bold text-[#1976d2] uppercase tracking-wider">Amount Due</p>
-                                  <p className="text-2xl font-bold text-[#1976d2]">${formatCurrency(total)}</p>
-                                </div>
+                              <div className="bg-rose-50/50 rounded-2xl p-5 border border-rose-100 flex justify-between items-center">
+                                <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">Due Date</p>
+                                <p className="text-sm font-bold text-rose-600">{new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
                               </div>
                             </div>
+                          </div>
 
-                            <div className="mb-8">
-                              {renderItemsTable('#f5f5f5', 'rgba(0,0,0,0.87)', '#e0e0e0', false, '#ffffff')}
-                            </div>
+                          <div className="mb-10">
+                            {renderItemsTable('transparent', '#1e293b', '#e2e8f0', false, '#f8fafc')}
+                          </div>
 
-                            <div className="flex justify-end mb-12">
-                              <div className="w-80">
-                                <div className="flex justify-between py-2 text-sm"><span className="text-[rgba(0,0,0,0.6)]">Subtotal</span><span className="text-[rgba(0,0,0,0.87)] font-medium">${formatCurrency(subtotal)}</span></div>
-                                <div className="flex justify-between py-2 text-sm border-b border-[#e0e0e0] mb-3 pb-3"><span className="text-[rgba(0,0,0,0.6)]">Tax (GST)</span><span className="text-[rgba(0,0,0,0.87)] font-medium">${formatCurrency(totalGst)}</span></div>
-                                <div className="flex justify-between items-center bg-[#e3f2fd] p-4 rounded text-[#1976d2]">
-                                  <span className="text-sm font-bold uppercase tracking-wider">Total Due</span>
-                                  <span className="text-2xl font-bold">${formatCurrency(total)}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="mt-auto pt-6 border-t border-[#e0e0e0]">
-                              <div className="grid grid-cols-2 gap-10">
+                          <div className="flex justify-end mb-16">
+                            <div className="w-[380px]">
+                              <div className="flex justify-between py-3 text-sm"><span className="text-slate-500">Subtotal</span><span className="text-slate-900 font-semibold">${formatCurrency(subtotal)}</span></div>
+                              <div className="flex justify-between py-3 text-sm border-b border-slate-200 mb-6"><span className="text-slate-500">Tax (GST)</span><span className="text-slate-900 font-semibold">${formatCurrency(totalGst)}</span></div>
+                              <div className="flex justify-between items-center bg-gradient-to-r from-indigo-500 to-blue-600 p-6 rounded-2xl text-white shadow-xl shadow-blue-500/20">
                                 <div>
-                                  <p className="text-[10px] font-medium text-[#1976d2] uppercase tracking-[0.1em] mb-2">Instructions</p>
-                                  <p className="text-sm text-[rgba(0,0,0,0.6)] whitespace-pre-line leading-relaxed">{state.paymentInstructions}</p>
+                                  <span className="block text-[11px] font-bold text-blue-100 uppercase tracking-widest mb-1">Total Due</span>
+                                  <span className="block text-sm text-blue-100 opacity-80">By {new Date(state.dueDate).toLocaleDateString('en-GB')}</span>
                                 </div>
-                                {state.notes && (
-                                  <div>
-                                    <p className="text-[10px] font-medium text-[#1976d2] uppercase tracking-[0.1em] mb-2">Notes</p>
-                                    <p className="text-sm text-[rgba(0,0,0,0.6)] whitespace-pre-line leading-relaxed">{state.notes}</p>
-                                  </div>
-                                )}
+                                <span className="text-4xl font-black tracking-tight">${formatCurrency(total)}</span>
                               </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto pt-8 border-t border-slate-200/60">
+                            <div className="grid grid-cols-2 gap-12">
+                              <div>
+                                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                                  Payment Instructions
+                                </p>
+                                <p className="text-sm text-slate-500 leading-relaxed">{state.paymentInstructions}</p>
+                              </div>
+                              {state.notes && (
+                                <div>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <span className="w-1 h-1 rounded-full bg-slate-400"></span>
+                                    Additional Notes
+                                  </p>
+                                  <p className="text-sm text-slate-500 leading-relaxed">{state.notes}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
