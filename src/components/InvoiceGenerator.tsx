@@ -93,12 +93,7 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
   const previewRef = useRef<HTMLDivElement>(null);
   const mobilePreviewRef = useRef<HTMLDivElement>(null);
 
-  // Clone the desktop invoice render into the mobile preview when switching tabs
-  useEffect(() => {
-    if (mobileTab === 'preview' && previewRef.current && mobilePreviewRef.current) {
-      mobilePreviewRef.current.innerHTML = previewRef.current.innerHTML;
-    }
-  }, [mobileTab, state]);
+  // Removed innerHTML cloning as mobilePreviewRef renders the JSX directly.
 
   const [contentHeight, setContentHeight] = useState(1123);
 
@@ -115,10 +110,12 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
     if (!target) return;
 
     const observer = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        // Set height to actual content height instead of fixed A4
-        setContentHeight(entry.target.scrollHeight);
-      }
+      window.requestAnimationFrame(() => {
+        for (let entry of entries) {
+          // Set height to actual content height instead of fixed A4
+          setContentHeight(entry.target.scrollHeight);
+        }
+      });
     });
     observer.observe(target);
     return () => observer.disconnect();

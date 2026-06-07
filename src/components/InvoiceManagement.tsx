@@ -5,26 +5,40 @@ import { Plus, FileText, Settings, CreditCard, ChevronRight, Calendar, Bell, Shi
 import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox } from '@mui/material';
 
 import { InvoiceGenerator } from './InvoiceGenerator';
+import { InvoiceTemplateBuilder } from './InvoiceTemplateBuilder';
 import JSZip from 'jszip';
 import { supabase } from '../lib/supabase';
 
 export function InvoiceManagement() {
   const [activeTab, setActiveTab] = useState(0);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showTemplateBuilder, setShowTemplateBuilder] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | string | null }>({ isOpen: false, id: null });
   const [dataLoading, setDataLoading] = useState(true);
   
   const [invoices, setInvoices] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  
+  const [savingAutomationId, setSavingAutomationId] = useState<string | null>(null);
   
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
 
   const loadData = async () => {
-    const [{ data: inv }, { data: props }] = await Promise.all([
+    const [
+      { data: inv, error: invError },
+      { data: props, error: propsError },
+      { data: tmpl, error: tmplError }
+    ] = await Promise.all([
       supabase.from('invoices').select('*, properties(address, tenant_name)').order('created_at', { ascending: false }),
       supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency'),
+      supabase.from('invoice_templates').select('*').order('created_at', { ascending: false }),
     ]);
+
+    if (tmplError) console.error("Error fetching templates:", tmplError);
+    if (invError) console.error("Error fetching invoices:", invError);
+    if (propsError) console.error("Error fetching properties:", propsError);
     if (inv) {
       // Map Supabase snake_case fields to what the UI expects
       setInvoices(inv.map(i => ({
@@ -38,12 +52,13 @@ export function InvoiceManagement() {
       })));
     }
     if (props) setProperties(props.map(p => ({ ...p, tenantName: p.tenant_name, rentAmount: p.rent_amount, paymentFrequency: p.payment_frequency })));
+    if (tmpl) setTemplates(tmpl);
     setDataLoading(false);
   };
 
   useEffect(() => {
     loadData();
-  }, [showGenerator]);
+  }, [showGenerator, showTemplateBuilder]);
 
   const confirmDelete = async () => {
     if (deleteConfirm.id) {
@@ -58,6 +73,27 @@ export function InvoiceManagement() {
   const handleBulkDownload = async () => {
     alert("Bulk download is temporarily disabled while we upgrade the PDF rendering engine. Please open and download invoices individually for now.");
     setSelectedInvoices([]);
+  };
+
+  const handleSaveAutomation = async (templateId: string, updates: any) => {
+    setSavingAutomationId(templateId);
+    try {
+      const { error } = await supabase.from('invoice_templates').update(updates).eq('id', templateId);
+      if (error) {
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          alert('Database schema update required. Please run the SQL migration to add auto_send_email and auto_approve columns.');
+        } else {
+          alert(`Error saving automation: ${error.message}`);
+        }
+      } else {
+        // Update local state
+        setTemplates(prev => prev.map(t => t.id === templateId ? { ...t, ...updates } : t));
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setSavingAutomationId(null);
+    }
   };
 
   const tabs = [
@@ -264,7 +300,7 @@ export function InvoiceManagement() {
 
 
 
-          {/* Tab 1: Automation (Future Phase UI) */}
+          {/* Tab 1: Automation */}
           {activeTab === 1 && (
             <motion.div key="automation" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
                <div className="bg-white/60 backdrop-blur-3xl border border-white/80 rounded-[40px] p-8 md:p-10 shadow-[0_16px_40px_-12px_rgba(59,34,181,0.06)] relative overflow-hidden">
@@ -280,15 +316,76 @@ export function InvoiceManagement() {
                    </div>
                  </div>
                  
-                 <div className="p-6 md:p-8 bg-gradient-to-r from-amber-50 to-[#fffdf7] border border-amber-200/60 rounded-[32px] flex gap-5 mb-4 relative z-10 shadow-sm">
-                   <ShieldCheck className="w-8 h-8 text-amber-600 shrink-0" />
-                   <div>
-                     <Typography sx={{ fontWeight: 900, color: 'amber.900', mb: 1, fontSize: '1.1rem' }}>Coming Soon</Typography>
-                     <Typography variant="body1" sx={{ color: 'amber.800', lineHeight: 1.6, fontWeight: 500 }}>
-                       The automation engine is currently in development. Soon you will be able to set specific triggers like "Send 5 days before due date" and Property Ledge will handle the entire generation and dispatch sequence automatically.
-                     </Typography>
+                 {templates.length === 0 ? (
+                   <div className="p-6 md:p-8 bg-gradient-to-r from-amber-50 to-[#fffdf7] border border-amber-200/60 rounded-[32px] flex gap-5 mb-4 relative z-10 shadow-sm">
+                     <ShieldCheck className="w-8 h-8 text-amber-600 shrink-0" />
+                     <div>
+                       <Typography sx={{ fontWeight: 900, color: 'amber.900', mb: 1, fontSize: '1.1rem' }}>No Automation Rules Found</Typography>
+                       <Typography variant="body1" sx={{ color: 'amber.800', lineHeight: 1.6, fontWeight: 500 }}>
+                         You need to create at least one Billing Blueprint before you can set up automation rules.
+                       </Typography>
+                       <Button 
+                         variant="contained" 
+                         onClick={() => setShowTemplateBuilder(true)}
+                         disableElevation
+                         sx={{ mt: 3, bgcolor: '#d97706', borderRadius: '50px', px: 4, py: 1.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 8px 16px -4px rgba(217,119,6,0.3)', '&:hover': { bgcolor: '#b45309' } }}
+                       >
+                         Create Blueprint
+                       </Button>
+                     </div>
                    </div>
-                 </div>
+                 ) : (
+                   <div className="grid gap-6 relative z-10">
+                     {templates.map(template => (
+                       <div key={template.id} className="bg-white/80 border border-gray-100 rounded-[24px] p-6 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                         <div className="flex-1">
+                           <Typography variant="h6" sx={{ fontWeight: 900, color: '#1c1c28', mb: 0.5 }}>{template.name}</Typography>
+                           <Typography variant="body2" sx={{ color: '#4a4a5e', fontWeight: 500, mb: 3 }}>Blueprint Type: {template.template_type}</Typography>
+                           
+                           <div className="flex flex-wrap gap-6 items-center">
+                             <div>
+                               <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', color: '#4a4a5e', display: 'block', mb: 1 }}>Run on day of month</Typography>
+                               <select 
+                                 value={template.automation_day || ''}
+                                 onChange={(e) => handleSaveAutomation(template.id, { automation_day: e.target.value ? parseInt(e.target.value) : null })}
+                                 className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 outline-none focus:border-primary focus:ring-1 focus:ring-primary font-bold text-sm"
+                               >
+                                 <option value="">Disabled</option>
+                                 {[...Array(31)].map((_, i) => (
+                                   <option key={i+1} value={i+1}>{i+1}{i+1 === 1 ? 'st' : i+1 === 2 ? 'nd' : i+1 === 3 ? 'rd' : 'th'}</option>
+                                 ))}
+                               </select>
+                             </div>
+                             
+                             <div className="flex items-center gap-3">
+                               <Checkbox 
+                                 checked={template.auto_approve || false}
+                                 onChange={(e) => handleSaveAutomation(template.id, { auto_approve: e.target.checked })}
+                                 sx={{ p: 0, color: 'rgba(59,34,181,0.2)', '&.Mui-checked': { color: 'primary.main' } }}
+                               />
+                               <Typography variant="body2" sx={{ fontWeight: 700, color: '#1c1c28' }}>Auto-Approve</Typography>
+                             </div>
+                             
+                             <div className="flex items-center gap-3">
+                               <Checkbox 
+                                 checked={template.auto_send_email || false}
+                                 onChange={(e) => handleSaveAutomation(template.id, { auto_send_email: e.target.checked })}
+                                 sx={{ p: 0, color: 'rgba(59,34,181,0.2)', '&.Mui-checked': { color: 'primary.main' } }}
+                               />
+                               <Typography variant="body2" sx={{ fontWeight: 700, color: '#1c1c28' }}>Auto-Send via Email</Typography>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {savingAutomationId === template.id && (
+                           <div className="flex items-center gap-2 text-primary text-sm font-bold bg-primary/5 px-4 py-2 rounded-full shrink-0">
+                             <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /> Saving...
+                           </div>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                 )}
                </div>
             </motion.div>
           )}
@@ -298,6 +395,7 @@ export function InvoiceManagement() {
 
       <AnimatePresence>
         {showGenerator && <InvoiceGenerator onClose={() => { setShowGenerator(false); setSelectedInvoice(null); loadData(); }} />}
+        {showTemplateBuilder && <InvoiceTemplateBuilder onClose={() => setShowTemplateBuilder(false)} />}
       </AnimatePresence>
 
       <Dialog

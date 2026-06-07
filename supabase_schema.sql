@@ -95,6 +95,8 @@ CREATE TABLE public.invoice_templates (
     tax_rate NUMERIC(5, 2) DEFAULT 0.00 CHECK (tax_rate >= 0),
     default_notes TEXT,
     automation_day INTEGER CHECK (automation_day >= 1 AND automation_day <= 31),
+    auto_send_email BOOLEAN DEFAULT false,
+    auto_approve BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
