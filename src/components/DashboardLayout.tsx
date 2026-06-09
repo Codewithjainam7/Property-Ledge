@@ -15,7 +15,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { session, user, signOut, loading } = useAuth();
+  const { session, user, globalRole, signOut, loading } = useAuth();
   
   const toggleSidebar = () => {
     const newVal = !isCollapsed;
@@ -27,12 +27,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     if (!loading) {
       if (!session) {
         navigate('/login');
+      } else if (!user?.user_metadata?.role) {
+        // Force Google OAuth users to select their role (Owner, Agent, Tenant)
+        navigate('/complete-profile');
       }
-      // Note: Removed complete-profile redirect here — it was incorrectly
-      // kicking Google OAuth users who had partial metadata out of the dashboard.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, loading]);
+  }, [session, loading, user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -112,16 +113,39 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const organiseLinks = [
-    { name: 'Overview', icon: PieChart, to: '/dashboard', exact: true },
-    { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
-    { name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false },
-  ];
+  
+  
+  let organiseLinks = [];
+  let toolsLinks = [];
 
-  const toolsLinks = [
-    { name: 'Invoices', icon: FileText, to: '/dashboard/invoices', exact: false },
-    { name: 'Accounting', icon: Wallet, to: '/dashboard/accounting', exact: false },
-  ];
+  if (globalRole === 'Tenant') {
+    organiseLinks = [
+      { name: 'My Lease', icon: Home, to: '/dashboard/my-lease', exact: true }
+    ];
+    toolsLinks = [
+      { name: 'Find Properties', icon: Search, to: '/dashboard', exact: true },
+    ];
+  } else if (globalRole === 'Agent' || globalRole === 'Strata') {
+    organiseLinks = [
+      { name: 'Overview', icon: PieChart, to: '/dashboard', exact: true },
+      { name: 'Managed Properties', icon: Building, to: '/dashboard/properties', exact: false },
+      { name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false },
+    ];
+    toolsLinks = [];
+  } else {
+    // Default Owner View
+    organiseLinks = [
+      { name: 'Portfolio Overview', icon: PieChart, to: '/dashboard', exact: true },
+      { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
+      { name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false },
+    ];
+
+    toolsLinks = [
+      { name: 'Invoices', icon: FileText, to: '/dashboard/invoices', exact: false },
+      { name: 'Accounting', icon: Wallet, to: '/dashboard/accounting', exact: false },
+      { name: 'Team Access', icon: UserPlus, to: '/dashboard/team', exact: false },
+    ];
+  }
 
   const checkIsActive = (link: any) => {
     if (link.exact) {
@@ -188,7 +212,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
                   >
-                    Organise
+                    {globalRole === 'Tenant' ? 'My Rental' : 'Organise'}
                   </motion.span>
                 ) : (
                   <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
@@ -237,7 +261,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
                   >
-                    Tools
+                    {globalRole === 'Tenant' ? 'Search Properties' : 'Tools'}
                   </motion.span>
                 ) : (
                   <div className="w-6 h-[2px] bg-slate-200 rounded-full" />

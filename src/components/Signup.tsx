@@ -122,10 +122,9 @@ export function Signup() {
   };
 
   const roles = [
-    { id: 'landlord', icon: Building, title: 'Landlord', desc: 'I self-manage my own properties' },
-    { id: 'manager', icon: ClipboardList, title: 'Property Manager', desc: 'I manage properties on behalf of owners' },
-    { id: 'agent', icon: Users, title: 'Real Estate Agent', desc: 'I am part of a property management team' },
-    { id: 'tenant', icon: UserCircle2, title: 'Tenant', desc: 'I am renting a property' }
+    { id: 'Owner', icon: Building, title: 'Property Owner', desc: 'I own and manage properties' },
+    { id: 'Agent', icon: Users, title: 'Property Agent / Manager', desc: 'I manage properties for an owner' },
+    { id: 'Tenant', icon: UserCircle2, title: 'Tenant', desc: 'I am looking to rent or currently renting' }
   ];
 
   return (

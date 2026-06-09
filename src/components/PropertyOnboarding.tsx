@@ -1,4 +1,3 @@
-// src/components/PropertyOnboarding.tsx
 import React, { useState } from 'react';
 import { 
   Stepper, Step, StepLabel, Button, Typography, 
@@ -6,8 +5,7 @@ import {
   ThemeProvider, createTheme, CssBaseline, LinearProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload } from 'lucide-react';
-import { formatCurrency } from '../utils/format';
+import { ArrowLeft, Upload, Home } from 'lucide-react';
 
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -56,7 +54,7 @@ const theme = createTheme({
   }
 });
 
-const steps = ['Property Location', 'Property Image', 'Financial Setup', 'Tenant Verification', 'Final Review'];
+const steps = ['Property Location', 'Features', 'Property Image', 'Final Review'];
 
 export function PropertyOnboarding() {
   const [activeStep, setActiveStep] = useState(0);
@@ -70,13 +68,12 @@ export function PropertyOnboarding() {
     postcode: '',
     state: '',
     propertyType: '',
-    image: '',
+    bedrooms: '',
+    bathrooms: '',
+    carSpaces: '',
     rentAmount: '',
     paymentFrequency: 'Weekly',
-    tenantName: '',
-    tenantEmail: '',
-    leaseStart: '',
-    leaseDuration: '12'
+    image: null,
   });
 
   const handleChange = (e: any) => {
@@ -102,17 +99,7 @@ export function PropertyOnboarding() {
         return;
       }
     }
-    if (activeStep === 1 && !formData.image.trim()) {
-      alert("Property Image is a mandatory field. Please provide an image URL.");
-      return;
-    }
-    if (activeStep === 2) {
-      if (!formData.rentAmount.trim() || !formData.paymentFrequency) {
-        alert("Please provide the rent amount and payment frequency.");
-        return;
-      }
-    }
-
+    
     if (activeStep === steps.length - 1) {
       if (!session?.user?.id) {
         alert("You must be logged in to add a property.");
@@ -124,72 +111,25 @@ export function PropertyOnboarding() {
         const propertyIdStr = 'PL-' + Math.floor(1000 + Math.random() * 9000).toString();
         
         // 1. Insert Property
-        const { data: propertyData, error: propertyError } = await supabase
+        const { error: propertyError } = await supabase
           .from('properties')
           .insert({
-            user_id: session.user.id,
+            owner_id: session.user.id,
             property_id: propertyIdStr,
             address: formData.address,
             suburb: formData.suburb,
             postcode: formData.postcode,
             state: formData.state,
             property_type: formData.propertyType,
-            image: formData.image, // Base64 image
-            rent_amount: Number(formData.rentAmount),
+            bedrooms: Number(formData.bedrooms),
+            bathrooms: Number(formData.bathrooms),
+            car_spaces: Number(formData.carSpaces),
+            rent_amount: Number(formData.rentAmount) || 0,
             payment_frequency: formData.paymentFrequency,
-            tenant_name: formData.tenantName,
-            tenant_email: formData.tenantEmail,
-            lease_start: formData.leaseStart || null,
-            lease_duration: formData.leaseDuration ? Number(formData.leaseDuration) : null
-          })
-          .select()
-          .single();
+            image: formData.image || null,
+          });
 
         if (propertyError) throw propertyError;
-
-        // 2. Insert Tenant (if details provided)
-        if (formData.tenantName) {
-          const names = formData.tenantName.split(' ');
-          const firstName = names[0];
-          const lastName = names.slice(1).join(' ') || 'Unknown';
-
-          const { data: tenantData, error: tenantError } = await supabase
-            .from('tenants')
-            .insert({
-              user_id: session.user.id,
-              first_name: firstName,
-              last_name: lastName,
-              email: formData.tenantEmail || null
-            })
-            .select()
-            .single();
-
-          if (tenantError) throw tenantError;
-
-          // 3. Insert Lease
-          if (formData.leaseStart && propertyData && tenantData) {
-            let endDate = null;
-            if (formData.leaseDuration && Number(formData.leaseDuration) > 0) {
-              const start = new Date(formData.leaseStart);
-              start.setMonth(start.getMonth() + Number(formData.leaseDuration));
-              endDate = start.toISOString().split('T')[0];
-            }
-
-            const { error: leaseError } = await supabase
-              .from('leases')
-              .insert({
-                user_id: session.user.id,
-                property_id: propertyData.id,
-                tenant_id: tenantData.id,
-                start_date: formData.leaseStart,
-                end_date: endDate,
-                rent_amount: Number(formData.rentAmount),
-                payment_frequency: formData.paymentFrequency
-              });
-
-            if (leaseError) throw leaseError;
-          }
-        }
 
         // Navigate to properties list instead of dashboard for immediate feedback
         navigate('/dashboard/properties');
@@ -275,6 +215,66 @@ export function PropertyOnboarding() {
       case 1:
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <TextField 
+                label="Bedrooms" 
+                name="bedrooms" 
+                type="number"
+                value={formData.bedrooms}
+                onChange={handleChange}
+                inputProps={{ min: 0 }}
+                sx={{ flex: 1 }}
+              />
+              <TextField 
+                label="Bathrooms" 
+                name="bathrooms" 
+                type="number"
+                value={formData.bathrooms}
+                onChange={handleChange}
+                inputProps={{ min: 0, step: 0.5 }}
+                sx={{ flex: 1 }}
+              />
+              <TextField 
+                label="Car Spaces" 
+                name="carSpaces" 
+                type="number"
+                value={formData.carSpaces}
+                onChange={handleChange}
+                inputProps={{ min: 0 }}
+                sx={{ flex: 1 }}
+              />
+            </Box>
+            
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <TextField 
+                label="Advertised Rent ($)" 
+                name="rentAmount" 
+                type="number"
+                placeholder="e.g. 500"
+                value={formData.rentAmount}
+                onChange={handleChange}
+                inputProps={{ min: 0 }}
+                sx={{ flex: 2 }}
+              />
+              <FormControl sx={{ flex: 1 }}>
+                <InputLabel>Payment Frequency</InputLabel>
+                <Select
+                  name="paymentFrequency"
+                  value={formData.paymentFrequency}
+                  label="Payment Frequency"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="Weekly">Weekly</MenuItem>
+                  <MenuItem value="Fortnightly">Fortnightly</MenuItem>
+                  <MenuItem value="Monthly">Monthly</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+        );
+      case 2:
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
             <Button
               variant="outlined"
               component="label"
@@ -293,7 +293,7 @@ export function PropertyOnboarding() {
             >
                <Upload className="w-8 h-8 text-primary" />
                <Typography sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Click to upload a property image</Typography>
-               <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>JPG, PNG, WebP accepted. Required field.</Typography>
+               <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>JPG, PNG, WebP accepted. Optional.</Typography>
                <input
                  type="file"
                  hidden
@@ -308,84 +308,11 @@ export function PropertyOnboarding() {
             )}
           </Box>
         );
-      case 2:
-        return (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-              <TextField 
-                label="Rent Amount ($)" 
-                name="rentAmount" 
-                type="number"
-                placeholder="e.g. 500"
-                value={formData.rentAmount}
-                onChange={handleChange}
-              />
-              <FormControl>
-                <InputLabel>Payment Frequency</InputLabel>
-                <Select
-                  name="paymentFrequency"
-                  value={formData.paymentFrequency}
-                  label="Payment Frequency"
-                  onChange={handleChange}
-                >
-                  <MenuItem value="Weekly">Weekly</MenuItem>
-                  <MenuItem value="Fortnightly">Fortnightly</MenuItem>
-                  <MenuItem value="Monthly">Monthly</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-
-          </Box>
-        );
       case 3:
-        return (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
-            <TextField 
-              label="Primary Tenant Full Name" 
-              name="tenantName" 
-              placeholder="e.g. Michael Smith"
-              value={formData.tenantName}
-              onChange={handleChange}
-            />
-            <TextField 
-              label="Tenant Email Address" 
-              name="tenantEmail" 
-              type="email"
-              placeholder="michael.smith@example.com"
-              value={formData.tenantEmail}
-              onChange={handleChange}
-            />
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-              <TextField 
-                label="Lease Start Date" 
-                name="leaseStart" 
-                type="date"
-                value={formData.leaseStart}
-                onChange={handleChange}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <FormControl>
-                <InputLabel>Lease Duration</InputLabel>
-                <Select
-                  name="leaseDuration"
-                  value={formData.leaseDuration}
-                  label="Lease Duration"
-                  onChange={handleChange}
-                >
-                  <MenuItem value="6">6 Months</MenuItem>
-                  <MenuItem value="12">12 Months</MenuItem>
-                  <MenuItem value="24">24 Months</MenuItem>
-                  <MenuItem value="0">Periodic / Month-to-Month</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          </Box>
-        );
-      case 4:
         return (
           <Box sx={{ mt: 3, p: 4, bgcolor: '#f2f4f3', borderRadius: 3, border: '1px solid #ededf1', boxShadow: '0 8px 30px rgba(59, 34, 181, 0.02)' }}>
              <Typography variant="h6" gutterBottom color="primary.main" sx={{ mb: 3, fontWeight: '800', fontFamily: 'Space Grotesk' }}>
-               Verify Implementation Overview
+               Verify Property Overview
              </Typography>
              
              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -394,23 +321,21 @@ export function PropertyOnboarding() {
                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.address}, {formData.suburb} {formData.state} {formData.postcode}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Image</Typography>
-                  <Box sx={{ width: 60, height: 40, borderRadius: 1, overflow: 'hidden', border: '1px solid #ededf1' }}>
-                     <img src={formData.image} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </Box>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Classification</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Type</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.propertyType}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Automated Rent Schedule</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>${formatCurrency(formData.rentAmount)} / {formData.paymentFrequency}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Features</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.bedrooms} Bed, {formData.bathrooms} Bath, {formData.carSpaces} Car</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tenant Identity</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.tenantName} ({formData.tenantEmail})</Typography>
-                </Box>
+                {formData.image && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Image</Typography>
+                    <Box sx={{ width: 60, height: 40, borderRadius: 1, overflow: 'hidden', border: '1px solid #ededf1' }}>
+                      <img src={formData.image} alt="Thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </Box>
+                  </Box>
+                )}
              </Box>
           </Box>
         );
@@ -443,7 +368,7 @@ export function PropertyOnboarding() {
               Add a New Property
             </Typography>
             <Typography variant="subtitle1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-              Initialize a property in your automated portfolio and connect your tenant.
+              Initialize a physical property asset in your portfolio.
             </Typography>
           </Box>
 
@@ -486,7 +411,7 @@ export function PropertyOnboarding() {
               disabled={isSubmitting}
               sx={{ py: 1.5, px: { xs: 0, sm: 6 }, width: { xs: '100%', sm: 'auto' }, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem', fontWeight: 'bold' }}
             >
-              {isSubmitting ? 'Saving...' : activeStep === steps.length - 1 ? 'Finalize & Save Property' : 'Proceed to Next'}
+              {isSubmitting ? 'Saving...' : activeStep === steps.length - 1 ? 'Save Property' : 'Proceed to Next'}
             </Button>
           </Box>
         </Paper>

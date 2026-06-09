@@ -14,8 +14,12 @@ import { InvoiceManagement } from './components/InvoiceManagement';
 import { Tenants } from './components/Tenants';
 import { Accounting } from './components/Accounting';
 import { Login as SupabaseLogin } from './components/Login';
+import { TenantPortal } from './components/TenantPortal';
+import { AgentPortal } from './components/AgentPortal';
+import { TenantPropertyDetails } from './components/TenantPropertyDetails';
 import { Signup } from './components/Signup';
 import { CompleteProfile } from './components/CompleteProfile';
+import { TenantLeaseDashboard } from './components/TenantLeaseDashboard';
 import { useAuth } from './contexts/AuthContext';
 
 function Navigation() {
@@ -1346,11 +1350,19 @@ function Login() {
 
 
 
+function DashboardRouter() {
+  const { globalRole, loading } = useAuth();
+  
+  if (loading) return null; // Let AuthContext or DashboardLayout handle loading state
+  
+  if (globalRole === 'Tenant') return <TenantPortal />;
+  if (globalRole === 'Agent' || globalRole === 'Strata') return <AgentPortal />;
+  return <Dashboard />; // Default to Owner
+}
+
 function AppRoutes() {
   const location = useLocation();
 
-
-  
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
@@ -1358,10 +1370,12 @@ function AppRoutes() {
         <Route path="/login" element={<SupabaseLogin />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<DashboardRouter />} />
+        <Route path="/dashboard/my-lease" element={<TenantLeaseDashboard />} />
         <Route path="/dashboard/properties" element={<Properties />} />
         <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
         <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
+        <Route path="/dashboard/marketplace/:id" element={<TenantPropertyDetails />} />
         <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
         <Route path="/dashboard/settings" element={<AccountSettings />} />
         <Route path="/dashboard/tenants" element={<Tenants />} />
