@@ -4,10 +4,12 @@ import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { SkeletonPropertyCard } from './Skeletons';
 
 export function Properties() {
   const navigate = useNavigate();
+  const { globalRole } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,11 +25,22 @@ export function Properties() {
     setDataLoading(true);
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: false });
+      
+      const { data: teamMemberships } = await supabase
+        .from('property_team')
+        .select('property_id')
+        .eq('user_id', userId);
+        
+      const managedPropertyIds = teamMemberships?.map(m => m.property_id) || [];
+      
+      let query = supabase.from('properties').select('*');
+      if (managedPropertyIds.length > 0) {
+        query = query.or(`owner_id.eq.${userId},id.in.(${managedPropertyIds.join(',')})`);
+      } else {
+        query = query.eq('owner_id', userId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
         
       if (error) throw error;
       if (data) {
@@ -80,9 +93,11 @@ export function Properties() {
               <p className="text-sm text-on-surface-variant font-medium hidden sm:block">Manage your portfolio and track performance.</p>
             </div>
             {/* Mobile Add New Button */}
-            <Link to="/dashboard/onboarding" className="md:hidden bg-primary text-on-primary px-4 py-2 rounded-full font-bold text-sm flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0">
-              <Plus className="w-4 h-4" /> Add New
-            </Link>
+            {globalRole === 'Owner' && (
+              <Link to="/dashboard/onboarding" className="md:hidden bg-primary text-on-primary px-4 py-2 rounded-full font-bold text-sm flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0">
+                <Plus className="w-4 h-4" /> Add New
+              </Link>
+            )}
           </div>
           <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
             
@@ -164,9 +179,11 @@ export function Properties() {
             </div>
             
             {/* Desktop Add New Button */}
-            <Link to="/dashboard/onboarding" className="hidden md:flex bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm items-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.2)] hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0">
-              <Plus className="w-4 h-4" /> Add New
-            </Link>
+            {globalRole === 'Owner' && (
+              <Link to="/dashboard/onboarding" className="hidden md:flex bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm items-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.2)] hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0">
+                <Plus className="w-4 h-4" /> Add New
+              </Link>
+            )}
           </div>
         </header>
 
@@ -186,7 +203,7 @@ export function Properties() {
               <p className="text-on-surface-variant max-w-md mx-auto mb-6 text-sm">
                 {searchQuery ? "We couldn't find any properties matching your search." : "You haven't added any properties to your portfolio yet."}
               </p>
-              {!searchQuery && (
+              {!searchQuery && globalRole === 'Owner' && (
                 <Link to="/dashboard/onboarding" className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full font-bold text-sm shadow-md hover:bg-primary/95 transition-all">
                   <Plus className="w-4 h-4" /> Add Your First Property
                 </Link>

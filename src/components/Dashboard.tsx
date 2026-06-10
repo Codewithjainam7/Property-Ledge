@@ -17,7 +17,7 @@ const quickActions = [
 ];
 
 export function Dashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, globalRole, loading: authLoading } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -40,9 +40,34 @@ export function Dashboard() {
     setDataLoading(true);
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
+      
+      // 1. Fetch team memberships to see if they manage properties
+      const { data: teamMemberships } = await supabase
+        .from('property_team')
+        .select('property_id')
+        .eq('user_id', userId);
+        
+      const managedPropertyIds = teamMemberships?.map(m => m.property_id) || [];
+      
+      // 2. Fetch properties (owned OR managed)
+      let propsQuery = supabase.from('properties').select('*');
+      if (managedPropertyIds.length > 0) {
+        propsQuery = propsQuery.or(`owner_id.eq.${userId},id.in.(${managedPropertyIds.join(',')})`);
+      } else {
+        propsQuery = propsQuery.eq('owner_id', userId);
+      }
+      
+      // 3. Fetch invoices (we fetch all invoices where user_id is the invoice owner, OR where invoice belongs to managed property)
+      let invsQuery = supabase.from('invoices').select('*');
+      if (managedPropertyIds.length > 0) {
+        invsQuery = invsQuery.or(`user_id.eq.${userId},property_id.in.(${managedPropertyIds.join(',')})`);
+      } else {
+        invsQuery = invsQuery.eq('user_id', userId);
+      }
+
       const [propsRes, invsRes] = await Promise.all([
-        supabase.from('properties').select('*').eq('owner_id', userId).order('created_at', { ascending: false }),
-        supabase.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+        propsQuery.order('created_at', { ascending: false }),
+        invsQuery.order('created_at', { ascending: false })
       ]);
         
       if (propsRes.error) throw propsRes.error;
@@ -116,9 +141,11 @@ export function Dashboard() {
                <button className="flex items-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-full text-sm font-bold text-on-surface hover:bg-surface-container-low shadow-sm">
                  <Calendar className="w-4 h-4 text-on-surface-variant" /> This Month <ChevronDown className="w-4 h-4 text-on-surface-variant" />
                </button>
-               <Link to="/dashboard/onboarding" className="bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm hover:shadow-md hover:bg-primary/95 transition-all">
-                 <Plus className="w-4 h-4" /> Add Property
-               </Link>
+               {globalRole === 'Owner' && (
+                 <Link to="/dashboard/onboarding" className="bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm hover:shadow-md hover:bg-primary/95 transition-all">
+                   <Plus className="w-4 h-4" /> Add Property
+                 </Link>
+               )}
             </div>
           </header>
 
@@ -340,7 +367,7 @@ export function Dashboard() {
                        )) : (
                          <tr>
                            <td colSpan={7} className="px-6 py-8 text-center text-sm text-on-surface-variant font-medium">
-                             No properties found. <Link to="/dashboard/onboarding" className="text-primary hover:underline font-bold">Add your first property.</Link>
+                             No properties found. {globalRole === 'Owner' && <Link to="/dashboard/onboarding" className="text-primary hover:underline font-bold">Add your first property.</Link>}
                            </td>
                          </tr>
                        )}

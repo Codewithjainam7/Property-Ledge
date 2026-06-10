@@ -93,10 +93,10 @@ export function Team() {
         try {
           await emailjs.send(
             'service_pvyeiv4',
-            'template_4fb00il',
+            'template_fa2cvee',
             {
               email: inviteEmail,
-              tenant_name: inviteRole, // Template uses tenant_name, we use role here
+              role: inviteRole, 
               property_address: `${selectedProp.address}, ${selectedProp.suburb}`,
               reply_to: landlordEmail,
               property_id: selectedProp.id

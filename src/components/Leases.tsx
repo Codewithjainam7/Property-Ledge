@@ -61,16 +61,23 @@ export function Leases() {
         
       if (propsData) setProperties(propsData);
 
-      // Load active/draft leases that belong to the user's properties
-      // Using an inner join to ensure we only get leases for their properties
-      const { data: leaseData, error: leaseError } = await supabase
-        .from('leases')
-        .select(`
-          *,
-          properties!inner (address, suburb, tenant_name, owner_id)
-        `)
-        .eq('properties.owner_id', userId)
-        .order('created_at', { ascending: false });
+      const uId = (await supabase.auth.getUser()).data.user?.id;
+      
+      const { data: teamMemberships } = await supabase
+        .from('property_team')
+        .select('property_id')
+        .eq('user_id', uId);
+        
+      const managedPropertyIds = teamMemberships?.map(m => m.property_id) || [];
+      
+      let query = supabase.from('leases').select('*, properties!inner(address, suburb, tenant_name, owner_id)');
+      if (managedPropertyIds.length > 0) {
+        query = query.or(`properties.owner_id.eq.${userId},property_id.in.(${managedPropertyIds.join(',')})`);
+      } else {
+        query = query.eq('properties.owner_id', userId);
+      }
+      
+      const { data: leaseData, error: leaseError } = await query.order('created_at', { ascending: false });
 
       if (leaseError) throw leaseError;
       if (leaseData) setLeases(leaseData as unknown as Lease[]);

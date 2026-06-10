@@ -21,10 +21,13 @@ export function PropertyDetails() {
   const [isHovering, setIsHovering] = useState(false);
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [invitingEnquiryId, setInvitingEnquiryId] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<any>(null);
 
   useEffect(() => {
     const loadProperty = async () => {
       if (!id) return;
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      
       const { data, error } = await supabase
         .from('properties')
         .select('*')
@@ -34,6 +37,30 @@ export function PropertyDetails() {
       if (error || !data) {
         navigate('/dashboard/properties');
         return;
+      }
+      
+      if (data.owner_id === userId) {
+        setPermissions({
+          can_view_property: true,
+          can_view_lease: true,
+          can_create_lease: true,
+          can_edit_lease: true,
+          can_manage_tenants: true,
+        });
+      } else {
+        const { data: teamData } = await supabase
+          .from('property_team')
+          .select('*')
+          .eq('property_id', id)
+          .eq('user_id', userId)
+          .single();
+          
+        if (teamData) {
+          setPermissions(teamData);
+        } else {
+          navigate('/dashboard/properties');
+          return;
+        }
       }
 
       // Map snake_case to camelCase for UI
@@ -312,12 +339,14 @@ export function PropertyDetails() {
               onClick={(e) => e.stopPropagation()}
               onMouseLeave={() => setIsMenuOpen(false)}
             >
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg text-on-surface hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:-translate-y-2 md:group-hover:translate-y-0 duration-200"
-              >
-                <Wrench className="w-4 h-4" /> Edit Cover Image
-              </button>
+              {permissions?.can_edit_lease && (
+                <button 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg text-on-surface hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:-translate-y-2 md:group-hover:translate-y-0 duration-200"
+                >
+                  <Wrench className="w-4 h-4" /> Edit Cover Image
+                </button>
+              )}
 
               {/* Action Menu Dropdown */}
               <AnimatePresence>
@@ -521,25 +550,33 @@ export function PropertyDetails() {
                           <div className="flex flex-col justify-end gap-3 md:min-w-[200px] border-t md:border-t-0 md:border-l border-outline-variant/20 pt-5 md:pt-0 md:pl-8">
                             {enq.status === 'Pending' && (
                               <>
-                                <button 
-                                  onClick={() => handleInviteTenant(enq.id)}
-                                  disabled={invitingEnquiryId === enq.id}
-                                  className="w-full bg-primary text-on-primary hover:bg-primary/90 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                                >
-                                  {invitingEnquiryId === enq.id ? (
-                                    <>
-                                      <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin"></div>
-                                      Sending Email...
-                                    </>
-                                  ) : (
-                                    <>
-                                      Invite by Email <Send className="w-4 h-4" />
-                                    </>
-                                  )}
-                                </button>
-                                <button className="w-full bg-surface-container text-on-surface hover:bg-error hover:text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-colors">
-                                  Reject
-                                </button>
+                                {permissions?.can_manage_tenants ? (
+                                  <>
+                                    <button 
+                                      onClick={() => handleInviteTenant(enq.id)}
+                                      disabled={invitingEnquiryId === enq.id}
+                                      className="w-full bg-primary text-on-primary hover:bg-primary/90 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                                    >
+                                      {invitingEnquiryId === enq.id ? (
+                                        <>
+                                          <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin"></div>
+                                          Sending Email...
+                                        </>
+                                      ) : (
+                                        <>
+                                          Invite by Email <Send className="w-4 h-4" />
+                                        </>
+                                      )}
+                                    </button>
+                                    <button className="w-full bg-surface-container text-on-surface hover:bg-error hover:text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-colors">
+                                      Reject
+                                    </button>
+                                  </>
+                                ) : (
+                                  <div className="bg-surface-container/50 text-on-surface-variant px-4 py-3 rounded-xl text-center text-xs font-bold uppercase tracking-wide">
+                                    No Permission
+                                  </div>
+                                )}
                               </>
                             )}
                             {(enq.status === 'Invited' || enq.status === 'Accepted') && (

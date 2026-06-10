@@ -15,7 +15,6 @@ import { Tenants } from './components/Tenants';
 import { Accounting } from './components/Accounting';
 import { Login as SupabaseLogin } from './components/Login';
 import { TenantPortal } from './components/TenantPortal';
-import { AgentPortal } from './components/AgentPortal';
 import { TenantPropertyDetails } from './components/TenantPropertyDetails';
 import { Signup } from './components/Signup';
 import { CompleteProfile } from './components/CompleteProfile';
@@ -1376,8 +1375,7 @@ function DashboardRouter() {
   if (loading) return null; // Let AuthContext or DashboardLayout handle loading state
   
   if (globalRole === 'Tenant') return <TenantPortal />;
-  if (globalRole === 'Agent' || globalRole === 'Strata') return <AgentPortal />;
-  return <Dashboard />; // Default to Owner
+  return <Dashboard />; // Owner, Agent, Strata, Manager all use the Dashboard
 }
 
 import { Team } from './components/Team';
