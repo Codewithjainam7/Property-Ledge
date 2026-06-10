@@ -478,7 +478,8 @@ function Hero() {
             <img 
               src={dashboardPreview} 
               alt="Property Ledge Dashboard" 
-              className="w-full h-auto object-cover transform translate-y-1 sm:translate-y-2 max-h-[80vh] object-top"
+              className="w-full h-auto object-cover transform translate-y-1 sm:translate-y-2 max-h-[80vh] object-top transition-all"
+              style={{ filter: 'hue-rotate(-120deg) saturate(0.8) contrast(1.1)' }}
             />
           </div>
         </div>
@@ -494,10 +495,29 @@ function LogoStrip() {
         <p className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-10">Works alongside Australia's leading platforms</p>
         <div className="ticker-wrap filter opacity-60">
           <div className="ticker flex items-center gap-20 px-10">
-            {['REA Group', 'Domain', 'TICA', 'RTA QLD', 'NSW Fair Trading', 'ATO', 'REA Group', 'Domain', 'TICA', 'RTA QLD', 'NSW Fair Trading', 'ATO'].map((logo, i) => (
-              <span key={i} className="text-2xl font-extrabold tracking-tight text-on-surface inline-block uppercase">
-                {logo}
-              </span>
+            {[
+              { name: 'REA Group', icon: <Building className="w-8 h-8" /> },
+              { name: 'Domain', icon: <Home className="w-8 h-8" /> },
+              { name: 'TICA', icon: <ShieldCheck className="w-8 h-8" /> },
+              { name: 'RTA QLD', icon: <FileText className="w-8 h-8" /> },
+              { name: 'NSW Fair Trading', icon: <CheckCircle2 className="w-8 h-8" /> },
+              { name: 'ATO', icon: <Building className="w-8 h-8" /> },
+              { name: 'REA Group', icon: <Building className="w-8 h-8" /> },
+              { name: 'Domain', icon: <Home className="w-8 h-8" /> },
+              { name: 'TICA', icon: <ShieldCheck className="w-8 h-8" /> },
+              { name: 'RTA QLD', icon: <FileText className="w-8 h-8" /> },
+              { name: 'NSW Fair Trading', icon: <CheckCircle2 className="w-8 h-8" /> },
+              { name: 'ATO', icon: <Building className="w-8 h-8" /> }
+            ].map((logo, i) => (
+              <div 
+                key={i} 
+                className="flex items-center gap-2.5 text-on-surface opacity-50 hover:opacity-100 transition-all duration-300 grayscale hover:grayscale-0 cursor-default"
+              >
+                {logo.icon}
+                <span className="text-2xl font-black tracking-tighter uppercase whitespace-nowrap">
+                  {logo.name}
+                </span>
+              </div>
             ))}
           </div>
         </div>
@@ -813,7 +833,7 @@ function Pricing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.6, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={plan.isPopular ? { y: -8, scale: 1.05 } : { y: -8 }}
+              whileHover={plan.isPopular ? { y: -8, scale: 1.05, transition: { duration: 0.2 } } : { y: -8, transition: { duration: 0.2 } }}
               className={`relative flex flex-col rounded-[32px] transition-all duration-300
                 ${plan.isPopular 
                   ? 'bg-primary text-on-primary border border-outline-variant/50 shadow-md lg:scale-105 z-20 py-12 px-8 md:px-10' 

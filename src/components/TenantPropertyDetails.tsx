@@ -19,6 +19,8 @@ export function TenantPropertyDetails() {
   const [enquiryStatus, setEnquiryStatus] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLeaseModalOpen, setIsLeaseModalOpen] = useState(false);
+  const [isAcceptInviteModalOpen, setIsAcceptInviteModalOpen] = useState(false);
+  const [hasAcceptedInvitation, setHasAcceptedInvitation] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [showSuccessTransition, setShowSuccessTransition] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -198,17 +200,20 @@ export function TenantPropertyDetails() {
 
   const bentoTenantItems = [
     { 
-      title: enquiryStatus === 'Pending' ? 'Application Sent' : enquiryStatus === 'Invited' ? 'You\'re Invited!' : enquiryStatus === 'Accepted' ? 'Lease Active' : 'Submit Application', 
-      desc: enquiryStatus === 'Pending' ? 'The landlord is reviewing your application.' : enquiryStatus === 'Invited' ? 'The landlord has officially invited you to rent this property. Click here to Accept.' : enquiryStatus === 'Accepted' ? 'You are currently renting this property.' : 'Apply directly to the landlord to rent this property.', 
+      title: enquiryStatus === 'Pending' ? 'Application Sent' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'Invitation Accepted' : 'You\'re Invited!') : enquiryStatus === 'Accepted' ? 'Lease Active' : 'Submit Application', 
+      desc: enquiryStatus === 'Pending' ? 'The landlord is reviewing your application.' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'You have accepted the invitation. Please review and sign the lease agreement.' : 'The landlord has officially invited you to rent this property. Click here to Accept.') : enquiryStatus === 'Accepted' ? 'You are currently renting this property.' : 'Apply directly to the landlord to rent this property.', 
       icon: enquiryStatus ? CheckCircle2 : Send, 
-      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' ? null : enquiryStatus === 'Invited' ? 'Review & Sign Lease' : 'Apply Now', 
+      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' ? null : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'Review & Sign Lease' : 'Accept Invitation') : 'Apply Now', 
       colSpan: 'md:col-span-2 lg:col-span-2', 
       bg: enquiryStatus === 'Invited' ? 'bg-emerald-500 text-white' : 'bg-primary text-on-primary', 
       accent: enquiryStatus === 'Invited' ? 'text-emerald-100' : 'text-on-primary', 
       iconBg: 'bg-white/10',
       onClick: () => {
         if (!enquiryStatus) setIsModalOpen(true);
-        if (enquiryStatus === 'Invited') setIsLeaseModalOpen(true);
+        if (enquiryStatus === 'Invited') {
+          if (hasAcceptedInvitation) setIsLeaseModalOpen(true);
+          else setIsAcceptInviteModalOpen(true);
+        }
       }
     },
     { 
@@ -762,6 +767,55 @@ export function TenantPropertyDetails() {
                 </button>
               )}
             </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+      {/* Accept Invitation Modal via Portal */}
+      {createPortal(
+        <AnimatePresence>
+          {isAcceptInviteModalOpen && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 sm:px-6">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAcceptInviteModalOpen(false)}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-md bg-surface rounded-[32px] shadow-2xl overflow-hidden z-10 flex flex-col p-6 md:p-8 text-center"
+              >
+                <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                </div>
+                <h2 className="text-2xl font-black font-display tracking-tight text-on-surface mb-3">Accept Invitation?</h2>
+                <p className="text-on-surface-variant font-medium text-sm mb-8 leading-relaxed">
+                  You have been officially invited to lease <strong>{property?.address}</strong>. By accepting, you will confirm your interest and proceed to review the official lease agreement.
+                </p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setIsAcceptInviteModalOpen(false)} 
+                    className="flex-1 px-6 py-3.5 rounded-full font-black text-xs uppercase tracking-widest text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer"
+                  >
+                    Not Yet
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setHasAcceptedInvitation(true);
+                      setIsAcceptInviteModalOpen(false);
+                      setIsLeaseModalOpen(true);
+                    }} 
+                    className="flex-[2] px-6 py-3.5 rounded-full font-black text-xs uppercase tracking-widest bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
+                  >
+                    Accept Invitation <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>,
         document.body

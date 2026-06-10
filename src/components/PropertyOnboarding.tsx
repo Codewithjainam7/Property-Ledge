@@ -222,7 +222,7 @@ export function PropertyOnboarding() {
                 type="number"
                 value={formData.bedrooms}
                 onChange={handleChange}
-                inputProps={{ min: 0 }}
+
                 sx={{ flex: 1 }}
               />
               <TextField 
@@ -231,7 +231,7 @@ export function PropertyOnboarding() {
                 type="number"
                 value={formData.bathrooms}
                 onChange={handleChange}
-                inputProps={{ min: 0, step: 0.5 }}
+
                 sx={{ flex: 1 }}
               />
               <TextField 
@@ -240,7 +240,7 @@ export function PropertyOnboarding() {
                 type="number"
                 value={formData.carSpaces}
                 onChange={handleChange}
-                inputProps={{ min: 0 }}
+
                 sx={{ flex: 1 }}
               />
             </Box>
@@ -253,7 +253,7 @@ export function PropertyOnboarding() {
                 placeholder="e.g. 500"
                 value={formData.rentAmount}
                 onChange={handleChange}
-                inputProps={{ min: 0 }}
+
                 sx={{ flex: 2 }}
               />
               <FormControl sx={{ flex: 1 }}>
