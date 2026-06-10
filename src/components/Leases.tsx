@@ -13,6 +13,7 @@ type Lease = {
   start_date: string;
   end_date: string;
   rent_amount: number;
+  bond_amount: number;
   payment_frequency: string;
   status: string;
   properties?: {
@@ -38,6 +39,7 @@ export function Leases() {
     start_date: '',
     end_date: '',
     rent_amount: '',
+    bond_amount: '',
     payment_frequency: 'Weekly',
     status: 'Active'
   });
@@ -121,6 +123,7 @@ export function Leases() {
         start_date: newLease.start_date,
         end_date: newLease.end_date || null,
         rent_amount: parseFloat(newLease.rent_amount),
+        bond_amount: newLease.bond_amount ? parseFloat(newLease.bond_amount) : 0,
         payment_frequency: newLease.payment_frequency,
         status: newLease.status
       });
@@ -134,6 +137,7 @@ export function Leases() {
         start_date: '',
         end_date: '',
         rent_amount: '',
+        bond_amount: '',
         payment_frequency: 'Weekly',
         status: 'Active'
       });
@@ -160,6 +164,7 @@ export function Leases() {
         start_date: editingLease.start_date,
         end_date: editingLease.end_date || null,
         rent_amount: typeof editingLease.rent_amount === 'string' ? parseFloat(editingLease.rent_amount) : editingLease.rent_amount,
+        bond_amount: typeof editingLease.bond_amount === 'string' ? parseFloat(editingLease.bond_amount) : editingLease.bond_amount,
         payment_frequency: editingLease.payment_frequency,
         status: editingLease.status
       }).eq('id', editingLease.id);
@@ -424,6 +429,24 @@ export function Leases() {
                         </div>
                       </div>
                       <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bond Amount</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input 
+                            type="number" 
+                            min="0"
+                            step="0.01"
+                            value={newLease.bond_amount}
+                            onChange={(e) => setNewLease({...newLease, bond_amount: e.target.value})}
+                            className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
                         <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Frequency</label>
                         <div className="relative">
                           <button
@@ -596,6 +619,24 @@ export function Leases() {
                           />
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bond Amount</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input 
+                            type="number" 
+                            min="0"
+                            step="0.01"
+                            value={editingLease.bond_amount || ''}
+                            onChange={(e) => setEditingLease({...editingLease, bond_amount: e.target.value as any})}
+                            className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Frequency</label>
                         <select
