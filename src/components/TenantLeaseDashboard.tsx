@@ -20,16 +20,12 @@ export function TenantLeaseDashboard() {
 
   const fetchLeasedProperty = async () => {
     try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('tenant_id', session!.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { data, error } = await supabase.rpc('get_tenant_lease_data');
 
       if (error) throw error;
-      if (data && data.length > 0) {
-        setProperty(data[0]);
+      
+      if (data && data.property) {
+        setProperty(data.property);
       }
     } catch (error) {
       console.error('Error fetching leased property:', error);

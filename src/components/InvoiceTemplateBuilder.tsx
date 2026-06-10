@@ -21,11 +21,12 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
 
   React.useEffect(() => {
     const loadProperties = async () => {
-      const { data } = await supabase.from('properties').select('id, address');
+      if (!session?.user?.id) return;
+      const { data } = await supabase.from('properties').select('id, address').eq('owner_id', session.user.id);
       if (data) setProperties(data);
     };
     loadProperties();
-  }, []);
+  }, [session]);
 
   const handleAddItem = () => {
     setItems([...items, { description: '', amount: '' }]);

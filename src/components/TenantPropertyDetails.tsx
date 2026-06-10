@@ -7,6 +7,8 @@ import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+import { SignaturePad } from './SignaturePad';
+
 export function TenantPropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -16,6 +18,9 @@ export function TenantPropertyDetails() {
   const [loading, setLoading] = useState(true);
   const [enquiryStatus, setEnquiryStatus] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLeaseModalOpen, setIsLeaseModalOpen] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [showSuccessTransition, setShowSuccessTransition] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFullScreenMode, setIsFullScreenMode] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -76,13 +81,13 @@ export function TenantPropertyDetails() {
   // Auto-rotation effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (images.length > 1 && !isFullScreenMode && !isHovering && !isModalOpen) {
+    if (images.length > 1 && !isFullScreenMode && !isHovering && !isModalOpen && !isLeaseModalOpen) {
       interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % images.length);
       }, 6000);
     }
     return () => clearInterval(interval);
-  }, [images.length, isFullScreenMode, isHovering, isModalOpen]);
+  }, [images.length, isFullScreenMode, isHovering, isModalOpen, isLeaseModalOpen]);
 
   const checkExistingEnquiry = async () => {
     if (!session?.user?.id) return;
@@ -141,42 +146,30 @@ export function TenantPropertyDetails() {
     }
   };
 
-  const handleAcceptLease = async () => {
-    if (!session?.user?.id) return;
+  const handleSignLease = async () => {
+    if (!session?.user?.id || !signatureData) return;
     setIsSubmitting(true);
     try {
-      // 1. Update Enquiry Status to Accepted
-      const { error: enqError } = await supabase
-        .from('property_enquiries')
-        .update({ status: 'Accepted' })
-        .eq('property_id', id)
-        .eq('tenant_id', session.user.id);
+      // Use the secure RPC function to bypass RLS and perform all lease operations atomically
+      const { error: rpcError } = await supabase.rpc('accept_lease', {
+        p_property_id: id,
+        p_signature_data: signatureData
+      });
         
-      if (enqError) throw enqError;
-
-      // 2. Update Property with Tenant Info and hide it from marketplace
-      const tenantName = session.user.user_metadata?.first_name 
-          ? `${session.user.user_metadata.first_name} ${session.user.user_metadata.last_name || ''}`
-          : session.user.email;
-
-      const { error: propError } = await supabase
-        .from('properties')
-        .update({ 
-            tenant_id: session.user.id,
-            tenant_name: tenantName,
-            tenant_email: session.user.email,
-            status: 'Inactive' 
-        })
-        .eq('id', id);
-
-      if (propError) throw propError;
+      if (rpcError) throw rpcError;
 
       setEnquiryStatus('Accepted');
-      alert('🎉 Congratulations! You have successfully secured the lease for this property!');
-      navigate('/dashboard/my-lease');
+      setShowSuccessTransition(true);
+      
+      // Delay navigation to show success animation
+      setTimeout(() => {
+        setIsLeaseModalOpen(false);
+        navigate('/dashboard/my-lease');
+      }, 3000);
+      
     } catch (err: any) {
       console.error(err);
-      alert('Failed to accept the lease. Please try again or contact support.');
+      alert(`Failed to sign the lease: ${err.message || JSON.stringify(err)}. Please try again or contact support.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -208,14 +201,14 @@ export function TenantPropertyDetails() {
       title: enquiryStatus === 'Pending' ? 'Application Sent' : enquiryStatus === 'Invited' ? 'You\'re Invited!' : enquiryStatus === 'Accepted' ? 'Lease Active' : 'Submit Application', 
       desc: enquiryStatus === 'Pending' ? 'The landlord is reviewing your application.' : enquiryStatus === 'Invited' ? 'The landlord has officially invited you to rent this property. Click here to Accept.' : enquiryStatus === 'Accepted' ? 'You are currently renting this property.' : 'Apply directly to the landlord to rent this property.', 
       icon: enquiryStatus ? CheckCircle2 : Send, 
-      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' ? null : enquiryStatus === 'Invited' ? 'Accept Lease' : 'Apply Now', 
+      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' ? null : enquiryStatus === 'Invited' ? 'Review & Sign Lease' : 'Apply Now', 
       colSpan: 'md:col-span-2 lg:col-span-2', 
       bg: enquiryStatus === 'Invited' ? 'bg-emerald-500 text-white' : 'bg-primary text-on-primary', 
       accent: enquiryStatus === 'Invited' ? 'text-emerald-100' : 'text-on-primary', 
       iconBg: 'bg-white/10',
       onClick: () => {
         if (!enquiryStatus) setIsModalOpen(true);
-        if (enquiryStatus === 'Invited') handleAcceptLease();
+        if (enquiryStatus === 'Invited') setIsLeaseModalOpen(true);
       }
     },
     { 
@@ -587,6 +580,131 @@ export function TenantPropertyDetails() {
                     </button>
                   </div>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Lease Agreement & Signature Modal via Portal */}
+      {createPortal(
+        <AnimatePresence>
+          {isLeaseModalOpen && (
+            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 md:p-8">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                onClick={() => !isSubmitting && !showSuccessTransition && setIsLeaseModalOpen(false)}
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-3xl bg-surface rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              >
+                {showSuccessTransition ? (
+                  <div className="flex flex-col items-center justify-center p-16 text-center min-h-[400px]">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                      className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.3)]"
+                    >
+                      <CheckCircle2 className="w-12 h-12 text-white" />
+                    </motion.div>
+                    <motion.h3 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-3xl font-black text-on-surface tracking-tight mb-3"
+                    >
+                      Congratulations!
+                    </motion.h3>
+                    <motion.p 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-on-surface-variant font-medium text-lg max-w-md mx-auto mb-8"
+                    >
+                      You are now the official tenant of <span className="font-bold text-on-surface">{property?.address}</span>.
+                    </motion.p>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                      className="flex items-center gap-3 text-sm font-bold text-primary"
+                    >
+                      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                      Redirecting to My Lease dashboard...
+                    </motion.div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-primary px-8 py-6 flex items-center justify-between shrink-0">
+                      <div className="text-on-primary">
+                        <h3 className="text-2xl font-black tracking-tight mb-1">Residential Lease Agreement</h3>
+                        <p className="text-on-primary/80 text-sm font-medium">Please review and sign to secure your property.</p>
+                      </div>
+                      <button 
+                        onClick={() => !isSubmitting && setIsLeaseModalOpen(false)} 
+                        className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+                      <div className="prose prose-sm max-w-none text-on-surface-variant mb-8 bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/30 shadow-inner">
+                        <h4 className="text-lg font-black text-on-surface mb-4">Terms and Conditions</h4>
+                        <p>This Residential Tenancy Agreement is made on <strong>{new Date().toLocaleDateString()}</strong>.</p>
+                        <p><strong>Between:</strong></p>
+                        <p>Landlord: {property.user_profiles?.first_name} {property.user_profiles?.last_name} ({property.user_profiles?.email})</p>
+                        <p><strong>And:</strong></p>
+                        <p>Tenant: {session?.user?.user_metadata?.first_name} {session?.user?.user_metadata?.last_name} ({session?.user?.email})</p>
+                        <hr className="my-4 border-outline-variant/40" />
+                        <p><strong>Property Address:</strong><br/>{property.address}, {property.suburb}, {property.state} {property.postcode}</p>
+                        <p><strong>Rent Amount:</strong> ${property.rent_amount} per {property.payment_frequency}</p>
+                        <p><strong>Lease Term:</strong> 12 Months, commencing on {new Date().toLocaleDateString()}</p>
+                        <p><strong>Bond Amount:</strong> ${property.rent_amount * 4}</p>
+                        <hr className="my-4 border-outline-variant/40" />
+                        <p className="text-xs text-on-surface-variant/70 leading-relaxed">
+                          By signing this agreement, the Tenant agrees to be bound by the standard terms and conditions of a residential tenancy, including timely payment of rent, maintenance of the property in a clean and undamaged state, and adherence to all local strata or council regulations.
+                        </p>
+                      </div>
+
+                      <SignaturePad onSign={(data) => setSignatureData(data)} />
+                    </div>
+
+                    <div className="p-6 bg-surface-container-lowest border-t border-outline-variant/30 flex gap-4 shrink-0">
+                      <button 
+                        onClick={() => setIsLeaseModalOpen(false)} 
+                        disabled={isSubmitting}
+                        className="px-6 py-4 rounded-full font-black text-xs uppercase tracking-widest text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer w-32"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={handleSignLease} 
+                        disabled={isSubmitting || !signatureData}
+                        className="flex-1 px-6 py-4 rounded-full font-black text-xs uppercase tracking-widest bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Generating Lease...
+                          </>
+                        ) : (
+                          <>
+                            Sign & Accept Lease <CheckCircle2 className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
               </motion.div>
             </div>
           )}

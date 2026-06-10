@@ -22,9 +22,11 @@ export function Properties() {
   const fetchProperties = async () => {
     setDataLoading(true);
     try {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
       const { data, error } = await supabase
         .from('properties')
         .select('*')
+        .eq('owner_id', userId)
         .order('created_at', { ascending: false });
         
       if (error) throw error;

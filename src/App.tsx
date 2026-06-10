@@ -1360,6 +1360,9 @@ function DashboardRouter() {
   return <Dashboard />; // Default to Owner
 }
 
+import { Team } from './components/Team';
+import { Leases } from './components/Leases';
+
 function AppRoutes() {
   const location = useLocation();
 
@@ -1378,6 +1381,8 @@ function AppRoutes() {
         <Route path="/dashboard/marketplace/:id" element={<TenantPropertyDetails />} />
         <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
         <Route path="/dashboard/settings" element={<AccountSettings />} />
+        <Route path="/dashboard/team" element={<Team />} />
+        <Route path="/dashboard/leases" element={<Leases />} />
         <Route path="/dashboard/tenants" element={<Tenants />} />
         <Route path="/dashboard/accounting" element={<Accounting />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

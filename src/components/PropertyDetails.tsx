@@ -547,8 +547,12 @@ export function PropertyDetails() {
                                 <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2">
                                   <CheckCircle2 className="w-6 h-6" />
                                 </div>
-                                <span className="font-black text-emerald-700 tracking-tight">Invitation Sent</span>
-                                <span className="text-xs font-medium text-emerald-600/80">Waiting for tenant to accept</span>
+                                <span className="font-black text-emerald-700 tracking-tight">
+                                  {enq.status === 'Accepted' ? 'Lease Signed' : 'Invitation Sent'}
+                                </span>
+                                <span className="text-xs font-medium text-emerald-600/80">
+                                  {enq.status === 'Accepted' ? 'Tenant has accepted the lease' : 'Waiting for tenant to accept'}
+                                </span>
                               </div>
                             )}
                           </div>

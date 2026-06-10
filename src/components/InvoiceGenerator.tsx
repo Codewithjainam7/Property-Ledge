@@ -82,18 +82,15 @@ const getInitialState = (user: any): InvoiceState => {
 // REACT COMPONENT
 // ----------------------------------------------------------------------
 
-export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
+export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => void, properties?: any[] }) {
   const { user } = useAuth();
   const [state, setState] = useState<InvoiceState>(getInitialState(user));
   const [isSaving, setIsSaving] = useState(false);
-  const [properties, setProperties] = useState<any[]>([]);
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
   const [mobileScale, setMobileScale] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1);
   const previewRef = useRef<HTMLDivElement>(null);
   const mobilePreviewRef = useRef<HTMLDivElement>(null);
-
-  // Removed innerHTML cloning as mobilePreviewRef renders the JSX directly.
 
   const [contentHeight, setContentHeight] = useState(1123);
 
@@ -112,7 +109,6 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
     const observer = new ResizeObserver((entries) => {
       window.requestAnimationFrame(() => {
         for (let entry of entries) {
-          // Set height to actual content height instead of fixed A4
           setContentHeight(entry.target.scrollHeight);
         }
       });
@@ -121,20 +117,7 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
     return () => observer.disconnect();
   }, [mobileTab, state.templateStyle, state.items]);
 
-  useEffect(() => {
-    const fetchProperties = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('properties')
-        .select('id, address, tenant_name, rent_amount, payment_frequency');
-      if (data) {
-        setProperties(data);
-      }
-    };
-    fetchProperties();
-  }, [user]);
-
-  const handlePropertyChange = (propertyId: string) => {
+  const handlePropertyChange = async (propertyId: string) => {
     if (!propertyId || propertyId === 'none') {
       setState(prev => ({ ...prev, propertyId: null }));
       return;
@@ -156,6 +139,30 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
           }
         ]
       }));
+
+      // Foolproof fallback: If the database is missing the tenant name on the property record, 
+      // fetch it directly from the accepted rental application!
+      if (!prop.tenant_name || prop.tenant_name.trim() === 'Tenant' || prop.tenant_name.trim() === 'Unknown Tenant' || prop.tenant_name.trim() === 'Tenant Name') {
+        try {
+          const { data: enq } = await supabase
+            .from('property_enquiries')
+            .select('first_name, last_name, email')
+            .eq('property_id', prop.id)
+            .eq('status', 'Accepted')
+            .limit(1)
+            .single();
+            
+          if (enq) {
+            setState(prev => ({ 
+              ...prev, 
+              tenantName: `${enq.first_name} ${enq.last_name}`.trim(),
+              tenantEmail: enq.email
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to fetch fallback tenant name:", e);
+        }
+      }
     }
   };
 
@@ -354,9 +361,9 @@ export function InvoiceGenerator({ onClose }: { onClose: () => void }) {
 
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
               {/* @ts-ignore */}
-              <TextField variant="outlined" label="Issue Date" type="date" size="small" fullWidth value={state.issueDate} onChange={(e) => updateState('issueDate', e.target.value)} InputLabelProps={{ shrink: true }} />
+              <TextField variant="outlined" label="Issue Date" type="date" size="small" fullWidth value={state.issueDate} onChange={(e) => updateState('issueDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
               {/* @ts-ignore */}
-              <TextField variant="outlined" label="Due Date" type="date" size="small" fullWidth value={state.dueDate} onChange={(e) => updateState('dueDate', e.target.value)} InputLabelProps={{ shrink: true }} />
+              <TextField variant="outlined" label="Due Date" type="date" size="small" fullWidth value={state.dueDate} onChange={(e) => updateState('dueDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
             </Box>
             
             <TextField 

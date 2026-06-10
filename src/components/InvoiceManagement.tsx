@@ -26,14 +26,20 @@ export function InvoiceManagement() {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
 
   const loadData = async () => {
+    setDataLoading(true);
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) return;
+
     const [
       { data: inv, error: invError },
       { data: props, error: propsError },
-      { data: tmpl, error: tmplError }
+      { data: tmpl, error: tmplError },
+      { data: enqs }
     ] = await Promise.all([
-      supabase.from('invoices').select('*, properties(address, tenant_name)').order('created_at', { ascending: false }),
+      supabase.from('invoices').select('*, properties(address, tenant_name)').eq('user_id', userId).order('created_at', { ascending: false }),
       supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency'),
-      supabase.from('invoice_templates').select('*').order('created_at', { ascending: false }),
+      supabase.from('invoice_templates').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabase.from('property_enquiries').select('property_id, first_name, last_name, email').eq('status', 'Accepted')
     ]);
 
     if (tmplError) console.error("Error fetching templates:", tmplError);
@@ -51,7 +57,23 @@ export function InvoiceManagement() {
         propertyId: i.property_id,
       })));
     }
-    if (props) setProperties(props.map(p => ({ ...p, tenantName: p.tenant_name, rentAmount: p.rent_amount, paymentFrequency: p.payment_frequency })));
+    if (props) {
+      setProperties(props.map(p => {
+        let name = p.tenant_name;
+        // Fix dummy names instantly during the bulk load
+        if (!name || name.trim() === 'Tenant' || name.trim() === 'Unknown Tenant' || name.trim() === 'Tenant Name') {
+          const enq = enqs?.find(e => e.property_id === p.id);
+          if (enq) name = `${enq.first_name} ${enq.last_name}`.trim();
+        }
+        return { 
+          ...p, 
+          tenant_name: name, // Override original database value locally
+          tenantName: name, 
+          rentAmount: p.rent_amount, 
+          paymentFrequency: p.payment_frequency 
+        };
+      }));
+    }
     if (tmpl) setTemplates(tmpl);
     setDataLoading(false);
   };
@@ -394,7 +416,7 @@ export function InvoiceManagement() {
       </div>
 
       <AnimatePresence>
-        {showGenerator && <InvoiceGenerator onClose={() => { setShowGenerator(false); setSelectedInvoice(null); loadData(); }} />}
+        {showGenerator && <InvoiceGenerator properties={properties} onClose={() => { setShowGenerator(false); setSelectedInvoice(null); loadData(); }} />}
         {showTemplateBuilder && <InvoiceTemplateBuilder onClose={() => setShowTemplateBuilder(false)} />}
       </AnimatePresence>
 

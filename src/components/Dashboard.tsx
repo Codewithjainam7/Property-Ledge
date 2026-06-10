@@ -39,9 +39,10 @@ export function Dashboard() {
   const fetchDashboardData = async () => {
     setDataLoading(true);
     try {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
       const [propsRes, invsRes] = await Promise.all([
-        supabase.from('properties').select('*').order('created_at', { ascending: false }),
-        supabase.from('invoices').select('*').order('created_at', { ascending: false })
+        supabase.from('properties').select('*').eq('owner_id', userId).order('created_at', { ascending: false }),
+        supabase.from('invoices').select('*').eq('user_id', userId).order('created_at', { ascending: false })
       ]);
         
       if (propsRes.error) throw propsRes.error;
