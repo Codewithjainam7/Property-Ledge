@@ -23,6 +23,12 @@ export function PropertyDetails() {
   const [invitingEnquiryId, setInvitingEnquiryId] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
 
+  // Edit Property State
+  const [showEditPropertyModal, setShowEditPropertyModal] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<any>(null);
+  const [editError, setEditError] = useState('');
+  const [editing, setEditing] = useState(false);
+
   useEffect(() => {
     const loadProperty = async () => {
       if (!id) return;
@@ -261,6 +267,37 @@ export function PropertyDetails() {
       }).eq('property_id', id).eq('status', 'Active');
 
       alert("Active leases terminated successfully.");
+    }
+  };
+
+  const handleEditProperty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProperty) return;
+    setEditError('');
+    setEditing(true);
+
+    try {
+      const { error } = await supabase.from('properties').update({
+        address: editingProperty.address,
+        suburb: editingProperty.suburb,
+        postcode: editingProperty.postcode,
+        state: editingProperty.state,
+        property_type: editingProperty.propertyType,
+        bedrooms: parseInt(editingProperty.bedrooms) || 0,
+        bathrooms: parseFloat(editingProperty.bathrooms) || 0,
+        car_spaces: parseInt(editingProperty.car_spaces) || 0,
+        status: editingProperty.status
+      }).eq('id', id);
+
+      if (error) throw error;
+
+      setProperty(prev => ({ ...prev, ...editingProperty }));
+      setShowEditPropertyModal(false);
+    } catch (err: any) {
+      console.error("Edit property error:", err);
+      setEditError(err.message || "Failed to update property details.");
+    } finally {
+      setEditing(false);
     }
   };
 
@@ -735,6 +772,162 @@ export function PropertyDetails() {
 
         </div>
       </div>
+
+      {/* Edit Property Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {showEditPropertyModal && editingProperty && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowEditPropertyModal(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white rounded-[32px] w-full max-w-2xl shadow-2xl border border-outline-variant/50 overflow-hidden max-h-[90vh] flex flex-col">
+                <div className="px-6 py-5 border-b border-outline-variant/30 bg-surface-container-low flex justify-between items-center shrink-0">
+                  <h3 className="font-black text-lg text-on-surface flex items-center gap-2">
+                    <Building className="w-5 h-5 text-primary" /> Edit Property Details
+                  </h3>
+                  <button onClick={() => setShowEditPropertyModal(false)} className="text-on-surface-variant hover:text-on-surface"><X className="w-6 h-6" /></button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto">
+                  {editError && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-semibold flex gap-3 items-start">
+                      <AlertTriangle className="w-5 h-5 shrink-0" />
+                      <p>{editError}</p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleEditProperty} className="space-y-5">
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Street Address</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={editingProperty.address}
+                        onChange={(e) => setEditingProperty({...editingProperty, address: e.target.value})}
+                        className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Suburb</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingProperty.suburb}
+                          onChange={(e) => setEditingProperty({...editingProperty, suburb: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">State</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingProperty.state}
+                          onChange={(e) => setEditingProperty({...editingProperty, state: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Postcode</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingProperty.postcode}
+                          onChange={(e) => setEditingProperty({...editingProperty, postcode: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Property Type</label>
+                        <select
+                          value={editingProperty.propertyType}
+                          onChange={(e) => setEditingProperty({...editingProperty, propertyType: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none appearance-none"
+                        >
+                          <option value="House">House</option>
+                          <option value="Apartment">Apartment</option>
+                          <option value="Townhouse">Townhouse</option>
+                          <option value="Villa">Villa</option>
+                          <option value="Duplex">Duplex</option>
+                          <option value="Commercial">Commercial</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Status</label>
+                        <select
+                          value={editingProperty.status}
+                          onChange={(e) => setEditingProperty({...editingProperty, status: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none appearance-none"
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                          <option value="Maintenance">Maintenance</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bedrooms</label>
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={editingProperty.bedrooms}
+                          onChange={(e) => setEditingProperty({...editingProperty, bedrooms: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bathrooms</label>
+                        <input 
+                          type="number" 
+                          min="0"
+                          step="0.5"
+                          value={editingProperty.bathrooms}
+                          onChange={(e) => setEditingProperty({...editingProperty, bathrooms: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Car Spaces</label>
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={editingProperty.car_spaces}
+                          onChange={(e) => setEditingProperty({...editingProperty, car_spaces: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                      <button 
+                        type="button"
+                        onClick={() => setShowEditPropertyModal(false)}
+                        className="flex-1 bg-white border border-outline-variant/50 hover:bg-surface-container-low text-on-surface font-bold py-3.5 rounded-2xl transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={editing}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {editing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Save Changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Full-Screen Lightbox via Portal to break out of DashboardLayout z-index */}
       {createPortal(
