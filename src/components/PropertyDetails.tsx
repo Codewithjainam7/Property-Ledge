@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X, CheckCircle2, Send, Mail, Phone, Briefcase, DollarSign } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, User, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X, CheckCircle2, Send, Mail, Phone, Briefcase, DollarSign, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
@@ -46,6 +46,7 @@ export function PropertyDetails() {
           can_create_lease: true,
           can_edit_lease: true,
           can_manage_tenants: true,
+          is_owner: true,
         });
       } else {
         const { data: teamData } = await supabase
@@ -228,6 +229,38 @@ export function PropertyDetails() {
       alert('Failed to invite tenant.');
     } finally {
       setInvitingEnquiryId(null);
+    }
+  };
+
+  const handleRemoveTenant = async () => {
+    if (!permissions?.can_manage_tenants) return;
+    if (window.confirm("Are you sure you want to remove the current tenant? This will also terminate their active lease.")) {
+      // Clear tenant info from property
+      await supabase.from('properties').update({
+        tenant_name: null,
+        tenant_email: null
+      }).eq('id', id);
+
+      // Terminate any active leases for this property
+      await supabase.from('leases').update({
+        status: 'Terminated',
+        end_date: new Date().toISOString().split('T')[0]
+      }).eq('property_id', id).eq('status', 'Active');
+
+      setProperty(prev => ({ ...prev, tenantName: null, tenantEmail: null }));
+      alert("Tenant removed and active leases terminated.");
+    }
+  };
+
+  const handleTerminateLease = async () => {
+    if (!permissions?.can_edit_lease) return;
+    if (window.confirm("Are you sure you want to terminate the active lease?")) {
+      await supabase.from('leases').update({
+        status: 'Terminated',
+        end_date: new Date().toISOString().split('T')[0]
+      }).eq('property_id', id).eq('status', 'Active');
+
+      alert("Active leases terminated successfully.");
     }
   };
 
@@ -647,16 +680,58 @@ export function PropertyDetails() {
             )}
           </AnimatePresence>
 
-          <div className="pt-12 pb-16 flex justify-center">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleDelete}
-              className="text-xs font-black text-error/60 hover:text-error uppercase tracking-widest px-6 py-3 rounded-full hover:bg-error/10 transition-colors flex items-center gap-2"
-            >
-              <XCircle className="w-4 h-4" /> Delete Property Profile
-            </motion.button>
-          </div>
+          {/* Management Actions Section */}
+          <AnimatePresence>
+            {activeTab === 'tenant' && property.tenantName && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="mt-8 pt-8 border-t border-outline-variant/30"
+              >
+                <h3 className="text-sm font-black text-on-surface-variant uppercase tracking-widest mb-6 px-2">Property Manager Actions</h3>
+                <div className="flex flex-wrap gap-4">
+                  {permissions?.can_manage_tenants && (
+                    <button 
+                      onClick={handleRemoveTenant}
+                      className="bg-error/10 hover:bg-error/20 text-error px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                    >
+                      <User className="w-4 h-4" /> Remove Tenant
+                    </button>
+                  )}
+                  {permissions?.can_edit_lease && (
+                    <button 
+                      onClick={handleTerminateLease}
+                      className="bg-warning/10 hover:bg-warning/20 text-warning px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                    >
+                      <AlertTriangle className="w-4 h-4" /> Terminate Lease
+                    </button>
+                  )}
+                  {permissions?.can_edit_lease && (
+                    <Link 
+                      to="/dashboard/leases"
+                      className="bg-primary/10 hover:bg-primary/20 text-primary px-6 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                    >
+                      <FileText className="w-4 h-4" /> Manage Renewals
+                    </Link>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {permissions?.is_owner && (
+            <div className="pt-12 pb-16 flex justify-center">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleDelete}
+                className="text-xs font-black text-error/60 hover:text-error uppercase tracking-widest px-6 py-3 rounded-full hover:bg-error/10 transition-colors flex items-center gap-2"
+              >
+                <XCircle className="w-4 h-4" /> Delete Property Profile
+              </motion.button>
+            </div>
+          )}
 
         </div>
       </div>

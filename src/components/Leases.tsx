@@ -19,6 +19,7 @@ type Lease = {
     address: string;
     suburb: string;
     tenant_name: string;
+    owner_id: string;
   };
 };
 
@@ -28,6 +29,8 @@ export function Leases() {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [canEditPropertyIds, setCanEditPropertyIds] = useState<string[]>([]);
   
   // Create Lease State
   const [newLease, setNewLease] = useState({
@@ -44,6 +47,11 @@ export function Leases() {
   const [isFrequencyDropdownOpen, setIsFrequencyDropdownOpen] = useState(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
 
+  // Edit Lease State
+  const [editingLease, setEditingLease] = useState<Lease | null>(null);
+  const [editError, setEditError] = useState('');
+  const [editing, setEditing] = useState(false);
+
   useEffect(() => {
     if (session?.user.id) {
       loadData(session.user.id);
@@ -53,22 +61,29 @@ export function Leases() {
   const loadData = async (userId: string) => {
     setLoading(true);
     try {
-      // Load properties for dropdown
-      const { data: propsData } = await supabase
-        .from('properties')
-        .select('id, address, tenant_name')
-        .eq('owner_id', userId);
-        
-      if (propsData) setProperties(propsData);
+      const uId = session?.user.id;
+      if (!uId) return;
 
-      const uId = (await supabase.auth.getUser()).data.user?.id;
-      
       const { data: teamMemberships } = await supabase
         .from('property_team')
-        .select('property_id')
+        .select('property_id, can_create_lease, can_edit_lease')
         .eq('user_id', uId);
         
       const managedPropertyIds = teamMemberships?.map(m => m.property_id) || [];
+      const createLeasePropertyIds = teamMemberships?.filter(m => m.can_create_lease).map(m => m.property_id) || [];
+      const editLeasePropertyIds = teamMemberships?.filter(m => m.can_edit_lease).map(m => m.property_id) || [];
+      setCanEditPropertyIds(editLeasePropertyIds);
+      
+      // Load properties for dropdown
+      let propsQuery = supabase.from('properties').select('id, address, tenant_name');
+      if (createLeasePropertyIds.length > 0) {
+        propsQuery = propsQuery.or(`owner_id.eq.${userId},id.in.(${createLeasePropertyIds.join(',')})`);
+      } else {
+        propsQuery = propsQuery.eq('owner_id', userId);
+      }
+      const { data: propsData } = await propsQuery;
+        
+      if (propsData) setProperties(propsData);
       
       let query = supabase.from('leases').select('*, properties!inner(address, suburb, tenant_name, owner_id)');
       if (managedPropertyIds.length > 0) {
@@ -127,6 +142,38 @@ export function Leases() {
       setCreateError(err.message || "Failed to create lease.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleEditLease = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLease) return;
+    setEditError('');
+    setEditing(true);
+
+    try {
+      if (editingLease.end_date && editingLease.end_date <= editingLease.start_date) {
+        throw new Error("End date must be after start date.");
+      }
+
+      const { error } = await supabase.from('leases').update({
+        start_date: editingLease.start_date,
+        end_date: editingLease.end_date || null,
+        rent_amount: typeof editingLease.rent_amount === 'string' ? parseFloat(editingLease.rent_amount) : editingLease.rent_amount,
+        payment_frequency: editingLease.payment_frequency,
+        status: editingLease.status
+      }).eq('id', editingLease.id);
+
+      if (error) throw error;
+
+      if (session?.user.id) loadData(session.user.id);
+      setShowEditModal(false);
+      setEditingLease(null);
+    } catch (err: any) {
+      console.error("Edit lease error:", err);
+      setEditError(err.message || "Failed to update lease.");
+    } finally {
+      setEditing(false);
     }
   };
 
@@ -232,12 +279,25 @@ export function Leases() {
                           </span>
                         </td>
                         <td className="p-4 pr-6 text-right">
-                          <Link 
-                            to={`/dashboard/property/${lease.property_id}`}
-                            className="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-outline-variant/50 hover:border-primary/40 hover:bg-primary/10 text-primary font-semibold text-xs rounded-lg transition-colors"
-                          >
-                            View
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            {(lease.properties?.owner_id === session?.user.id || canEditPropertyIds.includes(lease.property_id)) && (
+                              <button 
+                                onClick={() => {
+                                  setEditingLease(lease);
+                                  setShowEditModal(true);
+                                }}
+                                className="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-outline-variant/50 hover:border-primary/40 hover:bg-primary/10 text-primary font-semibold text-xs rounded-lg transition-colors"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            <Link 
+                              to={`/dashboard/property/${lease.property_id}`}
+                              className="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-outline-variant/50 hover:border-primary/40 hover:bg-primary/10 text-primary font-semibold text-xs rounded-lg transition-colors"
+                            >
+                              View
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -456,6 +516,127 @@ export function Leases() {
                         className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {creating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Save Lease'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Edit Lease Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {showEditModal && editingLease && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white rounded-[32px] w-full max-w-xl shadow-2xl border border-outline-variant/50 overflow-hidden">
+                <div className="px-6 py-5 border-b border-outline-variant/30 bg-surface-container-low flex justify-between items-center">
+                  <h3 className="font-black text-lg text-on-surface flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" /> Edit Lease
+                  </h3>
+                  <button onClick={() => setShowEditModal(false)} className="text-on-surface-variant hover:text-on-surface"><X className="w-6 h-6" /></button>
+                </div>
+                
+                <div className="p-6">
+                  {editError && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-semibold flex gap-3 items-start">
+                      <AlertTriangle className="w-5 h-5 shrink-0" />
+                      <p>{editError}</p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleEditLease} className="space-y-5">
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Property</label>
+                      <div className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium opacity-70">
+                        {editingLease.properties?.address}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Start Date</label>
+                        <input 
+                          type="date" 
+                          required
+                          value={editingLease.start_date}
+                          onChange={(e) => setEditingLease({...editingLease, start_date: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">End Date (Optional)</label>
+                        <input 
+                          type="date" 
+                          value={editingLease.end_date || ''}
+                          onChange={(e) => setEditingLease({...editingLease, end_date: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Rent Amount</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input 
+                            type="number" 
+                            required
+                            min="0"
+                            step="0.01"
+                            value={editingLease.rent_amount}
+                            onChange={(e) => setEditingLease({...editingLease, rent_amount: e.target.value as any})}
+                            className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Frequency</label>
+                        <select
+                          value={editingLease.payment_frequency}
+                          onChange={(e) => setEditingLease({...editingLease, payment_frequency: e.target.value})}
+                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none appearance-none"
+                        >
+                          {['Weekly', 'Fortnightly', 'Monthly', 'Quarterly', 'Annually'].map(freq => (
+                            <option key={freq} value={freq}>{freq}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Status</label>
+                      <select
+                        value={editingLease.status}
+                        onChange={(e) => setEditingLease({...editingLease, status: e.target.value})}
+                        className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none appearance-none"
+                      >
+                        {['Active', 'Draft', 'Pending', 'Expired', 'Terminated'].map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                      <button 
+                        type="button"
+                        onClick={() => setShowEditModal(false)}
+                        className="flex-1 bg-white border border-outline-variant/50 hover:bg-surface-container-low text-on-surface font-bold py-3.5 rounded-2xl transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={editing}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {editing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Update Lease'}
                       </button>
                     </div>
                   </form>
