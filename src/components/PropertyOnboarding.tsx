@@ -56,7 +56,12 @@ const theme = createTheme({
 
 const steps = ['Property Location', 'Features', 'Property Image', 'Final Review'];
 
-export function PropertyOnboarding() {
+interface PropertyOnboardingProps {
+  onCancel?: () => void;
+  onSuccess?: () => void;
+}
+
+export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingProps = {}) {
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -131,8 +136,12 @@ export function PropertyOnboarding() {
 
         if (propertyError) throw propertyError;
 
-        // Navigate to properties list instead of dashboard for immediate feedback
-        navigate('/dashboard/properties');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Navigate to properties list instead of dashboard for immediate feedback
+          navigate('/dashboard/properties');
+        }
       } catch (err: any) {
         console.error("Error saving property:", err);
         alert(`Failed to save property: ${err.message}`);
@@ -343,6 +352,67 @@ export function PropertyOnboarding() {
         return null;
     }
   };
+
+  if (onCancel) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <div className="w-full">
+          <Box sx={{ textAlign: 'center', mb: { xs: 3, md: 4 } }}>
+            <Typography variant="h5" component="h1" gutterBottom sx={{ letterSpacing: '-0.5px', fontWeight: '900', fontFamily: 'Space Grotesk', fontSize: { xs: '1.5rem', sm: '1.75rem' } }}>
+              Add a New Property
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' } }}>
+              Initialize a physical property asset in your portfolio.
+            </Typography>
+          </Box>
+
+          {/* Mobile step indicator (Linear Progress) */}
+          <Box sx={{ display: { xs: 'block', sm: 'none' }, mb: 4 }}>
+            <Typography variant="overline" sx={{ display: 'block', textAlign: 'center', mb: 1, fontWeight: 'bold', color: 'primary.main' }}>
+              Step {activeStep + 1} of {steps.length}
+            </Typography>
+            <LinearProgress 
+              variant="determinate" 
+              value={((activeStep + 1) / steps.length) * 100} 
+              sx={{ height: 6, borderRadius: 3, backgroundColor: '#eaeceb', '& .MuiLinearProgress-bar': { borderRadius: 3, backgroundColor: '#22333b' } }} 
+            />
+          </Box>
+
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ display: { xs: 'none', sm: 'flex' }, mb: 4 }}>
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+
+          <Box sx={{ minHeight: 250 }}>
+            {renderStepContent(activeStep)}
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 2, sm: 0 }, justifyContent: 'space-between', mt: 4, pt: 3, borderTop: '1px solid #ededf1' }}>
+            <Button
+              disabled={activeStep === 0}
+              onClick={handleBack}
+              sx={{ py: 1.2, px: { xs: 0, sm: 4 }, color: 'text.secondary', fontWeight: 'bold', width: { xs: '100%', sm: 'auto' } }}
+            >
+              Previous Step
+            </Button>
+            <Button 
+              onClick={handleNext} 
+              variant="contained"
+              disableElevation
+              disabled={isSubmitting}
+              sx={{ py: 1.2, px: { xs: 0, sm: 6 }, width: { xs: '100%', sm: 'auto' }, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem', fontWeight: 'bold' }}
+            >
+              {isSubmitting ? 'Saving...' : activeStep === steps.length - 1 ? 'Save Property' : 'Proceed to Next'}
+            </Button>
+          </Box>
+        </div>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider theme={theme}>

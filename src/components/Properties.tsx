@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, Clock, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { Building, Plus, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, Clock, LayoutGrid, List, ChevronDown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { SkeletonPropertyCard } from './Skeletons';
+import { PropertyOnboarding } from './PropertyOnboarding';
 
 export function Properties() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export function Properties() {
   const [filterType, setFilterType] = useState('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProperties();
@@ -94,9 +96,12 @@ export function Properties() {
             </div>
             {/* Mobile Add New Button */}
             {globalRole === 'Owner' && (
-              <Link to="/dashboard/onboarding" className="md:hidden bg-primary text-on-primary px-4 py-2 rounded-full font-bold text-sm flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0">
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="md:hidden bg-primary text-on-primary px-4 py-2 rounded-full font-bold text-sm flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0 cursor-pointer"
+              >
                 <Plus className="w-4 h-4" /> Add New
-              </Link>
+              </button>
             )}
           </div>
           <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
@@ -180,9 +185,12 @@ export function Properties() {
             
             {/* Desktop Add New Button */}
             {globalRole === 'Owner' && (
-              <Link to="/dashboard/onboarding" className="hidden md:flex bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm items-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.2)] hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0">
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="hidden md:flex bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm items-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.2)] hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0 cursor-pointer"
+              >
                 <Plus className="w-4 h-4" /> Add New
-              </Link>
+              </button>
             )}
           </div>
         </header>
@@ -204,9 +212,12 @@ export function Properties() {
                 {searchQuery ? "We couldn't find any properties matching your search." : "You haven't added any properties to your portfolio yet."}
               </p>
               {!searchQuery && globalRole === 'Owner' && (
-                <Link to="/dashboard/onboarding" className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full font-bold text-sm shadow-md hover:bg-primary/95 transition-all">
+                <button 
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full font-bold text-sm shadow-md hover:bg-primary/95 transition-all cursor-pointer"
+                >
                   <Plus className="w-4 h-4" /> Add Your First Property
-                </Link>
+                </button>
               )}
             </div>
           ) : viewMode === 'grid' ? (
@@ -342,6 +353,47 @@ export function Properties() {
 
         </div>
       </div>
+
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
+            {/* Blurred Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+            />
+
+            {/* Card Container */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', duration: 0.5 }}
+              className="relative w-full max-w-4xl bg-[#f2f4f3] border border-outline-variant/40 rounded-[28px] shadow-2xl overflow-y-auto max-h-[90vh] z-10 p-6 sm:p-10 md:p-12"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Form Component */}
+              <PropertyOnboarding
+                onCancel={() => setIsAddModalOpen(false)}
+                onSuccess={() => {
+                  setIsAddModalOpen(false);
+                  fetchProperties();
+                }}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }
