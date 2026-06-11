@@ -207,7 +207,7 @@ export function PropertyDetails() {
       // Send the real email using EmailJS
       await emailjs.send(
         'service_pvyeiv4',
-        'template_4fb00il',
+        'template_83ro5mn',
         {
           email: enq.email,
           to_email: enq.email, // Standard EmailJS variable
