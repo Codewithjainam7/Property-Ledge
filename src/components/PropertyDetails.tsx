@@ -210,7 +210,10 @@ export function PropertyDetails() {
         'template_4fb00il',
         {
           email: enq.email,
+          to_email: enq.email, // Standard EmailJS variable
+          user_email: enq.email,
           tenant_name: enq.first_name,
+          to_name: enq.first_name,
           property_address: `${property.address}, ${property.suburb}`,
           reply_to: landlordEmail,
           property_id: property.id
@@ -231,8 +234,8 @@ export function PropertyDetails() {
       
       alert("Invitation email successfully sent to the tenant! They can now accept the offer from their dashboard.");
     } catch (err: any) {
-      console.error(err);
-      alert('Failed to invite tenant.');
+      console.error("Failed to invite tenant:", err);
+      alert(`Failed to invite tenant. Error: ${err?.text || err?.message || 'Unknown error'}`);
     } finally {
       setInvitingEnquiryId(null);
     }
