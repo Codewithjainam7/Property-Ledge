@@ -20,11 +20,7 @@ export function TenantPropertyDetails() {
   const [enquiry, setEnquiry] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLeaseModalOpen, setIsLeaseModalOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
   const [draftedLease, setDraftedLease] = useState<any>(null);
-  const [hasAcceptedInvitation, setHasAcceptedInvitation] = useState(() => {
-    return localStorage.getItem(`accepted_invite_${id}`) === 'true';
-  });
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [showSuccessTransition, setShowSuccessTransition] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,20 +49,6 @@ export function TenantPropertyDetails() {
     }
   }, [id, session]);
 
-  useEffect(() => {
-    if (id) {
-      const accepted = localStorage.getItem(`accepted_invite_${id}`) === 'true';
-      setHasAcceptedInvitation(accepted);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    const acceptInviteId = searchParams.get('accept_invite');
-    if (acceptInviteId && enquiryStatus === 'Invited' && session?.user?.email && enquiry?.email && session.user.email.toLowerCase() === enquiry.email.toLowerCase()) {
-      handleAcceptInviteFromUrl(acceptInviteId);
-    }
-  }, [searchParams, enquiryStatus, session, enquiry]);
-
   const fetchDraftedLease = async () => {
     try {
       const { data, error } = await supabase
@@ -79,44 +61,6 @@ export function TenantPropertyDetails() {
       setDraftedLease(data);
     } catch (err) {
       console.error("Error fetching drafted lease:", err);
-    }
-  };
-
-  const handleAcceptInviteFromUrl = async (enquiryId: string) => {
-    try {
-      // 1. Fetch drafted lease first to make sure it exists
-      const { data: lease, error } = await supabase
-        .from('leases')
-        .select('*')
-        .eq('property_id', id)
-        .in('status', ['Draft', 'Pending'])
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!lease) {
-        alert("The landlord has invited you, but the formal lease agreement has not been drafted yet. Please wait for the landlord to draft the lease.");
-        localStorage.setItem(`accepted_invite_${id}`, 'true');
-        setHasAcceptedInvitation(true);
-        // Clean up the URL
-        searchParams.delete('accept_invite');
-        setSearchParams(searchParams);
-        return;
-      }
-
-      // 2. Save acceptance locally
-      localStorage.setItem(`accepted_invite_${id}`, 'true');
-      setHasAcceptedInvitation(true);
-      
-      // Clean up the URL
-      searchParams.delete('accept_invite');
-      setSearchParams(searchParams);
-      
-      // 3. Immediately open the lease modal
-      setIsLeaseModalOpen(true);
-      alert('Invitation successfully accepted! Please review and sign the lease agreement.');
-    } catch(err) {
-      console.error("Failed to accept invite from URL:", err);
     }
   };
 
@@ -177,7 +121,6 @@ export function TenantPropertyDetails() {
       if (data && data.length > 0) {
         setEnquiry(data[0]);
         setEnquiryStatus(data[0].status);
-        if (data[0].status === 'Accepted') setHasAcceptedInvitation(true);
       } else {
         setEnquiryStatus(null);
       }
@@ -274,15 +217,13 @@ export function TenantPropertyDetails() {
 
   const bentoTenantItems = [
     { 
-      title: enquiryStatus === 'Pending' ? 'Application Sent' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'Invitation Accepted' : 'You\'re Invited!') : enquiryStatus === 'Accepted' ? 'Lease Active' : 'Submit Application', 
+      title: enquiryStatus === 'Pending' ? 'Application Sent' : enquiryStatus === 'Invited' ? 'You\'re Invited!' : enquiryStatus === 'Accepted' ? 'Lease Active' : 'Submit Application', 
       desc: enquiryStatus === 'Pending' 
         ? 'The landlord is reviewing your application.' 
         : enquiryStatus === 'Invited' 
-          ? (hasAcceptedInvitation 
-            ? (draftedLease 
-              ? 'You have accepted the invitation. Please review and sign the lease agreement.' 
-              : 'You have accepted the invitation. Waiting for the landlord to draft the formal lease agreement.')
-            : 'The landlord has officially invited you to rent this property. Please check your email to accept.') 
+          ? (draftedLease 
+            ? 'The landlord has drafted the lease agreement. Please review and sign it.' 
+            : 'Waiting for the landlord to draft the formal lease agreement.')
           : enquiryStatus === 'Accepted' 
             ? 'You are currently renting this property.' 
             : 'Apply directly to the landlord to rent this property.', 
@@ -290,9 +231,7 @@ export function TenantPropertyDetails() {
       action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' 
         ? null 
         : enquiryStatus === 'Invited' 
-          ? (hasAcceptedInvitation 
-            ? (draftedLease ? 'Review & Sign Lease' : 'Lease Pending') 
-            : 'Check Email to Accept') 
+          ? (draftedLease ? 'Review & Sign Lease' : 'Lease Pending') 
           : 'Apply Now', 
       colSpan: 'md:col-span-2 lg:col-span-2', 
       bg: enquiryStatus === 'Invited' ? 'bg-emerald-500 text-white' : 'bg-primary text-on-primary', 
@@ -301,14 +240,10 @@ export function TenantPropertyDetails() {
       onClick: () => {
         if (!enquiryStatus) setIsModalOpen(true);
         if (enquiryStatus === 'Invited') {
-          if (hasAcceptedInvitation) {
-            if (draftedLease) {
-              setIsLeaseModalOpen(true);
-            } else {
-              alert("The landlord has not drafted the lease agreement yet. Please contact the landlord or check back later.");
-            }
+          if (draftedLease) {
+            setIsLeaseModalOpen(true);
           } else {
-            alert("Please check your email inbox and click the secure link to officially accept this invitation.");
+            alert("The landlord has not drafted the lease agreement yet. Please contact the landlord or check back later.");
           }
         }
       }

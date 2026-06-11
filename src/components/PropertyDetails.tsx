@@ -218,7 +218,7 @@ export function PropertyDetails() {
           property_address: `${property.address}, ${property.suburb}`,
           reply_to: landlordEmail,
           property_id: property.id,
-          invite_link: `${window.location.origin}/dashboard/marketplace/${property.id}?accept_invite=${enq.id}`
+          invite_link: `${window.location.origin}/dashboard/marketplace/${property.id}`
         },
         'HiMuS6V2asatgtQDn'
       );
