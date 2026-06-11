@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 import { Typography, Button, TextField, Alert } from '@mui/material';
 import { Building2, Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -11,7 +11,10 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -40,7 +43,7 @@ export function Login() {
       setError(error.message); // e.g. "Invalid login credentials"
       setLoading(false);
     } else if (data.session) {
-      navigate('/dashboard');
+      navigate(redirectTo);
     }
   };
 

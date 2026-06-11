@@ -26,7 +26,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!session) {
-        navigate('/login');
+        navigate(`/login?redirectTo=${encodeURIComponent(location.pathname + location.search)}`);
       } else if (!user?.user_metadata?.role) {
         // Force Google OAuth users to select their role (Owner, Agent, Tenant)
         navigate('/complete-profile');
