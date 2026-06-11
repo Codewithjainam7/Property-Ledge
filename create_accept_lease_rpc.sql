@@ -63,6 +63,16 @@ BEGIN
         RETURNING id INTO v_tenant_record_id;
     END IF;
 
+    -- Check if a drafted lease already exists for this property
+    SELECT id INTO v_lease_id
+    FROM public.leases
+    WHERE property_id = p_property_id AND status IN ('Draft', 'Pending')
+    LIMIT 1;
+
+    IF v_lease_id IS NULL THEN
+        RAISE EXCEPTION 'No formal drafted lease found for this property. The landlord must draft a lease before you can accept.';
+    END IF;
+
     -- 4. Update the enquiry statuses
     -- Accept the current tenant's enquiry
     UPDATE public.property_enquiries
@@ -74,30 +84,15 @@ BEGIN
     SET status = 'Rejected'
     WHERE property_id = p_property_id AND tenant_id != auth.uid();
 
-    -- 5. Insert the formal lease and capture its ID
-    INSERT INTO public.leases (
-        property_id, 
-        created_by, 
-        tenant_id, 
-        tenant_signature, 
-        start_date, 
-        end_date, 
-        rent_amount, 
-        payment_frequency, 
-        bond_amount, 
-        status
-    ) VALUES (
-        p_property_id,
-        v_owner_id,
-        auth.uid(),
-        p_signature_data,
-        CURRENT_DATE,
-        CURRENT_DATE + INTERVAL '1 year',
-        v_rent_amount,
-        v_payment_frequency,
-        v_rent_amount * 4,
-        'Active'
-    ) RETURNING id INTO v_lease_id;
+    -- 5. Update the existing formal lease
+    UPDATE public.leases
+    SET
+        tenant_id = auth.uid(),
+        tenant_signature = p_signature_data,
+        status = 'Active',
+        start_date = CURRENT_DATE,
+        end_date = CURRENT_DATE + INTERVAL '1 year'
+    WHERE id = v_lease_id;
 
     -- 6. Link tenant to lease in the junction table
     INSERT INTO public.lease_tenants (lease_id, tenant_id, is_primary)

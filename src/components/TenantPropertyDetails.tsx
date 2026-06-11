@@ -21,7 +21,10 @@ export function TenantPropertyDetails() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLeaseModalOpen, setIsLeaseModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [hasAcceptedInvitation, setHasAcceptedInvitation] = useState(false);
+  const [draftedLease, setDraftedLease] = useState<any>(null);
+  const [hasAcceptedInvitation, setHasAcceptedInvitation] = useState(() => {
+    return localStorage.getItem(`accepted_invite_${id}`) === 'true';
+  });
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [showSuccessTransition, setShowSuccessTransition] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,6 +46,7 @@ export function TenantPropertyDetails() {
   useEffect(() => {
     if (id) {
       fetchPropertyDetails();
+      fetchDraftedLease();
     }
     if (id && session?.user?.id) {
       checkExistingEnquiry();
@@ -50,23 +54,67 @@ export function TenantPropertyDetails() {
   }, [id, session]);
 
   useEffect(() => {
+    if (id) {
+      const accepted = localStorage.getItem(`accepted_invite_${id}`) === 'true';
+      setHasAcceptedInvitation(accepted);
+    }
+  }, [id]);
+
+  useEffect(() => {
     const acceptInviteId = searchParams.get('accept_invite');
-    if (acceptInviteId && enquiryStatus === 'Invited' && session?.user?.email === enquiry?.email) {
+    if (acceptInviteId && enquiryStatus === 'Invited' && session?.user?.email && enquiry?.email && session.user.email.toLowerCase() === enquiry.email.toLowerCase()) {
       handleAcceptInviteFromUrl(acceptInviteId);
     }
   }, [searchParams, enquiryStatus, session, enquiry]);
 
+  const fetchDraftedLease = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select('*')
+        .eq('property_id', id)
+        .in('status', ['Draft', 'Pending'])
+        .maybeSingle();
+      if (error) throw error;
+      setDraftedLease(data);
+    } catch (err) {
+      console.error("Error fetching drafted lease:", err);
+    }
+  };
+
   const handleAcceptInviteFromUrl = async (enquiryId: string) => {
     try {
-      await supabase.from('property_enquiries').update({ status: 'Accepted' }).eq('id', enquiryId);
+      // 1. Fetch drafted lease first to make sure it exists
+      const { data: lease, error } = await supabase
+        .from('leases')
+        .select('*')
+        .eq('property_id', id)
+        .in('status', ['Draft', 'Pending'])
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!lease) {
+        alert("The landlord has invited you, but the formal lease agreement has not been drafted yet. Please wait for the landlord to draft the lease.");
+        localStorage.setItem(`accepted_invite_${id}`, 'true');
+        setHasAcceptedInvitation(true);
+        // Clean up the URL
+        searchParams.delete('accept_invite');
+        setSearchParams(searchParams);
+        return;
+      }
+
+      // 2. Save acceptance locally
+      localStorage.setItem(`accepted_invite_${id}`, 'true');
       setHasAcceptedInvitation(true);
-      setEnquiryStatus('Accepted');
       
       // Clean up the URL
       searchParams.delete('accept_invite');
       setSearchParams(searchParams);
       
-      alert('Invitation successfully accepted! You can now review and sign the lease.');
+      // 3. Immediately open the lease modal
+      setIsLeaseModalOpen(true);
+      alert('Invitation successfully accepted! Please review and sign the lease agreement.');
     } catch(err) {
       console.error("Failed to accept invite from URL:", err);
     }
@@ -227,9 +275,25 @@ export function TenantPropertyDetails() {
   const bentoTenantItems = [
     { 
       title: enquiryStatus === 'Pending' ? 'Application Sent' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'Invitation Accepted' : 'You\'re Invited!') : enquiryStatus === 'Accepted' ? 'Lease Active' : 'Submit Application', 
-      desc: enquiryStatus === 'Pending' ? 'The landlord is reviewing your application.' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'You have accepted the invitation. Please review and sign the lease agreement.' : 'The landlord has officially invited you to rent this property. Please check your email to accept.') : enquiryStatus === 'Accepted' ? 'You are currently renting this property.' : 'Apply directly to the landlord to rent this property.', 
+      desc: enquiryStatus === 'Pending' 
+        ? 'The landlord is reviewing your application.' 
+        : enquiryStatus === 'Invited' 
+          ? (hasAcceptedInvitation 
+            ? (draftedLease 
+              ? 'You have accepted the invitation. Please review and sign the lease agreement.' 
+              : 'You have accepted the invitation. Waiting for the landlord to draft the formal lease agreement.')
+            : 'The landlord has officially invited you to rent this property. Please check your email to accept.') 
+          : enquiryStatus === 'Accepted' 
+            ? 'You are currently renting this property.' 
+            : 'Apply directly to the landlord to rent this property.', 
       icon: enquiryStatus ? CheckCircle2 : Send, 
-      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' ? null : enquiryStatus === 'Invited' ? 'Check Email to Accept' : 'Apply Now', 
+      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' 
+        ? null 
+        : enquiryStatus === 'Invited' 
+          ? (hasAcceptedInvitation 
+            ? (draftedLease ? 'Review & Sign Lease' : 'Lease Pending') 
+            : 'Check Email to Accept') 
+          : 'Apply Now', 
       colSpan: 'md:col-span-2 lg:col-span-2', 
       bg: enquiryStatus === 'Invited' ? 'bg-emerald-500 text-white' : 'bg-primary text-on-primary', 
       accent: enquiryStatus === 'Invited' ? 'text-emerald-100' : 'text-on-primary', 
@@ -237,8 +301,15 @@ export function TenantPropertyDetails() {
       onClick: () => {
         if (!enquiryStatus) setIsModalOpen(true);
         if (enquiryStatus === 'Invited') {
-          if (hasAcceptedInvitation) setIsLeaseModalOpen(true);
-          else alert("Please check your email inbox and click the secure link to officially accept this invitation.");
+          if (hasAcceptedInvitation) {
+            if (draftedLease) {
+              setIsLeaseModalOpen(true);
+            } else {
+              alert("The landlord has not drafted the lease agreement yet. Please contact the landlord or check back later.");
+            }
+          } else {
+            alert("Please check your email inbox and click the secure link to officially accept this invitation.");
+          }
         }
       }
     },
@@ -681,9 +752,9 @@ export function TenantPropertyDetails() {
                         <p>Tenant: {session?.user?.user_metadata?.first_name} {session?.user?.user_metadata?.last_name} ({session?.user?.email})</p>
                         <hr className="my-4 border-outline-variant/40" />
                         <p><strong>Property Address:</strong><br/>{property.address}, {property.suburb}, {property.state} {property.postcode}</p>
-                        <p><strong>Rent Amount:</strong> ${property.rent_amount} per {property.payment_frequency}</p>
-                        <p><strong>Lease Term:</strong> 12 Months, commencing on {new Date().toLocaleDateString()}</p>
-                        <p><strong>Bond Amount:</strong> ${property.rent_amount * 4}</p>
+                        <p><strong>Rent Amount:</strong> ${draftedLease?.rent_amount || property.rent_amount} per {draftedLease?.payment_frequency || property.payment_frequency}</p>
+                        <p><strong>Lease Term:</strong> {draftedLease?.start_date ? new Date(draftedLease.start_date).toLocaleDateString() : new Date().toLocaleDateString()} to {draftedLease?.end_date ? new Date(draftedLease.end_date).toLocaleDateString() : new Date(Date.now() + 365*24*60*60*1000).toLocaleDateString()}</p>
+                        <p><strong>Bond Amount:</strong> ${draftedLease?.bond_amount || (draftedLease?.rent_amount || property.rent_amount) * 4}</p>
                         <hr className="my-4 border-outline-variant/40" />
                         <p className="text-xs text-on-surface-variant/70 leading-relaxed">
                           By signing this agreement, the Tenant agrees to be bound by the standard terms and conditions of a residential tenancy, including timely payment of rent, maintenance of the property in a clean and undamaged state, and adherence to all local strata or council regulations.
