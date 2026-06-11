@@ -426,8 +426,8 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
                 <Paper key={item.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                   <TextField label="Description" size="small" fullWidth value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} sx={{ mb: 2 }} />
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <TextField label="Rate" type="number" size="small" fullWidth value={item.rate} onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)} />
-                    <TextField label="GST (%)" type="number" size="small" fullWidth value={item.gst} onChange={(e) => updateItem(item.id, 'gst', parseFloat(e.target.value) || 0)} />
+                    <TextField label="Rate" type="number" size="small" fullWidth placeholder="0" value={item.rate || ''} onChange={(e) => updateItem(item.id, 'rate', parseFloat(e.target.value) || 0)} />
+                    <TextField label="GST (%)" type="number" size="small" fullWidth placeholder="0" value={item.gst || ''} onChange={(e) => updateItem(item.id, 'gst', parseFloat(e.target.value) || 0)} />
                     <IconButton onClick={() => removeItem(item.id)} size="small" color="error" sx={{ bgcolor: 'error.50', border: 1, borderColor: 'error.100', '&:hover': { bgcolor: 'error.main', color: 'white' } }}>
                       <Trash2 size={18} />
                     </IconButton>
