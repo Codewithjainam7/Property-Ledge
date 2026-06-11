@@ -120,11 +120,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   if (globalRole === 'Tenant') {
     organiseLinks = [
-      { name: 'My Lease', icon: Home, to: '/dashboard/my-lease', exact: true }
+      { name: 'Dashboard', icon: Home, to: '/dashboard', exact: true }
     ];
-    toolsLinks = [
-      { name: 'Find Properties', icon: Search, to: '/dashboard', exact: true },
-    ];
+    toolsLinks = [];
   } else if (globalRole === 'Agent' || globalRole === 'Strata') {
     organiseLinks = [
       { name: 'Overview', icon: PieChart, to: '/dashboard', exact: true },

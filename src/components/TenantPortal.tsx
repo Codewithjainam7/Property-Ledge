@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, LayoutGrid, List, ChevronDown, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Building, MapPin, Search, Filter, Home, ArrowUpRight, CheckCircle2, LayoutGrid, List, ChevronDown, ArrowRight, ChevronLeft, ChevronRight, Wallet, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
@@ -130,6 +130,7 @@ export function TenantPortal() {
           propertyType: leaseData.property_type,
           paymentFrequency: leaseData.payment_frequency,
         });
+        setActiveTab('lease');
       }
 
     } catch (error) {
@@ -194,7 +195,21 @@ export function TenantPortal() {
               <p className="text-sm text-on-surface-variant font-medium hidden sm:block">Find your next rental or manage your current lease.</p>
             </div>
             
-            {/* Removed Tabs */}
+            {/* Tabs */}
+            <div className="flex bg-surface-container-low p-1 rounded-2xl w-fit border border-outline-variant/30 shadow-inner mt-2">
+              <button
+                onClick={() => setActiveTab('lease')}
+                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'lease' ? 'bg-surface text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                My Lease & Property
+              </button>
+              <button
+                onClick={() => setActiveTab('marketplace')}
+                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'marketplace' ? 'bg-surface text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                Find Properties
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
@@ -328,6 +343,81 @@ export function TenantPortal() {
               <p className="text-on-surface-variant max-w-md mx-auto mb-6 text-sm">
                 Try adjusting your search criteria or checking back later for new listings.
               </p>
+            </div>
+          ) : activeTab === 'lease' ? (
+            <div className="pt-4">
+              {leasedProperty ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-surface rounded-[32px] p-6 md:p-8 border border-outline-variant/30 shadow-[0_8px_30px_rgba(0,0,0,0.06)] flex flex-col md:flex-row gap-8"
+                >
+                  <div className="w-full md:w-1/3 aspect-[4/3] rounded-2xl overflow-hidden relative shadow-inner">
+                    {leasedProperty.image || leasedProperty.images?.[0] ? (
+                      <img src={leasedProperty.images?.[0] || leasedProperty.image} alt={leasedProperty.address} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-surface-container">
+                        <Home className="w-12 h-12 text-on-surface-variant/30" />
+                      </div>
+                    )}
+                    <div className="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-md flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Active Lease
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col justify-center">
+                    <h2 className="text-2xl md:text-3xl font-black text-on-surface mb-2 tracking-tight">{leasedProperty.address}</h2>
+                    <div className="flex items-center gap-1.5 text-on-surface-variant font-bold text-sm uppercase tracking-widest mb-6">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      {leasedProperty.suburb}, {leasedProperty.state} {leasedProperty.postcode}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                      <div className="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Wallet className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-0.5">Rent Amount</p>
+                          <p className="text-lg font-black text-on-surface">${leasedProperty.rentAmount || '0'}<span className="text-xs font-medium text-on-surface-variant">/{leasedProperty.paymentFrequency === 'Monthly' ? 'mo' : 'wk'}</span></p>
+                        </div>
+                      </div>
+                      <div className="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-0.5">Property Type</p>
+                          <p className="text-lg font-black text-on-surface">{leasedProperty.propertyType || 'Residential'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => navigate(`/dashboard/marketplace/${leasedProperty.id}`)}
+                      className="flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-on-primary rounded-xl font-black text-sm uppercase tracking-widest hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 w-fit"
+                    >
+                      View Property Details <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="bg-surface rounded-[32px] p-12 text-center border border-outline-variant/30 shadow-sm flex flex-col items-center justify-center min-h-[400px]">
+                  <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-6">
+                    <FileText className="w-10 h-10 text-on-surface-variant" />
+                  </div>
+                  <h2 className="text-2xl font-black text-on-surface mb-3 tracking-tight">No Active Lease</h2>
+                  <p className="text-on-surface-variant max-w-md mx-auto mb-8 text-base font-medium">
+                    You currently have no active leases linked to your account. Head over to the marketplace to find your next home!
+                  </p>
+                  <button 
+                    onClick={() => setActiveTab('marketplace')}
+                    className="px-8 py-4 bg-primary text-on-primary rounded-full font-black text-sm uppercase tracking-widest hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  >
+                    Browse Marketplace
+                  </button>
+                </div>
+              )}
             </div>
           ) : viewMode === 'grid' ? (
             <motion.div 

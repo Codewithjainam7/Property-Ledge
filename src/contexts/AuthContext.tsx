@@ -63,8 +63,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Step 3: Set up a polling mechanism to ensure the user hasn't been deleted from the database
+    let intervalId: any;
+    if (session?.user) {
+      intervalId = setInterval(async () => {
+        try {
+          // Verify if the user profile still exists
+          const { error } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (error && error.code === 'PGRST116') {
+            // Profile not found - user data was erased. Force sign out.
+            console.warn("User profile no longer exists. Forcing sign-out.");
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
+            setGlobalRole(null);
+          }
+        } catch (e) {
+          // ignore network errors for polling
+        }
+      }, 30000); // Check every 30 seconds
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [session?.user?.id]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
