@@ -89,6 +89,8 @@ export function Team() {
       const selectedProp = properties.find(p => p.id === selectedPropertyId);
       const landlordEmail = session?.user?.email || '';
       
+      let emailFailed = false;
+      let emailErrorMsg = '';
       if (selectedProp) {
         try {
           await emailjs.send(
@@ -96,6 +98,8 @@ export function Team() {
             'template_fa2cvee',
             {
               email: inviteEmail,
+              to_email: inviteEmail, // Standard EmailJS variable
+              user_email: inviteEmail, 
               role: inviteRole, 
               property_address: `${selectedProp.address}, ${selectedProp.suburb}`,
               reply_to: landlordEmail,
@@ -103,9 +107,11 @@ export function Team() {
             },
             'HiMuS6V2asatgtQDn'
           );
-        } catch (emailErr) {
+        } catch (emailErr: any) {
           console.error("EmailJS error (non-fatal):", emailErr);
-          // If EmailJS fails, we still want to try adding them to the team
+          emailFailed = true;
+          emailErrorMsg = `Email failed: ${emailErr?.text || emailErr?.message || 'Unknown'}. Check template variables.`;
+          setInviteError(emailErrorMsg);
         }
       }
 
@@ -125,15 +131,16 @@ export function Team() {
         });
 
         if (insertError && insertError.code === '23505') {
-          setInviteError("Email sent! But note: User is already on the team for this property.");
+          if (!emailFailed) setInviteError("Email sent! But note: User is already on the team for this property.");
         } else if (insertError) {
           console.error("Insert error:", insertError);
+          setInviteError(insertError.message);
         } else {
-          setInviteSuccess("Team member successfully invited and added to the team!");
+          if (!emailFailed) setInviteSuccess("Team member successfully invited and added to the team!");
         }
       } else {
         // User does not exist in the database yet
-        setInviteSuccess("Invitation email sent! They will need to create an account before they appear in your team list.");
+        if (!emailFailed) setInviteSuccess("Invitation email sent! They will need to create an account before they appear in your team list.");
       }
 
       setInviteEmail('');
