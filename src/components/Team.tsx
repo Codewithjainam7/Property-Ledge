@@ -118,9 +118,9 @@ export function Team() {
           user_id: userId,
           role: inviteRole,
           can_view_property: true,
-          can_view_lease: inviteRole === 'Manager' || inviteRole === 'Strata',
-          can_create_lease: inviteRole === 'Manager',
-          can_edit_lease: inviteRole === 'Manager',
+          can_view_lease: true,
+          can_create_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
+          can_edit_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
           can_manage_tenants: inviteRole === 'Manager' || inviteRole === 'Agent'
         });
 

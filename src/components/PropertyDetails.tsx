@@ -409,12 +409,12 @@ export function PropertyDetails() {
               onClick={(e) => e.stopPropagation()}
               onMouseLeave={() => setIsMenuOpen(false)}
             >
-              {permissions?.can_edit_lease && (
+              {permissions?.can_view_property && (
                 <button 
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg text-on-surface hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:-translate-y-2 md:group-hover:translate-y-0 duration-200"
                 >
-                  <Wrench className="w-4 h-4" /> Edit Cover Image
+                  <Wrench className="w-4 h-4" /> Options
                 </button>
               )}
 
@@ -429,6 +429,18 @@ export function PropertyDetails() {
                   >
                     <div className="w-48 bg-surface rounded-2xl shadow-xl border border-outline-variant/30 overflow-hidden">
                       <div className="p-1">
+                        <button 
+                          onClick={() => {
+                            setEditingProperty(property);
+                            setShowEditPropertyModal(true);
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors text-left"
+                        >
+                          <Building className="w-4 h-4" /> Edit Property Details
+                        </button>
+                        <div className="h-px bg-outline-variant/30 my-1 mx-2"></div>
+                        
                         {images.length < 5 && (
                           <label className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-container rounded-xl cursor-pointer transition-colors">
                             <Plus className="w-4 h-4" /> Add Image ({images.length}/5)

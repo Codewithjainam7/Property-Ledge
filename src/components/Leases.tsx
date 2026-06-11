@@ -204,13 +204,15 @@ export function Leases() {
           </h1>
           <p className="text-on-surface-variant font-medium mt-1">Manage active leases, renewals, and historical records.</p>
         </div>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
-        >
-          <Plus className="w-5 h-5" />
-          Create Lease
-        </button>
+        {properties.length > 0 && (
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
+          >
+            <Plus className="w-5 h-5" />
+            Create Lease
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -224,12 +226,14 @@ export function Leases() {
               </div>
               <h3 className="text-xl font-bold text-on-surface mb-2">No Leases Found</h3>
               <p className="text-on-surface-variant max-w-sm mb-6">You don't have any leases recorded yet. Create one manually or wait for a tenant to sign a rental application.</p>
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="bg-primary text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors"
-              >
-                Create First Lease
-              </button>
+              {properties.length > 0 && (
+                <button 
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-primary text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors"
+                >
+                  Create First Lease
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-white border border-outline-variant/50 rounded-2xl shadow-sm overflow-hidden">
