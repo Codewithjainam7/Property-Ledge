@@ -444,7 +444,7 @@ export function TenantPropertyDetails() {
 
                     {item.action && (
                       <div className="mt-auto pt-2">
-                        <div className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm transition-colors flex items-center gap-2 group-hover:shadow-md">
+                        <div className="w-fit bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm transition-colors inline-flex items-center gap-2 group-hover:shadow-md">
                           {item.action} <ArrowUpRight className="w-3.5 h-3.5" />
                         </div>
                       </div>
