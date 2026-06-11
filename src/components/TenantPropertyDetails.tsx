@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, Home, Bed, Bath, Car, CheckCircle2, Info, Send, Clock, ArrowUpRight, Users, Maximize2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -17,9 +17,10 @@ export function TenantPropertyDetails() {
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enquiryStatus, setEnquiryStatus] = useState<string | null>(null);
+  const [enquiry, setEnquiry] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLeaseModalOpen, setIsLeaseModalOpen] = useState(false);
-  const [isAcceptInviteModalOpen, setIsAcceptInviteModalOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [hasAcceptedInvitation, setHasAcceptedInvitation] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [showSuccessTransition, setShowSuccessTransition] = useState(false);
@@ -47,6 +48,29 @@ export function TenantPropertyDetails() {
       checkExistingEnquiry();
     }
   }, [id, session]);
+
+  useEffect(() => {
+    const acceptInviteId = searchParams.get('accept_invite');
+    if (acceptInviteId && enquiryStatus === 'Invited' && session?.user?.email === enquiry?.email) {
+      handleAcceptInviteFromUrl(acceptInviteId);
+    }
+  }, [searchParams, enquiryStatus, session, enquiry]);
+
+  const handleAcceptInviteFromUrl = async (enquiryId: string) => {
+    try {
+      await supabase.from('property_enquiries').update({ status: 'Accepted' }).eq('id', enquiryId);
+      setHasAcceptedInvitation(true);
+      setEnquiryStatus('Accepted');
+      
+      // Clean up the URL
+      searchParams.delete('accept_invite');
+      setSearchParams(searchParams);
+      
+      alert('Invitation successfully accepted! You can now review and sign the lease.');
+    } catch(err) {
+      console.error("Failed to accept invite from URL:", err);
+    }
+  };
 
   const fetchPropertyDetails = async () => {
     try {
@@ -96,14 +120,16 @@ export function TenantPropertyDetails() {
     try {
       const { data, error } = await supabase
         .from('property_enquiries')
-        .select('status')
+        .select('*')
         .eq('property_id', id)
         .eq('tenant_id', session.user.id)
         .order('created_at', { ascending: false })
         .limit(1);
         
       if (data && data.length > 0) {
+        setEnquiry(data[0]);
         setEnquiryStatus(data[0].status);
+        if (data[0].status === 'Accepted') setHasAcceptedInvitation(true);
       } else {
         setEnquiryStatus(null);
       }
@@ -201,9 +227,9 @@ export function TenantPropertyDetails() {
   const bentoTenantItems = [
     { 
       title: enquiryStatus === 'Pending' ? 'Application Sent' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'Invitation Accepted' : 'You\'re Invited!') : enquiryStatus === 'Accepted' ? 'Lease Active' : 'Submit Application', 
-      desc: enquiryStatus === 'Pending' ? 'The landlord is reviewing your application.' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'You have accepted the invitation. Please review and sign the lease agreement.' : 'The landlord has officially invited you to rent this property. Click here to Accept.') : enquiryStatus === 'Accepted' ? 'You are currently renting this property.' : 'Apply directly to the landlord to rent this property.', 
+      desc: enquiryStatus === 'Pending' ? 'The landlord is reviewing your application.' : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'You have accepted the invitation. Please review and sign the lease agreement.' : 'The landlord has officially invited you to rent this property. Please check your email to accept.') : enquiryStatus === 'Accepted' ? 'You are currently renting this property.' : 'Apply directly to the landlord to rent this property.', 
       icon: enquiryStatus ? CheckCircle2 : Send, 
-      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' ? null : enquiryStatus === 'Invited' ? (hasAcceptedInvitation ? 'Review & Sign Lease' : 'Accept Invitation') : 'Apply Now', 
+      action: enquiryStatus === 'Pending' || enquiryStatus === 'Accepted' ? null : enquiryStatus === 'Invited' ? 'Check Email to Accept' : 'Apply Now', 
       colSpan: 'md:col-span-2 lg:col-span-2', 
       bg: enquiryStatus === 'Invited' ? 'bg-emerald-500 text-white' : 'bg-primary text-on-primary', 
       accent: enquiryStatus === 'Invited' ? 'text-emerald-100' : 'text-on-primary', 
@@ -212,7 +238,7 @@ export function TenantPropertyDetails() {
         if (!enquiryStatus) setIsModalOpen(true);
         if (enquiryStatus === 'Invited') {
           if (hasAcceptedInvitation) setIsLeaseModalOpen(true);
-          else setIsAcceptInviteModalOpen(true);
+          else alert("Please check your email inbox and click the secure link to officially accept this invitation.");
         }
       }
     },
@@ -381,17 +407,6 @@ export function TenantPropertyDetails() {
                 </div>
               </div>
             </div>
-            
-            <motion.button 
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                if (!enquiryStatus) setIsModalOpen(true);
-              }}
-              className="w-full md:w-auto px-6 py-3.5 bg-on-surface text-surface rounded-full font-black text-xs uppercase tracking-widest shadow-md flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {enquiryStatus ? 'Application Status' : 'Apply Now'} <ArrowUpRight className="w-4 h-4" />
-            </motion.button>
           </motion.div>
 
           {/* Spacer for aesthetics */}
@@ -420,11 +435,6 @@ export function TenantPropertyDetails() {
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-sm ${item.accent} ${item.iconBg}`}>
                         <item.icon className="w-6 h-6" />
                       </div>
-                      {(item as any).chevron && (
-                        <div className="w-8 h-8 rounded-full bg-surface/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <ArrowUpRight className="w-4 h-4 text-on-surface-variant" />
-                        </div>
-                      )}
                     </div>
                     
                     <div className="mt-auto">
@@ -434,9 +444,9 @@ export function TenantPropertyDetails() {
 
                     {item.action && (
                       <div className="mt-auto pt-2">
-                        <button className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm hover:bg-white/20 transition-colors flex items-center gap-2 group-hover:shadow-md cursor-pointer">
+                        <div className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm transition-colors flex items-center gap-2 group-hover:shadow-md">
                           {item.action} <ArrowUpRight className="w-3.5 h-3.5" />
-                        </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -767,55 +777,6 @@ export function TenantPropertyDetails() {
                 </button>
               )}
             </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
-      {/* Accept Invitation Modal via Portal */}
-      {createPortal(
-        <AnimatePresence>
-          {isAcceptInviteModalOpen && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 sm:px-6">
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsAcceptInviteModalOpen(false)}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              />
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-md bg-surface rounded-[32px] shadow-2xl overflow-hidden z-10 flex flex-col p-6 md:p-8 text-center"
-              >
-                <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                </div>
-                <h2 className="text-2xl font-black font-display tracking-tight text-on-surface mb-3">Accept Invitation?</h2>
-                <p className="text-on-surface-variant font-medium text-sm mb-8 leading-relaxed">
-                  You have been officially invited to lease <strong>{property?.address}</strong>. By accepting, you will confirm your interest and proceed to review the official lease agreement.
-                </p>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setIsAcceptInviteModalOpen(false)} 
-                    className="flex-1 px-6 py-3.5 rounded-full font-black text-xs uppercase tracking-widest text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer"
-                  >
-                    Not Yet
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setHasAcceptedInvitation(true);
-                      setIsAcceptInviteModalOpen(false);
-                      setIsLeaseModalOpen(true);
-                    }} 
-                    className="flex-[2] px-6 py-3.5 rounded-full font-black text-xs uppercase tracking-widest bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
-                  >
-                    Accept Invitation <ArrowUpRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </motion.div>
-            </div>
           )}
         </AnimatePresence>,
         document.body

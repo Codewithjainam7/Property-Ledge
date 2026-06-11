@@ -207,16 +207,15 @@ export function PropertyDetails() {
       // Send the real email using EmailJS
       await emailjs.send(
         'service_pvyeiv4',
-        'template_4fb00il',
+        'template_fa2cvee',
         {
           email: enq.email,
           to_email: enq.email, // Standard EmailJS variable
           user_email: enq.email,
-          tenant_name: enq.first_name,
-          to_name: enq.first_name,
+          role: 'Tenant',
           property_address: `${property.address}, ${property.suburb}`,
           reply_to: landlordEmail,
-          property_id: property.id
+          invite_link: `${window.location.origin}/dashboard/marketplace/${property.id}?accept_invite=${enq.id}`
         },
         'HiMuS6V2asatgtQDn'
       );
