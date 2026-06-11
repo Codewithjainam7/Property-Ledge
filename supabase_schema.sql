@@ -130,6 +130,9 @@ CREATE TABLE public.invoice_templates (
     automation_day INTEGER CHECK (automation_day >= 1 AND automation_day <= 31),
     auto_send_email BOOLEAN DEFAULT false,
     auto_approve BOOLEAN DEFAULT true,
+    property_ids UUID[] DEFAULT '{}'::uuid[],
+    late_fee_amount NUMERIC(10, 2) DEFAULT 0.00,
+    late_fee_days INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -154,6 +157,9 @@ CREATE TABLE public.invoices (
     issue_date DATE DEFAULT CURRENT_DATE,
     due_date DATE NOT NULL,
     notes TEXT,
+    late_fee_amount NUMERIC(10, 2) DEFAULT 0.00,
+    late_fee_days INTEGER DEFAULT 0,
+    late_fee_applied BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

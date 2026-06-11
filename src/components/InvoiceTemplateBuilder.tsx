@@ -17,6 +17,8 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<TemplateItem[]>([{ description: 'Rent', amount: '' }]);
   const [properties, setProperties] = useState<any[]>([]);
   const [linkedProperties, setLinkedProperties] = useState<string[]>([]);
+  const [lateFeeAmount, setLateFeeAmount] = useState<string>('');
+  const [lateFeeDays, setLateFeeDays] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
 
   React.useEffect(() => {
@@ -54,6 +56,9 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
       user_id: session.user.id,
       name,
       items: items as any,
+      property_ids: linkedProperties,
+      late_fee_amount: parseFloat(lateFeeAmount) || 0,
+      late_fee_days: parseInt(lateFeeDays) || 0,
     });
 
     if (error) {
@@ -117,6 +122,27 @@ export function InvoiceTemplateBuilder({ onClose }: { onClose: () => void }) {
           <Button startIcon={<Plus size={16} />} onClick={handleAddItem} sx={{ mb: 3, textTransform: 'none' }}>
             Add Line Item
           </Button>
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, mt: 1 }}>Late Fees (Optional)</Typography>
+          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+            <TextField
+              label="Late Fee Amount ($)"
+              value={lateFeeAmount}
+              onChange={(e) => setLateFeeAmount(e.target.value)}
+              type="number"
+              size="small"
+              sx={{ flex: 1 }}
+            />
+            <TextField
+              label="Days After Due Date"
+              value={lateFeeDays}
+              onChange={(e) => setLateFeeDays(e.target.value)}
+              type="number"
+              size="small"
+              sx={{ flex: 1 }}
+              helperText="E.g. 5 days"
+            />
+          </Box>
 
           {properties.length > 0 && (
             <FormControl fullWidth sx={{ mb: 3 }}>
