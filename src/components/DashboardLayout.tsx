@@ -365,7 +365,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </motion.div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 overflow-y-auto h-screen pt-16 md:pt-0 bg-background relative z-0">
+      <div className="flex-1 min-w-0 overflow-y-auto h-screen pt-16 md:pt-0 bg-background relative">
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

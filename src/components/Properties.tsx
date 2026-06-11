@@ -356,7 +356,7 @@ export function Properties() {
 
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 md:p-10">
             {/* Blurred Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
