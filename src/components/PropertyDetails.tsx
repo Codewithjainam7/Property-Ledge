@@ -22,6 +22,8 @@ export function PropertyDetails() {
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [invitingEnquiryId, setInvitingEnquiryId] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
+  const [activeLease, setActiveLease] = useState<any>(null);
+  const [isLeaseModalOpen, setIsLeaseModalOpen] = useState(false);
 
   // Edit Property State
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false);
@@ -94,6 +96,18 @@ export function PropertyDetails() {
         
       if (enquiriesData) {
         setEnquiries(enquiriesData);
+      }
+
+      // Fetch active lease details including tenant_signature
+      const { data: leaseData } = await supabase
+        .from('leases')
+        .select('*')
+        .eq('property_id', id)
+        .eq('status', 'Active')
+        .maybeSingle();
+        
+      if (leaseData) {
+        setActiveLease(leaseData);
       }
     };
     loadProperty();
@@ -677,6 +691,14 @@ export function PropertyDetails() {
                                 <span className="text-xs font-medium text-emerald-600/80">
                                   {enq.status === 'Accepted' ? 'Tenant has accepted the lease' : 'Waiting for tenant to accept'}
                                 </span>
+                                {enq.status === 'Accepted' && (
+                                  <button 
+                                    onClick={() => setIsLeaseModalOpen(true)}
+                                    className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-sm"
+                                  >
+                                    View Signed Lease
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -701,6 +723,11 @@ export function PropertyDetails() {
                     variants={itemVariants}
                     whileHover={{ y: -4, scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (item.action === 'View Lease') {
+                        setIsLeaseModalOpen(true);
+                      }
+                    }}
                     className={`${item.colSpan} ${item.bg} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] cursor-pointer`}
                   >
                     <div className="relative z-10 flex-1 flex flex-col">
@@ -1001,6 +1028,94 @@ export function PropertyDetails() {
                 </div>
               )}
             </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Lease Agreement Viewer Modal via Portal */}
+      {createPortal(
+        <AnimatePresence>
+          {isLeaseModalOpen && (
+            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 md:p-8">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                onClick={() => setIsLeaseModalOpen(false)}
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-3xl bg-surface rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10"
+              >
+                <div className="bg-primary px-8 py-6 flex items-center justify-between shrink-0">
+                  <div className="text-on-primary">
+                    <h3 className="text-2xl font-black tracking-tight mb-1">Residential Lease Agreement</h3>
+                    <p className="text-on-primary/80 text-sm font-medium">Digital lease record and signatures.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsLeaseModalOpen(false)} 
+                    className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-surface-container-lowest">
+                  <div className="prose prose-sm max-w-none text-on-surface-variant mb-8 bg-white p-6 rounded-2xl border border-outline-variant/30 shadow-inner">
+                    <h4 className="text-lg font-black text-on-surface mb-4">Terms and Conditions</h4>
+                    <p>This Residential Tenancy Agreement is officially recorded.</p>
+                    <p><strong>Property Address:</strong><br/>{property.address}, {property.suburb}, {property.state} {property.postcode}</p>
+                    <p><strong>Rent Amount:</strong> ${activeLease?.rent_amount || property.rentAmount || property.rent_amount} per {activeLease?.payment_frequency || property.paymentFrequency || property.payment_frequency}</p>
+                    <p><strong>Lease Term:</strong> {activeLease?.start_date ? new Date(activeLease.start_date).toLocaleDateString() : (property.leaseStart ? new Date(property.leaseStart).toLocaleDateString() : new Date().toLocaleDateString())} to {activeLease?.end_date ? new Date(activeLease.end_date).toLocaleDateString() : (property.leaseStart ? new Date(new Date(property.leaseStart).setMonth(new Date(property.leaseStart).getMonth() + (property.leaseDuration || 12))).toLocaleDateString() : 'N/A')}</p>
+                    <p><strong>Bond Amount:</strong> ${activeLease?.bond_amount || (activeLease?.rent_amount || property.rentAmount || property.rent_amount) * 4}</p>
+                    
+                    <hr className="my-6 border-outline-variant/40" />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                      <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 flex flex-col">
+                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-2">Landlord / Owner</span>
+                        <span className="text-sm font-bold text-on-surface">{permissions?.is_owner ? 'You (Landlord)' : 'Property Manager'}</span>
+                        <span className="text-xs text-on-surface-variant mt-1">{permissions?.email || ''}</span>
+                      </div>
+                      
+                      <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 flex flex-col">
+                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-2">Tenant</span>
+                        <span className="text-sm font-bold text-on-surface">{property.tenantName || 'N/A'}</span>
+                        <span className="text-xs text-on-surface-variant mt-1">{property.tenantEmail || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    {activeLease?.tenant_signature ? (
+                      <div className="mt-6 p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl flex flex-col items-center justify-center">
+                        <span className="text-xs font-black text-emerald-800 uppercase tracking-widest mb-3">Tenant's Digital Signature</span>
+                        <div className="bg-white p-4 rounded-xl border border-emerald-100/60 shadow-sm max-w-md w-full flex items-center justify-center">
+                          <img src={activeLease.tenant_signature} alt="Tenant Signature" className="max-w-full max-h-[120px] object-contain" />
+                        </div>
+                        <span className="text-[10px] text-emerald-700/80 mt-3 font-mono">Digitally signed on {new Date(activeLease.updated_at).toLocaleString()}</span>
+                      </div>
+                    ) : (
+                      <div className="mt-6 p-4 bg-amber-50 border border-amber-100 text-amber-700 rounded-2xl text-center text-sm font-semibold flex items-center justify-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                        Waiting for tenant signature.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-6 bg-surface-container-lowest border-t border-outline-variant/30 flex gap-4 shrink-0 justify-end">
+                  <button 
+                    onClick={() => setIsLeaseModalOpen(false)} 
+                    className="px-6 py-3 bg-primary text-white hover:bg-primary/95 rounded-full font-black text-xs uppercase tracking-widest transition-colors cursor-pointer shadow-md"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>,
         document.body
