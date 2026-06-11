@@ -31,6 +31,7 @@ interface InvoiceState {
   landlordEmail: string;
 
   tenantName: string;
+  tenantEmail: string;
   tenantAbn: string;
   tenantAttention: string;
   tenantAddress: string;
@@ -60,6 +61,7 @@ const getInitialState = (user: any): InvoiceState => {
     landlordPhone: '0412 345 678',
     landlordEmail: user?.email || '',
     tenantName: 'Tenant Name',
+    tenantEmail: '',
     propertyId: null,
     tenantAbn: '45 678 123 456',
     tenantAttention: 'Tenant Name',
@@ -205,9 +207,15 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
           user_id: user?.id,
           property_id: state.propertyId,
           invoice_number: state.invoiceNumber,
-          status: 'Unpaid',
+          status: 'Draft',
           total_amount: total,
           due_date: state.dueDate || new Date().toISOString().split('T')[0],
+          issue_date: state.issueDate || new Date().toISOString().split('T')[0],
+          property_address: properties.find(p => p.id === state.propertyId)?.address || '',
+          tenant_name: state.tenantName,
+          tenant_email: state.tenantEmail,
+          billing_period_start: state.issueDate || new Date().toISOString().split('T')[0],
+          billing_period_end: state.dueDate || new Date().toISOString().split('T')[0],
         });
         onClose();
       } catch (e: any) {
@@ -400,6 +408,7 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
               </AccordionSummary>
               <AccordionDetails sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 0 }}>
                 <TextField label="Name" size="small" fullWidth value={state.tenantName} onChange={(e) => updateState('tenantName', e.target.value)} />
+                <TextField label="Email" size="small" fullWidth value={state.tenantEmail} onChange={(e) => updateState('tenantEmail', e.target.value)} />
                 <TextField label="ABN" size="small" fullWidth value={state.tenantAbn} onChange={(e) => updateState('tenantAbn', e.target.value)} />
                 <TextField label="Attention" size="small" fullWidth value={state.tenantAttention} onChange={(e) => updateState('tenantAttention', e.target.value)} />
                 <TextField label="Address" size="small" fullWidth multiline rows={3} value={state.tenantAddress} onChange={(e) => updateState('tenantAddress', e.target.value)} />

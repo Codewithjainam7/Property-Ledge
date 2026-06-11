@@ -142,13 +142,40 @@ CREATE TABLE public.invoices (
     template_id UUID REFERENCES public.invoice_templates(id) ON DELETE SET NULL,
     lease_id UUID REFERENCES public.leases(id) ON DELETE SET NULL,
     invoice_number TEXT,
-    status TEXT DEFAULT 'Draft' CHECK (status IN ('Draft', 'Unpaid', 'Paid', 'Partially Paid', 'Overdue', 'Cancelled')),
+    status TEXT DEFAULT 'Draft' CHECK (status IN ('Draft', 'Sent', 'Viewed', 'Unpaid', 'Paid', 'Partially Paid', 'Overdue', 'Cancelled')),
     total_amount NUMERIC(10, 2) NOT NULL CHECK (total_amount >= 0),
+    -- Historical Snapshot Fields (Immutability)
+    property_address TEXT,
+    tenant_name TEXT,
+    tenant_email TEXT,
+    billing_period_start DATE,
+    billing_period_end DATE,
+    agency_details JSONB,
     issue_date DATE DEFAULT CURRENT_DATE,
     due_date DATE NOT NULL,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 9.1 Create Invoice Recipients Table
+CREATE TABLE public.invoice_recipients (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    invoice_id UUID REFERENCES public.invoices(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    recipient_type TEXT DEFAULT 'CC' CHECK (recipient_type IN ('Primary', 'CC')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 9.2 Create Invoice Audit Logs Table
+CREATE TABLE public.invoice_audit_logs (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    invoice_id UUID REFERENCES public.invoices(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- 10. Create Payments Table (Future Phase)
@@ -204,6 +231,8 @@ ALTER TABLE public.leases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lease_tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoice_recipients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoice_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.maintenance_requests ENABLE ROW LEVEL SECURITY;
 
@@ -231,6 +260,18 @@ CREATE POLICY "Owner full access lease tenants" ON public.lease_tenants USING (E
 
 -- Future Phase Policies (Owner based for now to prevent breaking)
 CREATE POLICY "Owner access templates" ON public.invoice_templates USING (auth.uid() = user_id);
-CREATE POLICY "Owner access invoices" ON public.invoices USING (auth.uid() = user_id);
+CREATE POLICY "Access invoices" ON public.invoices USING (
+  auth.uid() = user_id OR
+  EXISTS (SELECT 1 FROM public.properties p WHERE p.id = property_id AND p.owner_id = auth.uid()) OR
+  EXISTS (SELECT 1 FROM public.property_team pt WHERE pt.property_id = invoices.property_id AND pt.user_id = auth.uid())
+);
+
+-- Invoice Recipients & Audit Logs Policies
+CREATE POLICY "Access invoice recipients" ON public.invoice_recipients USING (
+    EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = invoice_id AND i.user_id = auth.uid())
+);
+CREATE POLICY "Access invoice audit logs" ON public.invoice_audit_logs USING (
+    EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = invoice_id AND i.user_id = auth.uid())
+);
 CREATE POLICY "Owner access payments" ON public.payments USING (auth.uid() = user_id);
 CREATE POLICY "Owner access maintenance" ON public.maintenance_requests USING (auth.uid() = user_id);
