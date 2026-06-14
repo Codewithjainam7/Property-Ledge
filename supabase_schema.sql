@@ -6,16 +6,21 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. Drop existing tables and functions if they exist (in reverse dependency order)
-DROP TABLE IF EXISTS public.maintenance_requests;
-DROP TABLE IF EXISTS public.payments;
-DROP TABLE IF EXISTS public.invoices;
-DROP TABLE IF EXISTS public.invoice_templates;
-DROP TABLE IF EXISTS public.lease_tenants;
-DROP TABLE IF EXISTS public.leases;
-DROP TABLE IF EXISTS public.property_team;
-DROP TABLE IF EXISTS public.properties;
-DROP TABLE IF EXISTS public.tenants;
-DROP TABLE IF EXISTS public.user_profiles;
+DROP FUNCTION IF EXISTS public.is_property_owner(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.has_property_permission(UUID, TEXT) CASCADE;
+DROP TABLE IF EXISTS public.maintenance_requests CASCADE;
+DROP TABLE IF EXISTS public.payments CASCADE;
+DROP TABLE IF EXISTS public.invoice_recipients CASCADE;
+DROP TABLE IF EXISTS public.invoice_audit_logs CASCADE;
+DROP TABLE IF EXISTS public.invoices CASCADE;
+DROP TABLE IF EXISTS public.invoice_templates CASCADE;
+DROP TABLE IF EXISTS public.property_enquiries CASCADE;
+DROP TABLE IF EXISTS public.lease_tenants CASCADE;
+DROP TABLE IF EXISTS public.leases CASCADE;
+DROP TABLE IF EXISTS public.property_team CASCADE;
+DROP TABLE IF EXISTS public.properties CASCADE;
+DROP TABLE IF EXISTS public.tenants CASCADE;
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
 
 -- Function for auto-updating timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -30,13 +35,11 @@ $$ language 'plpgsql';
 -- TABLE CREATION
 -- ==========================================
 
--- 2. Create User Profiles Table (Global Roles)
 CREATE TABLE public.user_profiles (
     id UUID REFERENCES auth.users(id) PRIMARY KEY,
     email TEXT NOT NULL,
     first_name TEXT,
     last_name TEXT,
-    global_role TEXT DEFAULT 'Owner' CHECK (global_role IN ('Owner', 'Agent', 'Tenant', 'Strata')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -50,12 +53,20 @@ CREATE TABLE public.properties (
     suburb TEXT,
     postcode TEXT,
     state TEXT,
+    property_category TEXT CHECK (property_category IN ('Residential', 'Commercial')),
     property_type TEXT,
     image TEXT,
     bedrooms INTEGER DEFAULT 0 CHECK (bedrooms >= 0),
     bathrooms NUMERIC(3, 1) DEFAULT 0 CHECK (bathrooms >= 0),
     car_spaces INTEGER DEFAULT 0 CHECK (car_spaces >= 0),
     status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive', 'Maintenance')),
+    rent_amount NUMERIC(10, 2),
+    payment_frequency TEXT,
+    images JSONB,
+    tenant_name TEXT,
+    tenant_email TEXT,
+    lease_start DATE,
+    lease_duration TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -65,29 +76,27 @@ CREATE TABLE public.property_team (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     property_id UUID REFERENCES public.properties(id) ON DELETE CASCADE,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT, -- Used for pending invitations before user creates an auth account
     role TEXT NOT NULL CHECK (role IN ('Manager', 'Agent', 'Strata')),
-    can_view_property BOOLEAN DEFAULT true,
-    can_view_lease BOOLEAN DEFAULT false,
-    can_create_lease BOOLEAN DEFAULT false,
-    can_edit_lease BOOLEAN DEFAULT false,
-    can_manage_tenants BOOLEAN DEFAULT false,
-    can_renew_lease BOOLEAN DEFAULT false,
-    can_terminate_lease BOOLEAN DEFAULT false,
+    permissions JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(property_id, user_id)
+    UNIQUE(property_id, user_id),
+    UNIQUE(property_id, email)
 );
 
 -- 5. Create Tenants Table (Profile info for tenants, could also link to auth.users if they log in)
 CREATE TABLE public.tenants (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    property_id UUID REFERENCES public.properties(id) ON DELETE CASCADE, -- Linked property
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- If tenant has an account
     owner_id UUID REFERENCES auth.users(id) NOT NULL, -- Who created the tenant record
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT,
     phone TEXT,
-    status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive', 'Archived')),
+    access_level JSONB DEFAULT '{"receives_emails": true, "can_login": false}'::jsonb,
+    status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive', 'Archived', 'Pending', 'Invited')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -184,15 +193,18 @@ CREATE TABLE public.invoice_audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 10. Create Payments Table (Future Phase)
+-- 10. Create Payments Table (Phase 4 Rental Ledger)
 CREATE TABLE public.payments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) NOT NULL,
-    invoice_id UUID REFERENCES public.invoices(id) ON DELETE CASCADE,
-    amount NUMERIC(10, 2) NOT NULL CHECK (amount > 0),
-    payment_date DATE NOT NULL,
-    payment_method TEXT CHECK (payment_method IN ('Bank Transfer', 'Credit Card', 'Cash', 'Direct Debit', 'Other')),
-    reference TEXT,
+    property_id UUID REFERENCES public.properties(id) ON DELETE CASCADE,
+    tenant_id UUID REFERENCES public.tenants(id) ON DELETE SET NULL,
+    lease_id UUID REFERENCES public.leases(id) ON DELETE SET NULL,
+    amount_due NUMERIC(10, 2) NOT NULL CHECK (amount_due >= 0),
+    amount_paid NUMERIC(10, 2) DEFAULT 0 CHECK (amount_paid >= 0),
+    due_date DATE NOT NULL,
+    paid_date DATE,
+    status TEXT DEFAULT 'Pending' CHECK (status IN ('Pending', 'Paid', 'Overdue', 'Partial')),
+    payment_type TEXT NOT NULL CHECK (payment_type IN ('Rent', 'Bond', 'Water', 'Maintenance')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -227,6 +239,28 @@ CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON public.payments FOR E
 CREATE TRIGGER update_maintenance_requests_updated_at BEFORE UPDATE ON public.maintenance_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ==========================================
+-- AUTHENTICATION TRIGGERS (INVITE SYSTEM)
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.handle_new_user_invite_link()
+RETURNS trigger AS $$
+BEGIN
+  -- Link to property_team
+  UPDATE public.property_team SET user_id = NEW.id WHERE email = NEW.email AND user_id IS NULL;
+  
+  -- Link to tenants
+  UPDATE public.tenants SET user_id = NEW.id WHERE email = NEW.email AND user_id IS NULL;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Note: In Supabase, you must run this via SQL Editor to attach to auth.users schema
+-- DROP TRIGGER IF EXISTS on_auth_user_created_link_invites ON auth.users;
+-- CREATE TRIGGER on_auth_user_created_link_invites
+--   AFTER INSERT ON auth.users
+--   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_invite_link();
+
+-- ==========================================
 -- ROW LEVEL SECURITY (RLS)
 -- ==========================================
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -247,18 +281,38 @@ CREATE POLICY "Users can view their own profile" ON public.user_profiles FOR SEL
 CREATE POLICY "Users can insert their own profile" ON public.user_profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON public.user_profiles FOR UPDATE USING (auth.uid() = id);
 
+-- RLS Helper Functions to prevent Infinite Recursion
+CREATE OR REPLACE FUNCTION public.is_property_owner(pid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1 FROM public.properties WHERE id = pid AND owner_id = auth.uid());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.has_property_permission(pid UUID, perm TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.property_team 
+    WHERE property_id = pid 
+    AND user_id = auth.uid() 
+    AND (permissions->>perm)::boolean = true
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Properties: Owner can do anything. Team can view if they have permissions.
 CREATE POLICY "Owner full access properties" ON public.properties USING (auth.uid() = owner_id);
-CREATE POLICY "Team view access properties" ON public.properties FOR SELECT USING (EXISTS (SELECT 1 FROM public.property_team WHERE property_id = properties.id AND user_id = auth.uid() AND can_view_property = true));
+CREATE POLICY "Team view access properties" ON public.properties FOR SELECT USING (public.has_property_permission(id, 'can_view_property'));
 
 -- Team: Owner manages team. Team members can view themselves.
-CREATE POLICY "Owner full access team" ON public.property_team USING (EXISTS (SELECT 1 FROM public.properties WHERE id = property_team.property_id AND owner_id = auth.uid()));
+CREATE POLICY "Owner full access team" ON public.property_team USING (public.is_property_owner(property_id));
 CREATE POLICY "Team view self" ON public.property_team FOR SELECT USING (user_id = auth.uid());
 
 -- Leases: Owner full access. Team access depends on permissions.
 CREATE POLICY "Owner full access leases" ON public.leases USING (EXISTS (SELECT 1 FROM public.properties WHERE id = leases.property_id AND owner_id = auth.uid()));
-CREATE POLICY "Team view access leases" ON public.leases FOR SELECT USING (EXISTS (SELECT 1 FROM public.property_team WHERE property_id = leases.property_id AND user_id = auth.uid() AND can_view_lease = true));
-CREATE POLICY "Team edit access leases" ON public.leases FOR UPDATE USING (EXISTS (SELECT 1 FROM public.property_team WHERE property_id = leases.property_id AND user_id = auth.uid() AND can_edit_lease = true));
+CREATE POLICY "Team view access leases" ON public.leases FOR SELECT USING (EXISTS (SELECT 1 FROM public.property_team WHERE property_id = leases.property_id AND user_id = auth.uid() AND permissions @> '{"can_view_lease": true}'));
+CREATE POLICY "Team edit access leases" ON public.leases FOR UPDATE USING (EXISTS (SELECT 1 FROM public.property_team WHERE property_id = leases.property_id AND user_id = auth.uid() AND permissions @> '{"can_edit_lease": true}'));
 
 -- Tenants & Lease Tenants (Simplified for now: Owner has full access)
 CREATE POLICY "Owner full access tenants" ON public.tenants USING (auth.uid() = owner_id);
@@ -268,16 +322,17 @@ CREATE POLICY "Owner full access lease tenants" ON public.lease_tenants USING (E
 CREATE POLICY "Owner access templates" ON public.invoice_templates USING (auth.uid() = user_id);
 CREATE POLICY "Access invoices" ON public.invoices USING (
   auth.uid() = user_id OR
-  EXISTS (SELECT 1 FROM public.properties p WHERE p.id = property_id AND p.owner_id = auth.uid()) OR
+  tenant_email = auth.jwt()->>'email' OR
+  EXISTS (SELECT 1 FROM public.properties p WHERE p.id = invoices.property_id AND p.owner_id = auth.uid()) OR
   EXISTS (SELECT 1 FROM public.property_team pt WHERE pt.property_id = invoices.property_id AND pt.user_id = auth.uid())
 );
 
 -- Invoice Recipients & Audit Logs Policies
 CREATE POLICY "Access invoice recipients" ON public.invoice_recipients USING (
-    EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = invoice_id AND i.user_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = invoice_recipients.invoice_id AND i.user_id = auth.uid())
 );
 CREATE POLICY "Access invoice audit logs" ON public.invoice_audit_logs USING (
-    EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = invoice_id AND i.user_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.invoices i WHERE i.id = invoice_audit_logs.invoice_id AND i.user_id = auth.uid())
 );
-CREATE POLICY "Owner access payments" ON public.payments USING (auth.uid() = user_id);
+CREATE POLICY "Owner access payments" ON public.payments USING (public.is_property_owner(property_id));
 CREATE POLICY "Owner access maintenance" ON public.maintenance_requests USING (auth.uid() = user_id);

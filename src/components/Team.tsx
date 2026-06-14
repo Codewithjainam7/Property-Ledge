@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import emailjs from '@emailjs/browser';
 import { createPortal } from 'react-dom';
 
 type Property = {
@@ -18,11 +17,15 @@ type TeamMember = {
   property_id: string;
   user_id: string;
   role: string;
-  can_view_property: boolean;
-  can_view_lease: boolean;
-  can_create_lease: boolean;
-  can_edit_lease: boolean;
-  can_manage_tenants: boolean;
+  permissions?: {
+    can_view_property: boolean;
+    can_view_lease: boolean;
+    can_create_lease: boolean;
+    can_edit_lease: boolean;
+    can_manage_tenants: boolean;
+    can_renew_lease: boolean;
+    can_terminate_lease: boolean;
+  };
   user_profiles?: {
     first_name: string;
     last_name: string;
@@ -93,24 +96,23 @@ export function Team() {
       let emailErrorMsg = '';
       if (selectedProp) {
         try {
-          await emailjs.send(
-            'service_pvyeiv4',
-            'template_fa2cvee',
-            {
-              email: inviteEmail,
-              to_email: inviteEmail, // Standard EmailJS variable
-              user_email: inviteEmail, 
-              role: inviteRole, 
-              property_address: `${selectedProp.address}, ${selectedProp.suburb}`,
-              reply_to: landlordEmail,
-              property_id: selectedProp.id
-            },
-            'HiMuS6V2asatgtQDn'
-          );
+          await supabase.functions.invoke('send-email', {
+            body: {
+              to: inviteEmail,
+              subject: `Invitation to join the property team at ${selectedProp.address}`,
+              templateType: 'team-invite',
+              variables: {
+                propertyAddress: `${selectedProp.address}, ${selectedProp.suburb}`,
+                inviteUrl: `${window.location.origin}/signup?invite=true&email=${inviteEmail}`,
+                role: inviteRole,
+                landlordEmail: landlordEmail
+              }
+            }
+          });
         } catch (emailErr: any) {
-          console.error("EmailJS error (non-fatal):", emailErr);
+          console.error("Mailtrap Edge Function call failed (non-fatal):", emailErr);
           emailFailed = true;
-          emailErrorMsg = `Email failed: ${emailErr?.text || emailErr?.message || 'Unknown'}. Check template variables.`;
+          emailErrorMsg = `Email failed: ${emailErr?.message || 'Unknown'}`;
           setInviteError(emailErrorMsg);
         }
       }
@@ -123,11 +125,15 @@ export function Team() {
           property_id: selectedPropertyId,
           user_id: userId,
           role: inviteRole,
-          can_view_property: true,
-          can_view_lease: true,
-          can_create_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
-          can_edit_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
-          can_manage_tenants: inviteRole === 'Manager' || inviteRole === 'Agent'
+          permissions: {
+            can_view_property: true,
+            can_view_lease: true,
+            can_create_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
+            can_edit_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
+            can_manage_tenants: inviteRole === 'Manager' || inviteRole === 'Agent',
+            can_renew_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
+            can_terminate_lease: inviteRole === 'Manager' || inviteRole === 'Agent'
+          }
         });
 
         if (insertError && insertError.code === '23505') {
@@ -162,18 +168,26 @@ export function Team() {
 
   const togglePermission = async (memberId: string, field: string, currentValue: boolean) => {
     try {
+      const member = teamMembers.find(m => m.id === memberId);
+      if (!member || !member.permissions) return;
+      
+      const newPermissions = { ...member.permissions, [field]: !currentValue };
+
       // Optimistic update
-      setTeamMembers(prev => prev.map(m => m.id === memberId ? { ...m, [field]: !currentValue } : m));
+      setTeamMembers(prev => prev.map(m => m.id === memberId ? { ...m, permissions: newPermissions } : m));
       
       const { error } = await supabase
         .from('property_team')
-        .update({ [field]: !currentValue })
+        .update({ permissions: newPermissions })
         .eq('id', memberId);
         
-      if (error) throw error;
+      if (error) {
+        // Revert on error
+        setTeamMembers(prev => prev.map(m => m.id === memberId ? { ...m, permissions: member.permissions } : m));
+        console.error("Error updating permission:", error);
+      }
     } catch (err) {
-      console.error("Error toggling permission:", err);
-      if (session?.user.id) loadData(session.user.id); // Revert on failure
+      console.error(err);
     }
   };
 
@@ -275,8 +289,8 @@ export function Team() {
                                   <input 
                                     type="checkbox" 
                                     className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.can_view_lease}
-                                    onChange={() => togglePermission(member.id, 'can_view_lease', member.can_view_lease)}
+                                    checked={member.permissions?.can_view_lease || false}
+                                    onChange={() => togglePermission(member.id, 'can_view_lease', member.permissions?.can_view_lease || false)}
                                   />
                                   <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">View Leases</span>
                                 </label>
@@ -284,8 +298,8 @@ export function Team() {
                                   <input 
                                     type="checkbox" 
                                     className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.can_create_lease}
-                                    onChange={() => togglePermission(member.id, 'can_create_lease', member.can_create_lease)}
+                                    checked={member.permissions?.can_create_lease || false}
+                                    onChange={() => togglePermission(member.id, 'can_create_lease', member.permissions?.can_create_lease || false)}
                                   />
                                   <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Create Leases</span>
                                 </label>
@@ -293,8 +307,8 @@ export function Team() {
                                   <input 
                                     type="checkbox" 
                                     className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.can_edit_lease}
-                                    onChange={() => togglePermission(member.id, 'can_edit_lease', member.can_edit_lease)}
+                                    checked={member.permissions?.can_edit_lease || false}
+                                    onChange={() => togglePermission(member.id, 'can_edit_lease', member.permissions?.can_edit_lease || false)}
                                   />
                                   <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Edit Leases</span>
                                 </label>
@@ -302,8 +316,8 @@ export function Team() {
                                   <input 
                                     type="checkbox" 
                                     className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.can_manage_tenants}
-                                    onChange={() => togglePermission(member.id, 'can_manage_tenants', member.can_manage_tenants)}
+                                    checked={member.permissions?.can_manage_tenants || false}
+                                    onChange={() => togglePermission(member.id, 'can_manage_tenants', member.permissions?.can_manage_tenants || false)}
                                   />
                                   <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Manage Tenants</span>
                                 </label>

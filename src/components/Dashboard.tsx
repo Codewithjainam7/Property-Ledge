@@ -1,13 +1,14 @@
 // src/components/Dashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Building, FileText, Wallet, Search, Bell, Home, Users, Wrench, ChevronDown, Calendar, ArrowUpRight, CheckCircle2, Clock, MapPin, MoreHorizontal, AlertCircle, RefreshCw } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Wallet, Building, Users, FileText, Wrench, Calendar, Plus, ChevronDown, ArrowUpRight, CheckCircle2, Home, X, Clock, MapPin, MoreHorizontal, AlertCircle, RefreshCw, Search, Bell } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../utils/format';
 import { SkeletonCard, SkeletonRow } from './Skeletons';
+import { PropertyOnboarding } from './PropertyOnboarding';
 
 const quickActions = [
   { title: 'Create Lease', icon: FileText, path: '/dashboard/onboarding' },
@@ -17,10 +18,11 @@ const quickActions = [
 ];
 
 export function Dashboard() {
-  const { user, globalRole, loading: authLoading } = useAuth();
+  const { user, userContext, loading: authLoading } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const navigate = useNavigate();
 
   // Fetch data immediately on mount — don't wait for auth
@@ -141,10 +143,13 @@ export function Dashboard() {
                <button className="flex items-center gap-2 px-4 py-2 bg-surface border border-outline-variant rounded-full text-sm font-bold text-on-surface hover:bg-surface-container-low shadow-sm">
                  <Calendar className="w-4 h-4 text-on-surface-variant" /> This Month <ChevronDown className="w-4 h-4 text-on-surface-variant" />
                </button>
-               {globalRole === 'Owner' && (
-                 <Link to="/dashboard/onboarding" className="bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm hover:shadow-md hover:bg-primary/95 transition-all">
+               {userContext?.isLandlordOrTeam && (
+                 <button 
+                   onClick={() => setIsAddModalOpen(true)}
+                   className="bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm hover:shadow-md hover:bg-primary/95 transition-all cursor-pointer"
+                 >
                    <Plus className="w-4 h-4" /> Add Property
-                 </Link>
+                 </button>
                )}
             </div>
           </header>
@@ -367,7 +372,7 @@ export function Dashboard() {
                        )) : (
                          <tr>
                            <td colSpan={7} className="px-6 py-8 text-center text-sm text-on-surface-variant font-medium">
-                             No properties found. {globalRole === 'Owner' && <Link to="/dashboard/onboarding" className="text-primary hover:underline font-bold">Add your first property.</Link>}
+                             No properties found. {userContext?.isLandlordOrTeam && <Link to="/dashboard/onboarding" className="text-primary hover:underline font-bold">Add your first property.</Link>}
                            </td>
                          </tr>
                        )}
@@ -413,7 +418,42 @@ export function Dashboard() {
             </motion.div>
 
           </div>
-        </div>
+        
+        <AnimatePresence>
+          {isAddModalOpen && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 md:p-10">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAddModalOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-md"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', duration: 0.5 }}
+                className="relative w-full max-w-4xl bg-[#f2f4f3] border border-outline-variant/40 rounded-[28px] shadow-2xl overflow-y-auto max-h-[90vh] z-10 p-6 sm:p-10 md:p-12"
+              >
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                <PropertyOnboarding
+                  onCancel={() => setIsAddModalOpen(false)}
+                  onSuccess={() => {
+                    setIsAddModalOpen(false);
+                    fetchDashboardData();
+                  }}
+                />
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
     </DashboardLayout>
   );
 }

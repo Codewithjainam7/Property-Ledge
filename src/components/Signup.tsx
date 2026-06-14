@@ -1,16 +1,20 @@
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 import { Button } from '@mui/material';
 import { Building, ClipboardList, Users, UserCircle2, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 export function Signup() {
+  const [searchParams] = useSearchParams();
+  const isInvite = searchParams.get('invite') === 'true';
+  const inviteEmail = searchParams.get('email') || '';
+
   const [step, setStep] = useState(1);
-  const [role, setRole] = useState('');
+  const [role, setRole] = useState(isInvite ? 'Tenant' : ''); // Default role for invites to bypass step 2 if needed
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(inviteEmail);
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,6 +22,26 @@ export function Signup() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isInvite && inviteEmail) {
+      // Store the invite email in localStorage so we can bridge it after OAuth redirect
+      localStorage.setItem('pendingInviteEmail', inviteEmail.toLowerCase());
+      
+      supabase
+        .from('tenants')
+        .select('first_name, last_name, phone')
+        .eq('email', inviteEmail)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setFname(data.first_name || '');
+            setLname(data.last_name || '');
+            setMobile(data.phone || '');
+          }
+        });
+    }
+  }, [isInvite, inviteEmail]);
 
   // OTP Verification State
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -69,7 +93,12 @@ export function Signup() {
         return;
       }
       setError(null);
-      setStep(2);
+      if (isInvite) {
+        // Bypass role selection for invites
+        handleCompleteSetup();
+      } else {
+        setStep(2);
+      }
     }
   };
 
@@ -82,6 +111,8 @@ export function Signup() {
       password,
       options: {
         data: {
+          first_name: fname.trim(),
+          last_name: lname.trim(),
           full_name: `${fname} ${lname}`.trim(),
           mobile,
           role
@@ -147,7 +178,7 @@ export function Signup() {
           </Link>
           {!needsVerification && (
             <div className="text-[10px] font-black text-[#4a4a5e] bg-gray-100 border border-gray-200 rounded-full px-3 py-1 flex items-center gap-1 shadow-inner">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Step {step} of 2
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {isInvite ? 'Tenant Setup' : `Step ${step} of 2`}
             </div>
           )}
         </div>
@@ -181,6 +212,59 @@ export function Signup() {
               </button>
             </form>
           </motion.div>
+        ) : isInvite ? (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <h2 className="text-3xl md:text-[36px] font-black text-[#1c1c28] mb-2 tracking-tight leading-tight">Claim Your Dashboard</h2>
+            <p className="text-sm text-[#4a4a5e] mb-6 font-medium">
+              Create a password to access your resident portal for <span className="text-[#3b22b5] font-bold">{email}</span>
+            </p>
+            {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100">{error}</div>}
+            
+             <form onSubmit={handleNext} className="space-y-5">
+              {/* Hidden email input to help browser password managers detect the username */}
+              <input type="hidden" name="email" value={email} autoComplete="username" />
+              
+              <div className="space-y-4">
+                 <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Password</label>
+                      <button type="button" onClick={generatePassword} className="text-[10px] font-black text-primary hover:text-primary/80 uppercase tracking-wider transition-colors">Generate</button>
+                    </div>
+                    <div className="relative">
+                      <input type={showPassword ? "text" : "password"} name="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 pr-10 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1c1c28] transition-colors">
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Confirm Password</label>
+                    <div className="relative">
+                      <input type={showPassword ? "text" : "password"} placeholder="••••••••" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm" />
+                    </div>
+                 </div>
+                 {password && (
+                   <div className="mt-4">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10px] font-black text-[#4a4a5e] uppercase tracking-wider">Password Strength</span>
+                        <span className="text-[10px] font-black text-[#1c1c28]">{calculateStrength(password) < 40 ? 'Weak' : calculateStrength(password) < 80 ? 'Good' : 'Strong'}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-300 ${calculateStrength(password) < 40 ? 'bg-red-500' : calculateStrength(password) < 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${calculateStrength(password)}%` }}></div>
+                      </div>
+                   </div>
+                 )}
+              </div>
+              
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full relative group overflow-hidden bg-[#22333b] text-white font-bold uppercase tracking-wider rounded-2xl py-4 mt-8 hover:bg-[#111a1e] transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <>ACTIVATE ACCOUNT <ArrowRight className="w-4 h-4" /></>}
+              </button>
+            </form>
+          </motion.div>
         ) : step === 1 ? (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <h2 className="text-3xl md:text-[38px] font-black text-[#1c1c28] mb-2 tracking-tight leading-tight">Create your account</h2>
@@ -200,7 +284,7 @@ export function Signup() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Email address</label>
-                  <input type="email" placeholder="sarah@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm" />
+                  <input type="email" placeholder="sarah@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!inviteEmail} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm disabled:opacity-60" />
                  </div>
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Mobile number</label>

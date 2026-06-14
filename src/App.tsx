@@ -15,10 +15,11 @@ import { Tenants } from './components/Tenants';
 import { Accounting } from './components/Accounting';
 import { Login as SupabaseLogin } from './components/Login';
 import { TenantPortal } from './components/TenantPortal';
-import { TenantPropertyDetails } from './components/TenantPropertyDetails';
+
 import { Signup } from './components/Signup';
 import { CompleteProfile } from './components/CompleteProfile';
 import { TenantLeaseDashboard } from './components/TenantLeaseDashboard';
+import { Welcome } from './components/Welcome';
 import { useAuth } from './contexts/AuthContext';
 
 function Navigation() {
@@ -1370,12 +1371,30 @@ function Login() {
 
 
 function DashboardRouter() {
-  const { globalRole, loading } = useAuth();
+  const { userContext, session, loading } = useAuth();
   
-  if (loading) return null; // Let AuthContext or DashboardLayout handle loading state
+  if (loading) return null;
+
+  // ─── Tenant Routing ───
+  if (userContext?.isTenant && !userContext?.isLandlordOrTeam) {
+    const status = userContext.tenantStatus;
+    
+    // Pending or Invited tenants → Welcome/Handshake page
+    if (status === 'Pending' || status === 'Invited') {
+      return <Navigate to="/dashboard/welcome" replace />;
+    }
+    
+    // Active tenants → their lease dashboard
+    return <Navigate to="/dashboard/my-lease" replace />;
+  }
+
+  // ─── Landlord / Team Routing ───
+  if (userContext?.isLandlordOrTeam) {
+    return <Dashboard />;
+  }
   
-  if (globalRole === 'Tenant') return <TenantPortal />;
-  return <Dashboard />; // Owner, Agent, Strata, Manager all use the Dashboard
+  // Fallback (shouldn't normally reach here)
+  return <Dashboard />;
 }
 
 import { Team } from './components/Team';
@@ -1392,11 +1411,12 @@ function AppRoutes() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/dashboard" element={<DashboardRouter />} />
+        <Route path="/dashboard/welcome" element={<Welcome />} />
         <Route path="/dashboard/my-lease" element={<TenantLeaseDashboard />} />
         <Route path="/dashboard/properties" element={<Properties />} />
         <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
         <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
-        <Route path="/dashboard/marketplace/:id" element={<TenantPropertyDetails />} />
+
         <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
         <Route path="/dashboard/settings" element={<AccountSettings />} />
         <Route path="/dashboard/team" element={<Team />} />

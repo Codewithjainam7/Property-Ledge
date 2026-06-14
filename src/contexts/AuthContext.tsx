@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { UserContextData } from '../types/database';
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
-  globalRole: string | null;
+  userContext: UserContextData | null;
   signOut: () => Promise<void>;
   loading: boolean;
 };
@@ -15,92 +16,125 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [globalRole, setGlobalRole] = useState<string | null>(null);
+  const [userContext, setUserContext] = useState<UserContextData | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchedUserIdRef = useRef<string | null>(null);
 
-  const fetchRole = async (userId: string) => {
+  const fetchUserContext = async (userId: string) => {
+    fetchedUserIdRef.current = userId;
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('global_role')
-        .eq('id', userId)
-        .single();
+      // Check if user is a landlord (owns any properties)
+      const { count: propertiesCount } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', userId);
+
+      // Check if user is in a property team
+      const { count: teamCount } = await supabase
+        .from('property_team')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      // Check if user is a tenant by user_id OR email
+      let tenantRecord = null;
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const userEmail = authUser?.email;
+      const userRole = authUser?.user_metadata?.role; // 'Owner', 'Agent', or 'Tenant'
+
+      // First try by user_id
+      if (userId) {
+        const { data: tenantByUid } = await supabase
+          .from('tenants')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle();
+        tenantRecord = tenantByUid;
+      }
+
+      // Then try by email (catches brand-new signups before user_id is linked)
+      if (!tenantRecord && userEmail) {
+        const { data: tenantByEmail } = await supabase
+          .from('tenants')
+          .select('*')
+          .ilike('email', userEmail)
+          .maybeSingle();
         
-      if (!error && data) {
-        setGlobalRole(data.global_role);
+        if (tenantByEmail) {
+          tenantRecord = tenantByEmail;
+          // Auto-link user_id to tenant record for future lookups
+          await supabase
+            .from('tenants')
+            .update({ user_id: userId })
+            .eq('id', tenantByEmail.id);
+        }
+      }
+
+      const isLandlordOrTeam = (propertiesCount ?? 0) > 0 || (teamCount ?? 0) > 0;
+      const isTenant = !!tenantRecord;
+
+      // CRITICAL FIX: If we found no landlord/team records AND no tenant record,
+      // check the user's signup role metadata as the final signal.
+      if (!isLandlordOrTeam && !isTenant) {
+        const signedUpAsTenant = userRole === 'Tenant';
+        setUserContext({
+          isLandlordOrTeam: !signedUpAsTenant,
+          isTenant: signedUpAsTenant,
+          tenantStatus: undefined, // Do NOT default to 'Pending', or it causes an infinite redirect loop if they have no invite!
+        });
       } else {
-        // Fallback for new signups or unmigrated users
-        setGlobalRole('Owner');
+        setUserContext({
+          isLandlordOrTeam,
+          isTenant,
+          tenantStatus: tenantRecord?.status,
+        });
       }
     } catch (e) {
-      console.error("Error fetching role:", e);
-      setGlobalRole('Owner');
+      console.error("Error fetching context:", e);
+      setUserContext({ isLandlordOrTeam: true, isTenant: false }); // Fallback
     }
   };
 
   useEffect(() => {
-    // Step 1: Read session from localStorage immediately — fast & synchronous.
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id).then(() => setLoading(false));
+        fetchUserContext(session.user.id).then(() => setLoading(false));
       } else {
         setLoading(false);
       }
     });
 
-    // Step 2: Listen for real-time auth events (login, logout, token refresh).
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'INITIAL_SESSION') return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
-      if (session?.user && event === 'SIGNED_IN') {
-        fetchRole(session.user.id);
+      if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        // Use the ref to check if we already fetched context for this exact user
+        if (fetchedUserIdRef.current !== session.user.id) {
+          setLoading(true);
+          fetchUserContext(session.user.id).finally(() => setLoading(false));
+        }
       } else if (!session?.user) {
-        setGlobalRole(null);
+        fetchedUserIdRef.current = null;
+        setUserContext(null);
+        setLoading(false);
       }
     });
 
-    // Step 3: Set up a polling mechanism to ensure the user hasn't been deleted from the database
-    let intervalId: any;
-    if (session?.user) {
-      intervalId = setInterval(async () => {
-        try {
-          // Verify if the user profile still exists
-          const { error } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (error && error.code === 'PGRST116') {
-            // Profile not found - user data was erased. Force sign out.
-            console.warn("User profile no longer exists. Forcing sign-out.");
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            setGlobalRole(null);
-          }
-        } catch (e) {
-          // ignore network errors for polling
-        }
-      }, 30000); // Check every 30 seconds
-    }
-
     return () => {
       subscription.unsubscribe();
-      if (intervalId) clearInterval(intervalId);
     };
-  }, [session?.user?.id]);
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, globalRole, signOut, loading }}>
+    <AuthContext.Provider value={{ session, user, userContext, signOut, loading }}>
       {children}
     </AuthContext.Provider>
   );

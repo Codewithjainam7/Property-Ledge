@@ -1,9 +1,9 @@
 -- Run this in the Supabase Dashboard SQL Editor
 -- This allows Tenants to view their own tenant profile, their lease connection, and their actual leases.
 
--- 1. Allow tenants to view their own tenant profile
+DROP POLICY IF EXISTS "Tenants view own profile" ON public.tenants;
 CREATE POLICY "Tenants view own profile" ON public.tenants 
-FOR SELECT USING (user_id = auth.uid());
+FOR SELECT USING (user_id = auth.uid() OR email = auth.jwt()->>'email');
 
 -- 2. Allow tenants to view their connection to a lease
 CREATE POLICY "Tenants view own lease link" ON public.lease_tenants 

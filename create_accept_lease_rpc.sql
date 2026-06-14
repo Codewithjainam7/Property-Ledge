@@ -2,7 +2,7 @@
 -- This creates a highly resilient database function that bypasses RLS to allow an invited tenant to accept a lease.
 -- It also properly populates the tenants and lease_tenants tables.
 
-CREATE OR REPLACE FUNCTION public.accept_lease(p_property_id UUID, p_signature_data TEXT)
+CREATE OR REPLACE FUNCTION public.accept_lease(p_property_id UUID, p_signature_data TEXT, p_tenant_record_id UUID DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER -- Runs as the database owner, bypassing RLS
@@ -15,7 +15,7 @@ DECLARE
     v_tenant_first_name TEXT;
     v_tenant_last_name TEXT;
     v_tenant_email TEXT;
-    v_tenant_record_id UUID;
+    v_tenant_record_id UUID := p_tenant_record_id;
     v_lease_id UUID;
     v_property_status TEXT;
 BEGIN
@@ -53,13 +53,31 @@ BEGIN
     WHERE id = auth.uid();
 
     -- 3. Upsert tenant record in tenants table (create if not exists)
-    SELECT id INTO v_tenant_record_id
-    FROM public.tenants
-    WHERE user_id = auth.uid() AND owner_id = v_owner_id;
-
+    -- If p_tenant_record_id wasn't passed, fall back to email
     IF v_tenant_record_id IS NULL THEN
-        INSERT INTO public.tenants (user_id, owner_id, first_name, last_name, email, status)
-        VALUES (auth.uid(), v_owner_id, v_tenant_first_name, v_tenant_last_name, v_tenant_email, 'Active')
+        SELECT id INTO v_tenant_record_id
+        FROM public.tenants
+        WHERE email ILIKE v_tenant_email AND property_id = p_property_id
+        LIMIT 1;
+        
+        IF v_tenant_record_id IS NULL THEN
+            SELECT id INTO v_tenant_record_id
+            FROM public.tenants
+            WHERE email ILIKE v_tenant_email AND status IN ('Pending', 'Invited')
+            LIMIT 1;
+        END IF;
+    END IF;
+
+    IF v_tenant_record_id IS NOT NULL THEN
+        UPDATE public.tenants
+        SET user_id = auth.uid(),
+            status = 'Active',
+            owner_id = v_owner_id,
+            property_id = p_property_id
+        WHERE id = v_tenant_record_id;
+    ELSE
+        INSERT INTO public.tenants (user_id, owner_id, property_id, first_name, last_name, email, status)
+        VALUES (auth.uid(), v_owner_id, p_property_id, v_tenant_first_name, v_tenant_last_name, v_tenant_email, 'Active')
         RETURNING id INTO v_tenant_record_id;
     END IF;
 

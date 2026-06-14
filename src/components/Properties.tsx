@@ -10,7 +10,7 @@ import { PropertyOnboarding } from './PropertyOnboarding';
 
 export function Properties() {
   const navigate = useNavigate();
-  const { globalRole } = useAuth();
+  const { userContext } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,7 +95,7 @@ export function Properties() {
               <p className="text-sm text-on-surface-variant font-medium hidden sm:block">Manage your portfolio and track performance.</p>
             </div>
             {/* Mobile Add New Button */}
-            {globalRole === 'Owner' && (
+            {userContext?.isLandlordOrTeam && (
               <button 
                 onClick={() => setIsAddModalOpen(true)}
                 className="md:hidden bg-primary text-on-primary px-4 py-2 rounded-full font-bold text-sm flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0 cursor-pointer"
@@ -184,7 +184,7 @@ export function Properties() {
             </div>
             
             {/* Desktop Add New Button */}
-            {globalRole === 'Owner' && (
+            {userContext?.isLandlordOrTeam && (
               <button 
                 onClick={() => setIsAddModalOpen(true)}
                 className="hidden md:flex bg-primary text-on-primary px-5 py-2.5 rounded-full font-bold text-sm items-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.2)] hover:shadow-lg hover:-translate-y-0.5 transition-all shrink-0 cursor-pointer"
@@ -211,7 +211,7 @@ export function Properties() {
               <p className="text-on-surface-variant max-w-md mx-auto mb-6 text-sm">
                 {searchQuery ? "We couldn't find any properties matching your search." : "You haven't added any properties to your portfolio yet."}
               </p>
-              {!searchQuery && globalRole === 'Owner' && (
+              {!searchQuery && userContext?.isLandlordOrTeam && (
                 <button 
                   onClick={() => setIsAddModalOpen(true)}
                   className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full font-bold text-sm shadow-md hover:bg-primary/95 transition-all cursor-pointer"

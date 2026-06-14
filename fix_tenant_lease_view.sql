@@ -1,5 +1,6 @@
--- Run this in the Supabase Dashboard SQL Editor
--- This completely fixes the infinite recursion problem
+-- Ensure tenant_id and tenant_signature columns exist on public.leases
+ALTER TABLE public.leases ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.leases ADD COLUMN IF NOT EXISTS tenant_signature TEXT;
 
 -- Step 1: Drop ALL problematic policies on leases that cause cross-table recursion
 DROP POLICY IF EXISTS "Tenants view own leases" ON public.leases;
@@ -42,6 +43,7 @@ BEGIN
     ),
     'property', json_build_object(
       'id', p.id,
+      'owner_id', p.owner_id,
       'address', p.address,
       'suburb', p.suburb,
       'postcode', p.postcode,
@@ -55,10 +57,16 @@ BEGIN
       'rent_amount', p.rent_amount,
       'payment_frequency', p.payment_frequency,
       'status', p.status
+    ),
+    'landlord', json_build_object(
+      'first_name', u.first_name,
+      'last_name', u.last_name,
+      'email', u.email
     )
   ) INTO v_result
   FROM public.leases l
   JOIN public.properties p ON l.property_id = p.id
+  LEFT JOIN public.user_profiles u ON p.owner_id = u.id
   WHERE l.tenant_id = auth.uid()
   AND l.status = 'Active'
   ORDER BY l.created_at DESC

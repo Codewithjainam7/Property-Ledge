@@ -15,7 +15,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { session, user, globalRole, signOut, loading } = useAuth();
+  const { session, user, userContext, signOut, loading } = useAuth();
   
   const toggleSidebar = () => {
     const newVal = !isCollapsed;
@@ -118,24 +118,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   let organiseLinks = [];
   let toolsLinks = [];
 
-  if (globalRole === 'Tenant') {
+  if (userContext?.isTenant && !userContext?.isLandlordOrTeam) {
     organiseLinks = [
-      { name: 'Dashboard', icon: Home, to: '/dashboard', exact: true }
-    ];
-    toolsLinks = [];
-  } else if (globalRole === 'Agent' || globalRole === 'Strata') {
-    organiseLinks = [
-      { name: 'Overview', icon: PieChart, to: '/dashboard', exact: true },
-      { name: 'Managed Properties', icon: Building, to: '/dashboard/properties', exact: false },
-      { name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false },
+      { name: 'My Lease', icon: Home, to: '/dashboard/my-lease', exact: true }
     ];
     toolsLinks = [];
   } else {
-    // Default Owner View
+    // Default Owner/Team View
     organiseLinks = [
       { name: 'Portfolio Overview', icon: PieChart, to: '/dashboard', exact: true },
       { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
       { name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false },
+      { name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false },
     ];
 
     toolsLinks = [
@@ -210,7 +204,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
                   >
-                    {globalRole === 'Tenant' ? 'My Rental' : 'Organise'}
+                    {userContext?.isTenant && !userContext?.isLandlordOrTeam ? 'My Rental' : 'Organise'}
                   </motion.span>
                 ) : (
                   <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
@@ -251,54 +245,56 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             })}
           </div>
 
-          <div className="space-y-1.5">
-            <div className={`h-6 mb-3 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-3'}`}>
-              <AnimatePresence>
-                {!isCollapsed ? (
-                  <motion.span 
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
+          {toolsLinks.length > 0 && (
+            <div className="space-y-1.5">
+              <div className={`h-6 mb-3 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-3'}`}>
+                <AnimatePresence>
+                  {!isCollapsed ? (
+                    <motion.span 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
+                    >
+                      Tools
+                    </motion.span>
+                  ) : (
+                    <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              {toolsLinks.map((link, idx) => {
+                const isActive = checkIsActive(link);
+                return (
+                  <Link 
+                    key={`tool-${idx}`} 
+                    to={link.to} 
+                    title={isCollapsed ? link.name : ''}
+                    className={`flex items-center font-bold rounded-xl transition-all duration-300 relative group ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-900'}`}
                   >
-                    {globalRole === 'Tenant' ? 'Search Properties' : 'Tools'}
-                  </motion.span>
-                ) : (
-                  <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
-                )}
-              </AnimatePresence>
-            </div>
-            
-            {toolsLinks.map((link, idx) => {
-              const isActive = checkIsActive(link);
-              return (
-                <Link 
-                  key={`tool-${idx}`} 
-                  to={link.to} 
-                  title={isCollapsed ? link.name : ''}
-                  className={`flex items-center font-bold rounded-xl transition-all duration-300 relative group ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-900'}`}
-                >
-                  {isActive && !isCollapsed && (
-                    <motion.div layoutId="activeNavTool" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-                  )}
-                  {isActive && isCollapsed && (
-                    <motion.div layoutId="activeNavCollapsedTool" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
-                  )}
-                  <link.icon className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}`} />
-                  <AnimatePresence>
-                    {!isCollapsed && (
-                      <motion.span 
-                        initial={{ opacity: 0, width: 0 }} 
-                        animate={{ opacity: 1, width: 'auto' }} 
-                        exit={{ opacity: 0, width: 0 }}
-                        className="whitespace-nowrap overflow-hidden text-[14.5px]"
-                      >
-                        {link.name}
-                      </motion.span>
+                    {isActive && !isCollapsed && (
+                      <motion.div layoutId="activeNavTool" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
                     )}
-                  </AnimatePresence>
-                </Link>
-              )
-            })}
-          </div>
+                    {isActive && isCollapsed && (
+                      <motion.div layoutId="activeNavCollapsedTool" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+                    )}
+                    <link.icon className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}`} />
+                    <AnimatePresence>
+                      {!isCollapsed && (
+                        <motion.span 
+                          initial={{ opacity: 0, width: 0 }} 
+                          animate={{ opacity: 1, width: 'auto' }} 
+                          exit={{ opacity: 0, width: 0 }}
+                          className="whitespace-nowrap overflow-hidden text-[14.5px]"
+                        >
+                          {link.name}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
         </nav>
         
         <nav className={`py-6 space-y-1.5 overflow-x-hidden border-t border-slate-200/50 ${isCollapsed ? 'flex flex-col items-center px-0' : 'px-5'}`}>
@@ -427,26 +423,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   })}
                 </div>
 
-                <div className="space-y-2">
-                  <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mb-4">Tools</div>
-                  {toolsLinks.map((link, idx) => {
-                    const isActive = checkIsActive(link);
-                    return (
-                      <Link 
-                        key={`m-tool-${idx}`} 
-                        to={link.to} 
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center font-bold rounded-xl px-4 py-3.5 gap-4 transition-all duration-300 relative ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
-                      >
-                        {isActive && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-                        )}
-                        <link.icon className={`w-[22px] h-[22px] shrink-0 ${isActive ? 'text-primary scale-110' : ''}`} />
-                        <span className="text-[15px]">{link.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
+                {toolsLinks.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mb-4">Tools</div>
+                    {toolsLinks.map((link, idx) => {
+                      const isActive = checkIsActive(link);
+                      return (
+                        <Link 
+                          key={`m-tool-${idx}`} 
+                          to={link.to} 
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center font-bold rounded-xl px-4 py-3.5 gap-4 transition-all duration-300 relative ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                        >
+                          {isActive && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                          )}
+                          <link.icon className={`w-[22px] h-[22px] shrink-0 ${isActive ? 'text-primary scale-110' : ''}`} />
+                          <span className="text-[15px]">{link.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
                 
                 <div className="pt-6 mt-6 border-t border-slate-100 space-y-2">
                    <Link to="#" className="flex items-center text-slate-500 hover:bg-slate-100 font-bold rounded-xl px-4 py-3.5 gap-4 hover:text-slate-900 transition-colors">

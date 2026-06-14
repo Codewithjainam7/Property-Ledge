@@ -203,7 +203,7 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
     onAfterPrint: async () => {
       setIsSaving(true);
       try {
-        await supabase.from('invoices').insert({
+        const { data: invData, error: invError } = await supabase.from('invoices').insert({
           user_id: user?.id,
           property_id: state.propertyId,
           invoice_number: state.invoiceNumber,
@@ -216,7 +216,21 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
           tenant_email: state.tenantEmail,
           billing_period_start: state.issueDate || new Date().toISOString().split('T')[0],
           billing_period_end: state.dueDate || new Date().toISOString().split('T')[0],
-        });
+        }).select();
+
+        if (invError) throw invError;
+
+        if (state.propertyId) {
+          // Auto-sync with Phase 4 Ledger
+          await supabase.from('payments').insert({
+             property_id: state.propertyId,
+             amount_due: total,
+             due_date: state.dueDate || new Date().toISOString().split('T')[0],
+             status: 'Pending',
+             payment_type: 'Rent' // Assume Rent by default for generated invoices
+          });
+        }
+
         onClose();
       } catch (e: any) {
         console.error('Error saving invoice:', e);

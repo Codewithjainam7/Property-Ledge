@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Home } from 'lucide-react';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -54,7 +54,7 @@ const theme = createTheme({
   }
 });
 
-const steps = ['Property Location', 'Features', 'Property Image', 'Final Review'];
+const steps = ['Property Location', 'Features', 'Tenant & Lease', 'Property Image', 'Final Review'];
 
 interface PropertyOnboardingProps {
   onCancel?: () => void;
@@ -72,18 +72,29 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
     suburb: '',
     postcode: '',
     state: '',
+    propertyCategory: 'Residential',
     propertyType: '',
     bedrooms: '',
     bathrooms: '',
     carSpaces: '',
     rentAmount: '',
     paymentFrequency: 'Weekly',
+    tenantName: '',
+    tenantEmail: '',
+    leaseStart: '',
+    leaseDuration: '',
     image: null,
   });
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      if (name === 'propertyCategory') {
+        newData.propertyType = ''; // Reset property type when category changes
+      }
+      return newData;
+    });
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +127,7 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
         const propertyIdStr = 'PL-' + Math.floor(1000 + Math.random() * 9000).toString();
         
         // 1. Insert Property
-        const { error: propertyError } = await supabase
+        const { data: propData, error: propertyError } = await supabase
           .from('properties')
           .insert({
             owner_id: session.user.id,
@@ -125,16 +136,86 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
             suburb: formData.suburb,
             postcode: formData.postcode,
             state: formData.state,
+            property_category: formData.propertyCategory,
             property_type: formData.propertyType,
             bedrooms: Number(formData.bedrooms),
             bathrooms: Number(formData.bathrooms),
             car_spaces: Number(formData.carSpaces),
             rent_amount: Number(formData.rentAmount) || 0,
             payment_frequency: formData.paymentFrequency,
+            tenant_name: formData.tenantName || null,
+            tenant_email: formData.tenantEmail || null,
+            lease_start: formData.leaseStart || null,
+            lease_duration: formData.leaseDuration || null,
             image: formData.image || null,
-          });
+          })
+          .select()
+          .single();
 
         if (propertyError) throw propertyError;
+
+        // 2. Automatically create tenant & lease records and dispatch email invite if tenant details are provided
+        if (formData.tenantEmail && formData.tenantName) {
+          const nameParts = formData.tenantName.trim().split(/\s+/);
+          const firstName = nameParts[0] || 'Tenant';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          // Find if user already exists
+          const { data: existingUserId } = await supabase.rpc('get_user_by_email', { p_email: formData.tenantEmail });
+
+          // Create tenant
+          const { data: tenantData, error: tenantErr } = await supabase
+            .from('tenants')
+            .insert({
+              property_id: propData.id,
+              owner_id: session.user.id,
+              first_name: firstName,
+              last_name: lastName,
+              email: formData.tenantEmail,
+              user_id: existingUserId || null,
+              status: 'Pending',
+              access_level: { receives_emails: true, can_login: true }
+            })
+            .select()
+            .single();
+
+          if (tenantErr) throw tenantErr;
+
+          // Create pending lease
+          const { error: leaseErr } = await supabase
+            .from('leases')
+            .insert({
+              property_id: propData.id,
+              created_by: session.user.id,
+              start_date: formData.leaseStart || new Date().toISOString().split('T')[0],
+              rent_amount: Number(formData.rentAmount) || 0,
+              payment_frequency: formData.paymentFrequency || 'Weekly',
+              status: 'Pending'
+            });
+
+          if (leaseErr) throw leaseErr;
+
+          // Trigger email invitation via secure Edge Function
+          try {
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: formData.tenantEmail,
+                subject: `Welcome to Property Ledge - Accept Your Lease at ${formData.address}`,
+                templateType: 'tenant-invite',
+                variables: {
+                  firstName: firstName,
+                  lastName: lastName,
+                  propertyAddress: `${formData.address}, ${formData.suburb}`,
+                  inviteUrl: `${window.location.origin}/signup?invite=true&email=${formData.tenantEmail}`,
+                  rentAmount: formData.rentAmount || '0',
+                  leaseStart: formData.leaseStart || new Date().toISOString().split('T')[0]
+                }
+              }
+            });
+          } catch (emailErr: any) {
+            console.error("Failed to send automated onboarding email:", emailErr);
+          }
+        }
 
         if (onSuccess) {
           onSuccess();
@@ -186,7 +267,7 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
               />
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap'} }}>
-              <FormControl>
+              <FormControl fullWidth>
                 <InputLabel>State/Territory</InputLabel>
                 <Select
                   name="state"
@@ -204,7 +285,21 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
                   <MenuItem value="NT">Northern Territory</MenuItem>
                 </Select>
               </FormControl>
-              <FormControl>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  name="propertyCategory"
+                  value={formData.propertyCategory}
+                  label="Category"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="Residential">Residential</MenuItem>
+                  <MenuItem value="Commercial">Commercial</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth>
                 <InputLabel>Property Type</InputLabel>
                 <Select
                   name="propertyType"
@@ -212,10 +307,20 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
                   label="Property Type"
                   onChange={handleChange}
                 >
-                  <MenuItem value="House">House</MenuItem>
-                  <MenuItem value="Apartment">Apartment/Unit</MenuItem>
-                  <MenuItem value="Townhouse">Townhouse</MenuItem>
-                  <MenuItem value="Commercial">Commercial</MenuItem>
+                  {formData.propertyCategory === 'Residential' ? (
+                    [
+                      <MenuItem key="house" value="House">House</MenuItem>,
+                      <MenuItem key="apartment" value="Apartment/Unit">Apartment/Unit</MenuItem>,
+                      <MenuItem key="townhouse" value="Townhouse">Townhouse</MenuItem>
+                    ]
+                  ) : (
+                    [
+                      <MenuItem key="retail" value="Retail">Retail</MenuItem>,
+                      <MenuItem key="office" value="Office">Office</MenuItem>,
+                      <MenuItem key="industrial" value="Industrial">Industrial</MenuItem>,
+                      <MenuItem key="warehouse" value="Warehouse">Warehouse</MenuItem>
+                    ]
+                  )}
                 </Select>
               </FormControl>
             </Box>
@@ -284,6 +389,58 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
       case 2:
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: -1 }}>
+              You can optionally invite a tenant and set up a lease now.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <TextField 
+                label="Tenant Name" 
+                name="tenantName" 
+                placeholder="e.g. John Doe"
+                value={formData.tenantName}
+                onChange={handleChange}
+                sx={{ flex: 1 }}
+              />
+              <TextField 
+                label="Tenant Email" 
+                name="tenantEmail" 
+                type="email"
+                placeholder="e.g. john@example.com"
+                value={formData.tenantEmail}
+                onChange={handleChange}
+                sx={{ flex: 1 }}
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+              <TextField 
+                label="Lease Start Date" 
+                name="leaseStart" 
+                type="date"
+                slotProps={{ inputLabel: { shrink: true } }}
+                value={formData.leaseStart}
+                onChange={handleChange}
+                sx={{ flex: 1 }}
+              />
+              <FormControl sx={{ flex: 1 }}>
+                <InputLabel>Lease Duration</InputLabel>
+                <Select
+                  name="leaseDuration"
+                  value={formData.leaseDuration}
+                  label="Lease Duration"
+                  onChange={handleChange}
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  <MenuItem value="6 Months">6 Months</MenuItem>
+                  <MenuItem value="12 Months">12 Months</MenuItem>
+                  <MenuItem value="Month-to-month">Month-to-month</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+        );
+      case 3:
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
             <Button
               variant="outlined"
               component="label"
@@ -317,7 +474,7 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
             )}
           </Box>
         );
-      case 3:
+      case 4:
         return (
           <Box sx={{ mt: 3, p: 4, bgcolor: '#f2f4f3', borderRadius: 3, border: '1px solid #ededf1', boxShadow: '0 8px 30px rgba(59, 34, 181, 0.02)' }}>
              <Typography variant="h6" gutterBottom color="primary.main" sx={{ mb: 3, fontWeight: '800', fontFamily: 'Space Grotesk' }}>
@@ -327,7 +484,7 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Address Location</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.address}, {formData.suburb} {formData.state} {formData.postcode}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold', textAlign: 'right' }}>{formData.address}, {formData.suburb} {formData.state} {formData.postcode}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Type</Typography>
@@ -337,6 +494,14 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Features</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.bedrooms} Bed, {formData.bathrooms} Bath, {formData.carSpaces} Car</Typography>
                 </Box>
+                
+                {formData.tenantName && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tenant</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.tenantName} ({formData.tenantEmail})</Typography>
+                  </Box>
+                )}
+
                 {formData.image && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1.5 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Property Image</Typography>
@@ -462,8 +627,18 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
             ))}
           </Stepper>
 
-          <Box sx={{ minHeight: 300 }}>
-            {renderStepContent(activeStep)}
+          <Box sx={{ minHeight: 300, position: 'relative' }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                {renderStepContent(activeStep)}
+              </motion.div>
+            </AnimatePresence>
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 2, sm: 0 }, justifyContent: 'space-between', mt: 6, pt: 4, borderTop: '1px solid #ededf1' }}>

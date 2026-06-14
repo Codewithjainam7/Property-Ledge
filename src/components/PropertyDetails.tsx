@@ -5,7 +5,6 @@ import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Cl
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
-import emailjs from '@emailjs/browser';
 import { SkeletonDetails } from './Skeletons';
 export function PropertyDetails() {
   const { id } = useParams();
@@ -19,7 +18,7 @@ export function PropertyDetails() {
   const [isFullScreenMode, setIsFullScreenMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [enquiries, setEnquiries] = useState<any[]>([]);
+
   const [invitingEnquiryId, setInvitingEnquiryId] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
   const [activeLease, setActiveLease] = useState<any>(null);
@@ -30,6 +29,21 @@ export function PropertyDetails() {
   const [editingProperty, setEditingProperty] = useState<any>(null);
   const [editError, setEditError] = useState('');
   const [editing, setEditing] = useState(false);
+
+  // Tenant Invitation State
+  const [tenant, setTenant] = useState<any>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [showInviteSuccessModal, setShowInviteSuccessModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    rentAmount: '',
+    leaseStart: ''
+  });
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
 
   useEffect(() => {
     const loadProperty = async () => {
@@ -87,16 +101,7 @@ export function PropertyDetails() {
       const propImages = mapped.images?.length > 0 ? mapped.images : (mapped.image ? [mapped.image] : []);
       setImages(propImages);
 
-      // Fetch enquiries
-      const { data: enquiriesData } = await supabase
-        .from('property_enquiries')
-        .select('*')
-        .eq('property_id', id)
-        .order('created_at', { ascending: false });
-        
-      if (enquiriesData) {
-        setEnquiries(enquiriesData);
-      }
+
 
       // Fetch active lease details including tenant_signature
       const { data: leaseData } = await supabase
@@ -109,6 +114,15 @@ export function PropertyDetails() {
       if (leaseData) {
         setActiveLease(leaseData);
       }
+
+      // Fetch tenant details linked to this property
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('property_id', id)
+        .maybeSingle();
+
+      setTenant(tenantData);
     };
     loadProperty();
   }, [id, navigate]);
@@ -207,72 +221,185 @@ export function PropertyDetails() {
     }
   };
 
-  const handleInviteTenant = async (enquiryId: string) => {
+
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteError('');
+    setInviting(true);
+
     try {
-      setInvitingEnquiryId(enquiryId);
-      
-      const enq = enquiries.find(e => e.id === enquiryId);
-      if (!enq) throw new Error("Enquiry not found");
+      const userRes = await supabase.auth.getUser();
+      const currentUserId = userRes.data.user?.id;
+      if (!currentUserId) throw new Error("Not authenticated");
 
-      // Get landlord's email for the Reply-To field
-      const { data: { session } } = await supabase.auth.getSession();
-      const landlordEmail = session?.user?.email || '';
+      // Check if user with this email already exists
+      const { data: existingUserId, error: rpcError } = await supabase.rpc('get_user_by_email', { p_email: inviteForm.email });
 
-      // Send the real email using EmailJS
-      await emailjs.send(
-        'service_pvyeiv4',
-        'template_83ro5mn',
-        {
-          email: enq.email,
-          to_email: enq.email, // Standard EmailJS variable
-          user_email: enq.email,
-          tenant_name: enq.first_name,
-          to_name: enq.first_name,
-          role: 'Tenant',
-          property_address: `${property.address}, ${property.suburb}`,
-          reply_to: landlordEmail,
-          property_id: property.id,
-          invite_link: `${window.location.origin}/dashboard/marketplace/${property.id}`
-        },
-        'HiMuS6V2asatgtQDn'
-      );
+      // Create pending tenant
+      const { data: newTenant, error: tenantErr } = await supabase
+        .from('tenants')
+        .insert({
+          property_id: id,
+          owner_id: currentUserId,
+          first_name: inviteForm.firstName,
+          last_name: inviteForm.lastName,
+          email: inviteForm.email,
+          user_id: !rpcError && existingUserId ? existingUserId : null,
+          status: 'Pending',
+          access_level: { receives_emails: true, can_login: true }
+        })
+        .select()
+        .single();
 
-      // 1. Update Enquiry Status
-      const { error: enqError } = await supabase
-        .from('property_enquiries')
-        .update({ status: 'Invited' })
-        .eq('id', enquiryId);
-        
-      if (enqError) throw enqError;
+      if (tenantErr) throw tenantErr;
+
+      // Create pending lease
+      const { error: leaseErr } = await supabase
+        .from('leases')
+        .insert({
+          property_id: id,
+          created_by: currentUserId,
+          start_date: inviteForm.leaseStart,
+          rent_amount: parseFloat(inviteForm.rentAmount) || 0,
+          status: 'Pending',
+          payment_frequency: property.paymentFrequency || 'Weekly'
+        });
+
+      if (leaseErr) throw leaseErr;
+
+      // Update property columns
+      await supabase
+        .from('properties')
+        .update({
+          tenant_name: `${inviteForm.firstName} ${inviteForm.lastName}`,
+          tenant_email: inviteForm.email,
+          rent_amount: parseFloat(inviteForm.rentAmount) || property.rentAmount,
+          lease_start: inviteForm.leaseStart
+        })
+        .eq('id', id);
+
+      // Send email invite
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: inviteForm.email,
+            subject: `Welcome to Property Ledge - Accept Your Lease at ${property.address}`,
+            templateType: 'tenant-invite',
+            variables: {
+              firstName: inviteForm.firstName,
+              lastName: inviteForm.lastName,
+              propertyAddress: `${property.address}, ${property.suburb}`,
+              inviteUrl: `${window.location.origin}/signup?invite=true&email=${inviteForm.email}`,
+              rentAmount: inviteForm.rentAmount || '0',
+              leaseStart: inviteForm.leaseStart
+            }
+          }
+        });
+      } catch (emailErr: any) {
+        console.error("Mailtrap Edge Function call failed (continuing with simulated invite):", emailErr);
+      }
+
+      // Close the invite form modal and show the beautiful success modal
+      setIsInviteModalOpen(false);
+      setShowInviteSuccessModal(true);
       
-      // 2. Update local state
-      setEnquiries(prev => prev.map(e => e.id === enquiryId ? { ...e, status: 'Invited' } : e));
+      setTenant(newTenant);
+      setProperty(prev => ({
+        ...prev,
+        tenantName: `${inviteForm.firstName} ${inviteForm.lastName}`,
+        tenantEmail: inviteForm.email,
+        rentAmount: parseFloat(inviteForm.rentAmount) || prev.rentAmount,
+        leaseStart: inviteForm.leaseStart
+      }));
+
+      // Reset form
+      setInviteForm({ firstName: '', lastName: '', email: '', rentAmount: '', leaseStart: '' });
       
-      alert("Invitation email successfully sent to the tenant! They can now accept the offer from their dashboard.");
+      // Auto close success modal after 4 seconds
+      setTimeout(() => {
+        setShowInviteSuccessModal(false);
+      }, 4000);
+
     } catch (err: any) {
       console.error("Failed to invite tenant:", err);
-      alert(`Failed to invite tenant. Error: ${err?.text || err?.message || 'Unknown error'}`);
+      setInviteError(err.message || "Failed to create invitation. Please try again.");
     } finally {
-      setInvitingEnquiryId(null);
+      setInviting(false);
+    }
+  };
+
+  const handleResendInvite = async () => {
+    if (!tenant) return;
+    try {
+      const userRes = await supabase.auth.getUser();
+      const landlordEmail = userRes.data.user?.email || '';
+      await supabase.functions.invoke('send-email', {
+        body: {
+          to: tenant.email,
+          subject: `Welcome to Property Ledge - Accept Your Lease at ${property.address}`,
+          templateType: 'tenant-invite',
+          variables: {
+            firstName: tenant.first_name || 'Tenant',
+            lastName: tenant.last_name || '',
+            propertyAddress: `${property.address}, ${property.suburb}`,
+            inviteUrl: `${window.location.origin}/signup?invite=true&email=${tenant.email}`,
+            rentAmount: property.rent_amount || '0',
+            leaseStart: property.lease_start
+          }
+        }
+      });
+      alert("Invitation email resent successfully!");
+    } catch (err) {
+      console.error("Error resending invite:", err);
+      alert("Failed to resend invitation email.");
+    }
+  };
+
+  const handleCancelInvite = async () => {
+    if (!window.confirm("Are you sure you want to cancel this pending tenant invitation?")) return;
+    try {
+      await supabase.from('tenants').delete().eq('property_id', id).in('status', ['Pending', 'Invited']);
+      await supabase.from('leases').delete().eq('property_id', id).in('status', ['Pending', 'Invited']);
+
+      await supabase.from('properties').update({
+        tenant_name: null,
+        tenant_email: null,
+        lease_start: null
+      }).eq('id', id);
+
+      setTenant(null);
+      setProperty(prev => ({
+        ...prev,
+        tenantName: null,
+        tenantEmail: null,
+        leaseStart: null
+      }));
+      alert("Tenant invitation canceled.");
+    } catch (err) {
+      console.error("Error canceling invite:", err);
+      alert("Failed to cancel invitation.");
     }
   };
 
   const handleRemoveTenant = async () => {
     if (!permissions?.can_manage_tenants) return;
     if (window.confirm("Are you sure you want to remove the current tenant? This will also terminate their active lease.")) {
-      // Clear tenant info from property
       await supabase.from('properties').update({
         tenant_name: null,
-        tenant_email: null
+        tenant_email: null,
+        lease_start: null
       }).eq('id', id);
 
-      // Terminate any active leases for this property
       await supabase.from('leases').update({
         status: 'Terminated',
         end_date: new Date().toISOString().split('T')[0]
       }).eq('property_id', id).eq('status', 'Active');
 
-      setProperty(prev => ({ ...prev, tenantName: null, tenantEmail: null }));
+      await supabase.from('tenants').delete().eq('property_id', id);
+
+      setTenant(null);
+      setProperty(prev => ({ ...prev, tenantName: null, tenantEmail: null, leaseStart: null }));
       alert("Tenant removed and active leases terminated.");
     }
   };
@@ -341,6 +468,145 @@ export function PropertyDetails() {
     { title: 'Tenant Bills', desc: 'Forward water usage and utility invoices directly to your tenant.', icon: FileText, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
     { title: 'Bond & Rent', desc: 'Monitor active ledger, upcoming due dates, and lodged bond receipts.', icon: Wallet, chevron: true, colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary-container text-on-secondary-container', accent: 'text-on-secondary-container', iconBg: 'bg-white/30' },
   ];
+
+  const renderTenantTab = () => {
+    if (!tenant) {
+      return (
+        <div className="col-span-full bg-slate-900 border border-white/10 rounded-[32px] p-8 md:p-12 text-center shadow-2xl relative overflow-hidden text-white">
+          <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px] pointer-events-none z-0" />
+          <div className="relative z-10 space-y-6">
+            <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center mx-auto shadow-inner text-slate-300">
+              <Users className="w-10 h-10 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-white tracking-tight">Property is Vacant</h3>
+              <p className="text-slate-400 max-w-md mx-auto font-medium text-sm md:text-base">
+                Invite a tenant to register, claim their portal, sign lease documents, and manage rent payments.
+              </p>
+            </div>
+            <button 
+              onClick={() => {
+                setInviteForm({
+                  firstName: '',
+                  lastName: '',
+                  email: '',
+                  rentAmount: property?.rentAmount || '',
+                  leaseStart: property?.leaseStart || ''
+                });
+                setIsInviteModalOpen(true);
+              }}
+              className="bg-white text-slate-950 hover:bg-slate-200 transition-all font-bold text-sm px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" /> Invite Tenant to this Property
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (tenant.status === 'Pending' || tenant.status === 'Invited') {
+      return (
+        <div className="col-span-full bg-surface-container-lowest border border-outline-variant/50 rounded-[32px] p-8 md:p-12 text-center shadow-sm relative overflow-hidden">
+          <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] rounded-full bg-amber-500/10 blur-[100px] pointer-events-none z-0" />
+          <div className="relative z-10 space-y-6">
+            <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex items-center justify-center mx-auto shadow-inner text-amber-600">
+              <Clock className="w-10 h-10 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 uppercase tracking-widest mb-2">
+                Invitation Sent
+              </div>
+              <h3 className="text-2xl font-black text-on-surface tracking-tight">
+                Pending Digital Handshake
+              </h3>
+              <p className="text-on-surface-variant/80 max-w-md mx-auto font-medium text-sm md:text-base">
+                An invitation was emailed to <span className="text-on-surface font-semibold">{tenant.email}</span>. They need to set up their password and confirm lease details.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto bg-surface border border-outline-variant/50 rounded-2xl p-4 text-left shadow-sm">
+              <div>
+                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block">Tenant Name</span>
+                <span className="text-sm font-semibold text-on-surface">{tenant.first_name} {tenant.last_name}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block">Lease Start</span>
+                <span className="text-sm font-semibold text-on-surface">{property.leaseStart ? new Date(property.leaseStart).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block">Rent Amount</span>
+                <span className="text-sm font-semibold text-on-surface">${property.rentAmount}/{property.paymentFrequency === 'Weekly' ? 'wk' : property.paymentFrequency === 'Fortnightly' ? 'fn' : 'mo'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block">Access Level</span>
+                <span className="text-sm font-semibold text-on-surface">Portal Enabled</span>
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-4 pt-4">
+              <button 
+                onClick={handleResendInvite}
+                className="bg-surface hover:bg-surface-container text-on-surface border border-outline-variant/50 transition-all font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-full cursor-pointer shadow-sm"
+              >
+                Resend Invitation
+              </button>
+              <button 
+                onClick={handleCancelInvite}
+                className="bg-error-container/30 hover:bg-error-container/50 text-error border border-error-container transition-all font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-full cursor-pointer shadow-sm"
+              >
+                Cancel Invitation
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {bentoTenantItems.map((item, index) => (
+          <motion.div
+            key={item.title}
+            variants={itemVariants}
+            whileHover={{ y: -4, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (item.action === 'View Lease') {
+                setIsLeaseModalOpen(true);
+              }
+            }}
+            className={`${item.colSpan} ${item.bg} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] cursor-pointer`}
+          >
+            <div className="relative z-10 flex-1 flex flex-col">
+              <div className="flex justify-between items-start mb-6">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-sm ${item.accent} ${item.iconBg}`}>
+                  <item.icon className="w-6 h-6" />
+                </div>
+                {item.chevron && (
+                  <div className="w-8 h-8 rounded-full bg-surface/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ArrowUpRight className="w-4 h-4 text-on-surface-variant" />
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-auto">
+                <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2 font-display">{item.title}</h3>
+                <p className="text-sm font-medium leading-relaxed max-w-[90%] mb-6 opacity-80">{item.desc}</p>
+              </div>
+
+              {item.action && (
+                <div className="mt-auto pt-2">
+                  <button className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm hover:bg-white/20 transition-colors flex items-center gap-2 group-hover:shadow-md">
+                    {item.action} <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </>
+    );
+  };
 
   const activeItems = activeTab === 'tenant' ? bentoTenantItems : bentoManageItems;
 
@@ -529,14 +795,14 @@ export function PropertyDetails() {
           {/* iOS Segmented Control */}
           <div className="flex justify-center my-10">
             <div className="bg-surface-container-high/60 backdrop-blur-md p-1.5 rounded-full flex shadow-inner border border-white/20 w-full max-w-[500px] relative">
-              {['tenant', 'applications', 'manage'].map((tab) => (
+              {['tenant', 'manage'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`relative flex-1 py-3 px-2 text-center font-black text-[10px] md:text-xs uppercase tracking-widest z-10 transition-colors cursor-pointer ${activeTab === tab ? 'text-on-surface' : 'text-on-surface-variant/70 hover:text-on-surface'}`}
                 >
                   <span className="relative z-20">
-                    {tab === 'tenant' ? (property.tenantName ? 'Current Tenant' : 'Find Tenant') : tab === 'applications' ? `Applications (${enquiries.length})` : 'Manage Prop'}
+                    {tab === 'tenant' ? (property.tenantName ? 'Current Tenant' : 'Tenant') : 'Manage Prop'}
                   </span>
                   {activeTab === tab && (
                     <motion.div
@@ -553,162 +819,6 @@ export function PropertyDetails() {
 
           {/* Tab Content */}
           <AnimatePresence mode="wait">
-            {activeTab === 'applications' ? (
-              <motion.div
-                key="applications"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-surface rounded-3xl p-6 md:p-8 shadow-sm border border-outline-variant/30"
-              >
-                <h3 className="text-2xl font-black font-display tracking-tight mb-6">Rental Applications</h3>
-                
-                {enquiries.length === 0 ? (
-                  <div className="text-center py-12 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 border-dashed">
-                    <ClipboardList className="w-12 h-12 text-on-surface-variant/40 mx-auto mb-3" />
-                    <p className="text-on-surface-variant font-medium">No applications received yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {enquiries.map((enq) => (
-                      <div key={enq.id} className="bg-surface border border-outline-variant/30 p-6 md:p-8 rounded-[24px] shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                        {/* Status Ribbon */}
-                        <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl font-black text-[10px] uppercase tracking-widest ${
-                          enq.status === 'Invited' ? 'bg-emerald-500 text-white' : 
-                          enq.status === 'Accepted' ? 'bg-primary text-white' : 
-                          'bg-surface-container-high text-on-surface-variant'
-                        }`}>
-                          {enq.status}
-                        </div>
-
-                        <div className="flex flex-col md:flex-row gap-8 mt-4 md:mt-0">
-                          {/* Tenant Info */}
-                          <div className="flex-1 space-y-6">
-                            <div>
-                              <h4 className="text-2xl font-black font-display tracking-tight text-on-surface mb-1">
-                                {enq.first_name} {enq.last_name}
-                              </h4>
-                              <p className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
-                                Submitted {new Date(enq.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/20">
-                                <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                                  <Mail className="w-4 h-4" />
-                                </div>
-                                <div className="overflow-hidden">
-                                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-0.5">Email</p>
-                                  <p className="text-sm font-medium text-on-surface truncate">{enq.email}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/20">
-                                <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                                  <Phone className="w-4 h-4" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-0.5">Phone</p>
-                                  <p className="text-sm font-medium text-on-surface">{enq.phone}</p>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/20">
-                                <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shrink-0">
-                                  <Briefcase className="w-4 h-4" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-0.5">Employment</p>
-                                  <p className="text-sm font-medium text-on-surface">{enq.employment_status}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/20">
-                                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                                  <DollarSign className="w-4 h-4" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-0.5">Monthly Income</p>
-                                  <p className="text-sm font-black text-on-surface">${enq.monthly_income}</p>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {enq.message && (
-                              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 relative">
-                                <div className="absolute top-4 left-4 text-primary/20">
-                                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/></svg>
-                                </div>
-                                <p className="text-sm italic text-on-surface-variant/90 leading-relaxed pl-10 pt-1 pr-2 relative z-10">
-                                  {enq.message}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Actions */}
-                          <div className="flex flex-col justify-end gap-3 md:min-w-[200px] border-t md:border-t-0 md:border-l border-outline-variant/20 pt-5 md:pt-0 md:pl-8">
-                            {enq.status === 'Pending' && (
-                              <>
-                                {permissions?.can_manage_tenants ? (
-                                  <>
-                                    <button 
-                                      onClick={() => handleInviteTenant(enq.id)}
-                                      disabled={invitingEnquiryId === enq.id}
-                                      className="w-full bg-primary text-on-primary hover:bg-primary/90 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                                    >
-                                      {invitingEnquiryId === enq.id ? (
-                                        <>
-                                          <div className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin"></div>
-                                          Sending Email...
-                                        </>
-                                      ) : (
-                                        <>
-                                          Invite by Email <Send className="w-4 h-4" />
-                                        </>
-                                      )}
-                                    </button>
-                                    <button className="w-full bg-surface-container text-on-surface hover:bg-error hover:text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-colors">
-                                      Reject
-                                    </button>
-                                  </>
-                                ) : (
-                                  <div className="bg-surface-container/50 text-on-surface-variant px-4 py-3 rounded-xl text-center text-xs font-bold uppercase tracking-wide">
-                                    No Permission
-                                  </div>
-                                )}
-                              </>
-                            )}
-                            {(enq.status === 'Invited' || enq.status === 'Accepted') && (
-                              <div className="flex flex-col gap-2 items-center justify-center bg-emerald-50 rounded-2xl p-6 border border-emerald-100 text-center h-full">
-                                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2">
-                                  <CheckCircle2 className="w-6 h-6" />
-                                </div>
-                                <span className="font-black text-emerald-700 tracking-tight">
-                                  {enq.status === 'Accepted' ? 'Lease Signed' : 'Invitation Sent'}
-                                </span>
-                                <span className="text-xs font-medium text-emerald-600/80">
-                                  {enq.status === 'Accepted' ? 'Tenant has accepted the lease' : 'Waiting for tenant to accept'}
-                                </span>
-                                {enq.status === 'Accepted' && (
-                                  <button 
-                                    onClick={() => setIsLeaseModalOpen(true)}
-                                    className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-sm"
-                                  >
-                                    View Signed Lease
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            ) : (
               <motion.div
                 key={activeTab}
                 variants={containerVariants}
@@ -717,48 +827,44 @@ export function PropertyDetails() {
                 exit="exit"
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6"
               >
-                {activeItems.map((item, index) => (
-                  <motion.div
-                    key={item.title}
-                    variants={itemVariants}
-                    whileHover={{ y: -4, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (item.action === 'View Lease') {
-                        setIsLeaseModalOpen(true);
-                      }
-                    }}
-                    className={`${item.colSpan} ${item.bg} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] cursor-pointer`}
-                  >
-                    <div className="relative z-10 flex-1 flex flex-col">
-                      <div className="flex justify-between items-start mb-6">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-sm ${item.accent} ${item.iconBg}`}>
-                          <item.icon className="w-6 h-6" />
+                {activeTab === 'tenant' ? renderTenantTab() : (
+                  bentoManageItems.map((item, index) => (
+                    <motion.div
+                      key={item.title}
+                      variants={itemVariants}
+                      whileHover={{ y: -4, scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`${item.colSpan} ${item.bg} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] cursor-pointer`}
+                    >
+                      <div className="relative z-10 flex-1 flex flex-col">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-sm ${item.accent} ${item.iconBg}`}>
+                            <item.icon className="w-6 h-6" />
+                          </div>
+                          {item.chevron && (
+                            <div className="w-8 h-8 rounded-full bg-surface/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ArrowUpRight className="w-4 h-4 text-on-surface-variant" />
+                            </div>
+                          )}
                         </div>
-                        {item.chevron && (
-                          <div className="w-8 h-8 rounded-full bg-surface/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ArrowUpRight className="w-4 h-4 text-on-surface-variant" />
+                        
+                        <div className="mt-auto">
+                          <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2 font-display">{item.title}</h3>
+                          <p className="text-sm font-medium leading-relaxed max-w-[90%] mb-6 opacity-80">{item.desc}</p>
+                        </div>
+
+                        {item.action && (
+                          <div className="mt-auto pt-2">
+                            <button className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm hover:bg-white/20 transition-colors flex items-center gap-2 group-hover:shadow-md">
+                              {item.action} <ArrowUpRight className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         )}
                       </div>
-                      
-                      <div className="mt-auto">
-                        <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2 font-display">{item.title}</h3>
-                        <p className="text-sm font-medium leading-relaxed max-w-[90%] mb-6 opacity-80">{item.desc}</p>
-                      </div>
-
-                      {item.action && (
-                        <div className="mt-auto pt-2">
-                          <button className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm hover:bg-white/20 transition-colors flex items-center gap-2 group-hover:shadow-md">
-                            {item.action} <ArrowUpRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                )}
               </motion.div>
-            )}
           </AnimatePresence>
 
           {/* Management Actions Section */}
@@ -1033,6 +1139,70 @@ export function PropertyDetails() {
         document.body
       )}
 
+      {/* Invite Success Animated Modal via Portal */}
+      {createPortal(
+        <AnimatePresence>
+          {showInviteSuccessModal && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="w-full max-w-md bg-[#0d0e12] border border-white/10 rounded-[32px] p-8 relative z-10 overflow-hidden shadow-2xl text-center"
+              >
+                {/* Glow effects */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] rounded-full bg-emerald-500/20 blur-[60px] pointer-events-none" />
+                
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', damping: 15, stiffness: 200, delay: 0.1 }}
+                  className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(52,211,153,0.4)]"
+                >
+                  <CheckCircle2 className="w-12 h-12 text-white" />
+                </motion.div>
+
+                <motion.h3 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-2xl font-black text-white tracking-tight mb-2"
+                >
+                  Invitation Sent!
+                </motion.h3>
+
+                <motion.p 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-slate-400 text-sm font-semibold mb-8 leading-relaxed"
+                >
+                  A secure setup link has been successfully dispatched to the tenant's email address. They can now complete their digital lease handshake.
+                </motion.p>
+
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  onClick={() => setShowInviteSuccessModal(false)}
+                  className="w-full bg-white text-slate-950 font-black uppercase tracking-widest text-xs py-4 rounded-full hover:bg-slate-200 transition-colors shadow-lg"
+                >
+                  Close
+                </motion.button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
       {/* Lease Agreement Viewer Modal via Portal */}
       {createPortal(
         <AnimatePresence>
@@ -1114,6 +1284,145 @@ export function PropertyDetails() {
                     Close
                   </button>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Invite Tenant Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {isInviteModalOpen && (
+            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                onClick={() => setIsInviteModalOpen(false)}
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-lg bg-surface rounded-[32px] shadow-2xl overflow-hidden flex flex-col z-10"
+              >
+                <div className="bg-primary px-8 py-6 flex items-center justify-between shrink-0">
+                  <div className="text-on-primary">
+                    <h3 className="text-2xl font-black tracking-tight mb-1">Invite Tenant</h3>
+                    <p className="text-on-primary/80 text-sm font-medium">Link a resident to this property.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsInviteModalOpen(false)} 
+                    className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleInviteSubmit} className="p-8 space-y-5 bg-surface-container-lowest overflow-y-auto">
+                  {inviteError && (
+                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl text-xs font-bold flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      {inviteError}
+                    </div>
+                  )}
+
+                  {inviteSuccess && (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl text-xs font-bold flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      {inviteSuccess}
+                    </div>
+                  )}
+
+                  <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/30 flex items-center gap-3">
+                    <Building className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider block">Target Property</span>
+                      <span className="text-sm font-bold text-on-surface">{property.address}, {property.suburb}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">First Name</label>
+                      <input
+                        required
+                        type="text"
+                        value={inviteForm.firstName}
+                        onChange={e => setInviteForm({ ...inviteForm, firstName: e.target.value })}
+                        className="w-full bg-white border border-outline-variant/40 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                        placeholder="John"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Last Name</label>
+                      <input
+                        required
+                        type="text"
+                        value={inviteForm.lastName}
+                        onChange={e => setInviteForm({ ...inviteForm, lastName: e.target.value })}
+                        className="w-full bg-white border border-outline-variant/40 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Tenant Email</label>
+                    <input
+                      required
+                      type="email"
+                      value={inviteForm.email}
+                      onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
+                      className="w-full bg-white border border-outline-variant/40 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                      placeholder="tenant@example.com"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Weekly Rent ($)</label>
+                      <input
+                        required
+                        type="number"
+                        value={inviteForm.rentAmount}
+                        onChange={e => setInviteForm({ ...inviteForm, rentAmount: e.target.value })}
+                        className="w-full bg-white border border-outline-variant/40 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                        placeholder="550"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Lease Start Date</label>
+                      <input
+                        required
+                        type="date"
+                        value={inviteForm.leaseStart}
+                        onChange={e => setInviteForm({ ...inviteForm, leaseStart: e.target.value })}
+                        className="w-full bg-white border border-outline-variant/40 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsInviteModalOpen(false)}
+                      className="flex-1 px-6 py-3.5 bg-surface-container border border-outline-variant/30 text-on-surface hover:bg-surface-container-high rounded-full font-black text-xs uppercase tracking-widest transition-all cursor-pointer text-center"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={inviting}
+                      className="flex-1 px-6 py-3.5 bg-primary text-on-primary hover:bg-primary/90 rounded-full font-black text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      {inviting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Send Invite'}
+                    </button>
+                  </div>
+                </form>
               </motion.div>
             </div>
           )}

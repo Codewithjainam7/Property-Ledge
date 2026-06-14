@@ -14,6 +14,8 @@ export function Login() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  const isInvite = searchParams.get('invite') === 'true';
+  const inviteEmail = searchParams.get('email') || '';
   const redirectTo = searchParams.get('redirectTo') || '/dashboard';
 
   const handleGoogleLogin = async () => {
@@ -168,7 +170,10 @@ export function Login() {
         <div className="mt-8 text-center">
           <Typography variant="body2" sx={{ color: '#4a4a5e', fontWeight: 500 }}>
             Don't have an account?{' '}
-            <Link to="/signup" className="text-primary font-bold hover:underline">
+            <Link 
+              to={isInvite ? `/signup?invite=true&email=${encodeURIComponent(inviteEmail)}` : "/signup"} 
+              className="text-primary font-bold hover:underline"
+            >
               Sign up here
             </Link>
           </Typography>
