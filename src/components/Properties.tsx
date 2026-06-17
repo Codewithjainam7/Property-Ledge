@@ -263,7 +263,7 @@ export function Properties() {
                     
                     <div className="pt-4 border-t border-outline-variant/30 flex justify-between items-center">
                       <div>
-                        <span className="text-[10px] font-black text-on-surface-variant tracking-[0.08em] uppercase block mb-0.5">Rent</span>
+                        <span className="text-[10px] font-black text-on-surface-variant tracking-[0.08em] uppercase block mb-0.5">Advertised Rent</span>
                         <span className="text-lg font-black font-display text-on-surface leading-none">${property.rentAmount || '0'} <span className="text-[10px] font-bold text-on-surface-variant font-sans">/{property.paymentFrequency === 'Monthly' ? 'mo' : 'wk'}</span></span>
                       </div>
                       <div className="bg-primary/5 text-primary px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
@@ -286,7 +286,7 @@ export function Properties() {
                       <tr className="border-b border-outline-variant/40 bg-surface-container-low/50">
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Property</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Location</th>
-                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Rent</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant">Advertised Rent</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant hidden lg:table-cell">Tenant</th>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant text-right">Action</th>
                       </tr>
