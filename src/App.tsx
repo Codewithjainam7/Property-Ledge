@@ -70,12 +70,9 @@ function Navigation() {
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm transition-all duration-300 shrink-0">
               <Building className="w-5 h-5 text-on-primary" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-black text-[13px] xs:text-sm sm:text-base tracking-tight leading-none">
-                Property<span className="text-primary">Ledge</span>
-              </span>
-              <span className="hidden sm:block text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest leading-none mt-0.5">Property Management</span>
-            </div>
+            <span className="font-black text-[15px] sm:text-[17px] tracking-tight leading-none text-[#2d3748]">
+              PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation Links */}

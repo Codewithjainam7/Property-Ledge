@@ -306,7 +306,7 @@ export function AcceptInvite() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/20">
               <Building className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-black text-slate-900 tracking-tight">PropertyLedge</span>
+            <span className="text-xl font-black text-[#2d3748] tracking-tight">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
           </Link>
         </div>
 
@@ -552,7 +552,7 @@ export function AcceptInvite() {
         </div>
 
         <p className="text-center text-xs text-slate-400 font-medium mt-6">
-          Property Ledge — Secure team access management
+          <span className="font-black text-[#2d3748]">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span> — Secure team access management
         </p>
       </motion.div>
     </div>
