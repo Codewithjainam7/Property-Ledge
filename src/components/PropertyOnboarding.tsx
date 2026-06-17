@@ -54,7 +54,7 @@ const theme = createTheme({
   }
 });
 
-const steps = ['Property Location', 'Features', 'Tenant & Lease', 'Property Image', 'Final Review'];
+const steps = ['Property Location', 'Features', 'Property Image', 'Final Review'];
 
 interface PropertyOnboardingProps {
   onCancel?: () => void;
@@ -165,48 +165,7 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
 
         if (propertyError) throw propertyError;
 
-        // If tenant details are provided, immediately insert into tenants and leases table to auto-populate the system
-        if (formData.tenantName || formData.tenantEmail) {
-          let existingUserId = null;
-          if (formData.tenantEmail) {
-            const { data: userId } = await supabase.rpc('get_user_by_email', { p_email: formData.tenantEmail });
-            if (userId) existingUserId = userId;
-          }
-
-          let firstName = '';
-          let lastName = '';
-          if (formData.tenantName) {
-             const parts = formData.tenantName.trim().split(/\s+/);
-             firstName = parts[0] || '';
-             lastName = parts.slice(1).join(' ') || '';
-          }
-
-          await supabase
-            .from('tenants')
-            .insert({
-              property_id: propData.id,
-              owner_id: session.user.id,
-              first_name: firstName,
-              last_name: lastName,
-              email: formData.tenantEmail || null,
-              user_id: existingUserId,
-              status: 'Active',
-              access_level: { receives_emails: true, can_login: true }
-            });
-
-          await supabase
-            .from('leases')
-            .insert({
-              property_id: propData.id,
-              created_by: session.user.id,
-              start_date: formData.leaseStart || new Date().toISOString().split('T')[0],
-              end_date: null,
-              rent_amount: Number(formData.rentAmount) || 0,
-              status: 'Active',
-              payment_frequency: formData.paymentFrequency || 'Weekly',
-              bond_amount: (Number(formData.rentAmount) || 0) * 4
-            });
-        }
+        // Tenant insertion block removed
         if (onSuccess) {
           onSuccess();
         } else {
@@ -379,55 +338,6 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
       case 2:
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-              <TextField 
-                label="Tenant Name" 
-                name="tenantName" 
-                placeholder="e.g. John Doe"
-                value={formData.tenantName}
-                onChange={handleChange}
-                sx={{ flex: 1 }}
-              />
-              <TextField 
-                label="Tenant Email" 
-                name="tenantEmail" 
-                type="email"
-                placeholder="e.g. john@example.com"
-                value={formData.tenantEmail}
-                onChange={handleChange}
-                sx={{ flex: 1 }}
-              />
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-              <TextField 
-                label="Lease Start Date" 
-                name="leaseStart" 
-                type="date"
-                slotProps={{ inputLabel: { shrink: true } }}
-                value={formData.leaseStart}
-                onChange={handleChange}
-                sx={{ flex: 1 }}
-              />
-              <FormControl sx={{ flex: 1 }}>
-                <InputLabel>Lease Duration</InputLabel>
-                <Select
-                  name="leaseDuration"
-                  value={formData.leaseDuration}
-                  label="Lease Duration"
-                  onChange={handleChange}
-                >
-                  <MenuItem value=""><em>None</em></MenuItem>
-                  <MenuItem value="6 Months">6 Months</MenuItem>
-                  <MenuItem value="12 Months">12 Months</MenuItem>
-                  <MenuItem value="Month-to-month">Month-to-month</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          </Box>
-        );
-      case 3:
-        return (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
             <Button
               variant="outlined"
               component="label"
@@ -461,7 +371,7 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
             )}
           </Box>
         );
-      case 4:
+      case 3:
         return (
           <Box sx={{ mt: 3, p: 4, bgcolor: '#f2f4f3', borderRadius: 3, border: '1px solid #ededf1', boxShadow: '0 8px 30px rgba(59, 34, 181, 0.02)' }}>
              <Typography variant="h6" gutterBottom color="primary.main" sx={{ mb: 3, fontWeight: '800', fontFamily: 'Space Grotesk' }}>
@@ -481,13 +391,6 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Features</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.bedrooms} Bed, {formData.bathrooms} Bath, {formData.carSpaces} Car</Typography>
                 </Box>
-                
-                {formData.tenantName && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ededf1', pb: 1.5 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tenant</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{formData.tenantName} ({formData.tenantEmail})</Typography>
-                  </Box>
-                )}
 
                 {formData.image && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1.5 }}>
