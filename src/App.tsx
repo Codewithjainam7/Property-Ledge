@@ -68,7 +68,7 @@ function Navigation() {
             className="flex items-center gap-2.5 group z-50 shrink-0"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <img src={logoImg} alt="PropertyLedge" className="h-7 sm:h-8 w-auto object-contain" />
+            <img src={logoImg} alt="PropertyLedge" className="h-8 sm:h-9 w-auto object-contain" />
             <span className="font-black text-[15px] sm:text-[17px] tracking-tight leading-none text-[#2d3748] hidden sm:inline">
               PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span>
             </span>

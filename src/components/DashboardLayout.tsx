@@ -214,20 +214,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         className="hidden md:flex flex-col relative inset-y-0 left-0 z-40 bg-white/90 backdrop-blur-3xl border-r border-slate-200/60 shadow-[8px_0_32px_rgba(0,0,0,0.02)]"
       >
         <div className="p-6 hidden md:flex items-center justify-center h-[90px] border-b border-slate-200/50 relative">
-          <Link to="/" className="text-2xl font-extrabold tracking-tighter text-[#0f172a] flex items-center justify-center gap-3 overflow-hidden whitespace-nowrap group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform duration-300">
-              <Home className="w-5 h-5 text-white" />
-            </div>
+          <Link to="/" className="flex items-center justify-center gap-2 overflow-hidden whitespace-nowrap">
             <AnimatePresence initial={false}>
-              {!isCollapsed && (
-                <motion.span 
+              {isCollapsed ? (
+                <img src={logoImg} alt="PropertyLedge" className="h-7 w-auto object-contain shrink-0" />
+              ) : (
+                <motion.span
                   initial={{ opacity: 0, width: 0 }}
                   animate={{ opacity: 1, width: 'auto' }}
                   exit={{ opacity: 0, width: 0 }}
-                  className="overflow-hidden"
+                  className="overflow-hidden flex items-center gap-2"
                 >
-                  <img src={logoImg} alt="PropertyLedge" className="h-6 w-auto object-contain" />
-                  <span className="font-black text-[14px] tracking-tight text-[#2d3748]">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
+                  <img src={logoImg} alt="PropertyLedge" className="h-7 w-auto object-contain shrink-0" />
+                  <span className="font-black text-[14px] tracking-tight text-[#2d3748] whitespace-nowrap">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
                 </motion.span>
               )}
             </AnimatePresence>
