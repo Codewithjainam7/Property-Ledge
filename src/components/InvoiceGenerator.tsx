@@ -251,7 +251,7 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
       <div className={`flex text-sm font-bold py-3 px-4`} style={{ backgroundColor: headColor, color: isClassic ? '#0a1432' : textColor, borderBottom: `2px solid ${borderColor}` }}>
         <div className="flex-1">Description</div>
         <div className="w-32 text-right">Rate</div>
-        {isClassic && <div className="w-24 text-center">GST</div>}
+        <div className="w-24 text-center">GST</div>
         <div className="w-32 text-right">Amount</div>
       </div>
       <div>
@@ -259,7 +259,7 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
           <div key={i} className="flex text-sm py-4 px-4 border-b border-gray-200 last:border-b-0" style={{ backgroundColor: alternateRowColor && i % 2 !== 0 ? alternateRowColor : 'transparent', color: '#334155' }}>
             <div className="flex-1 font-medium">{item.description}</div>
             <div className="w-32 text-right">${formatCurrency(item.rate)}</div>
-            {isClassic && <div className="w-24 text-center">{item.gst}%</div>}
+            <div className="w-24 text-center">{item.gst}%</div>
             <div className="w-32 text-right font-bold" style={{ color: isClassic ? '#0a1432' : '#0f172a' }}>${formatCurrency(item.rate * (1 + item.gst / 100))}</div>
           </div>
         ))}
