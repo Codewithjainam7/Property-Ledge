@@ -6,15 +6,11 @@ import { Building, ClipboardList, Users, UserCircle2, ArrowRight, ArrowLeft, Eye
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 export function Signup() {
-  const [searchParams] = useSearchParams();
-  const isInvite = searchParams.get('invite') === 'true';
-  const inviteEmail = searchParams.get('email') || '';
-
   const [step, setStep] = useState(1);
-  const [role, setRole] = useState(isInvite ? 'Tenant' : ''); // Default role for invites to bypass step 2 if needed
+  const [role, setRole] = useState('');
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
-  const [email, setEmail] = useState(inviteEmail);
+  const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,26 +18,8 @@ export function Signup() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isInvite && inviteEmail) {
-      // Store the invite email in localStorage so we can bridge it after OAuth redirect
-      localStorage.setItem('pendingInviteEmail', inviteEmail.toLowerCase());
-      
-      supabase
-        .from('tenants')
-        .select('first_name, last_name, phone')
-        .eq('email', inviteEmail)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            setFname(data.first_name || '');
-            setLname(data.last_name || '');
-            setMobile(data.phone || '');
-          }
-        });
-    }
-  }, [isInvite, inviteEmail]);
+  const [searchParams] = useSearchParams();
+  const isInvite = searchParams.get('invite') === 'true';
 
   // OTP Verification State
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -81,28 +59,17 @@ export function Signup() {
     }
   };
 
-  const handleNext = (e: FormEvent) => {
+  const handleNext = async (e: FormEvent) => {
     e.preventDefault();
-    if (step === 1) {
-      if (password !== confirmPassword) {
-        setError("Passwords do not match");
-        return;
-      }
-      if (password.length < 8) {
-        setError("Password must be at least 8 characters");
-        return;
-      }
-      setError(null);
-      if (isInvite) {
-        // Bypass role selection for invites
-        handleCompleteSetup();
-      } else {
-        setStep(2);
-      }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
     }
-  };
-
-  const handleCompleteSetup = async () => {
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    
     setError(null);
     setLoading(true);
 
@@ -114,8 +81,7 @@ export function Signup() {
           first_name: fname.trim(),
           last_name: lname.trim(),
           full_name: `${fname} ${lname}`.trim(),
-          mobile,
-          role
+          mobile
         }
       }
     });
@@ -124,10 +90,8 @@ export function Signup() {
       setError(error.message);
       setLoading(false);
     } else if (data?.session) {
-      // If Email Confirmation is turned OFF in Supabase, you get a session immediately.
-      navigate('/dashboard');
+      navigate('/complete-profile');
     } else {
-      // If Email Confirmation is ON, session is null until they verify the OTP.
       setNeedsVerification(true);
       setLoading(false);
     }
@@ -176,11 +140,7 @@ export function Signup() {
           <Link to="/" className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-all font-bold text-xs tracking-widest uppercase group">
              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to home
           </Link>
-          {!needsVerification && (
-            <div className="text-[10px] font-black text-[#4a4a5e] bg-gray-100 border border-gray-200 rounded-full px-3 py-1 flex items-center gap-1 shadow-inner">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {isInvite ? 'Tenant Setup' : `Step ${step} of 2`}
-            </div>
-          )}
+          {/* Step indicator removed as it's now a single-step signup */}
         </div>
         
         {needsVerification ? (
@@ -265,7 +225,7 @@ export function Signup() {
               </button>
             </form>
           </motion.div>
-        ) : step === 1 ? (
+        ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <h2 className="text-3xl md:text-[38px] font-black text-[#1c1c28] mb-2 tracking-tight leading-tight">Create your account</h2>
             <p className="text-sm text-[#4a4a5e] mb-8 font-medium">Start your 14-day free trial. No credit card required.</p>
@@ -284,7 +244,7 @@ export function Signup() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Email address</label>
-                  <input type="email" placeholder="sarah@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!inviteEmail} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm disabled:opacity-60" />
+                  <input type="email" placeholder="sarah@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm" />
                  </div>
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Mobile number</label>
@@ -363,46 +323,6 @@ export function Signup() {
                 Continue with Google
               </Button>
             </form>
-          </motion.div>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-3xl md:text-[36px] font-black text-[#1c1c28] mb-3 tracking-tight leading-tight">How will you use PropertyLedge?</h2>
-            <p className="text-sm text-[#4a4a5e] font-medium mb-8">We'll customize your dashboard based on your answer.</p>
-            {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100">{error}</div>}
-            
-            <div className="space-y-4 mb-8">
-              {roles.map((r) => {
-                const Icon = r.icon;
-                const active = role === r.id;
-                return (
-                  <div 
-                    key={r.id} 
-                    onClick={() => setRole(r.id)}
-                    className={`p-4 md:p-5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-4
-                      ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-200 hover:border-gray-300 bg-white/40 backdrop-blur-sm'}
-                    `}
-                  >
-                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${active ? 'bg-primary text-white shadow-md' : 'bg-gray-50 border border-gray-200 text-[#4a4a5e]'}`}>
-                        <Icon className="w-5 h-5" />
-                     </div>
-                     <div>
-                        <div className={`text-base md:text-lg font-black ${active ? 'text-primary' : 'text-[#1c1c28]'}`}>{r.title}</div>
-                        <div className={`text-xs font-bold mt-0.5 ${active ? 'text-primary/80' : 'text-[#4a4a5e]'}`}>{r.desc}</div>
-                     </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex gap-4">
-              <button onClick={() => setStep(1)} className="px-6 py-4 rounded-2xl border-2 border-gray-200 text-[#4a4a5e] font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors text-xs">Back</button>
-              <button 
-                onClick={handleCompleteSetup} 
-                disabled={!role || loading} 
-                className="flex-1 bg-[#22333b] text-white font-bold uppercase tracking-wider rounded-2xl py-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:bg-[#111a1e] transition-all text-xs flex items-center justify-center gap-2"
-              >
-                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <>Complete Setup <ArrowRight className="w-4 h-4" /></>}
-              </button>
-            </div>
           </motion.div>
         )}
       </div>

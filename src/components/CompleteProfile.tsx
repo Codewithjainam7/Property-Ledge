@@ -4,9 +4,8 @@ import { motion } from 'framer-motion';
 import { Building, ClipboardList, Users, UserCircle2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-
 export function CompleteProfile() {
-  const { user } = useAuth();
+  const { user, userContext, loading: authLoading } = useAuth();
   const [role, setRole] = useState('');
   const [mobile, setMobile] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -14,11 +13,20 @@ export function CompleteProfile() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If the user already has these fields, redirect them to dashboard
-    if (user && user.user_metadata?.mobile && user.user_metadata?.role) {
+    if (authLoading) return;
+
+    // Check if there is a pending invite token to complete
+    const pendingInvite = localStorage.getItem('pendingInviteToken');
+    if (pendingInvite) {
+      navigate(`/accept-invite?token=${pendingInvite}`);
+      return;
+    }
+
+    // If the user already has these fields, or is already a team member, redirect them to dashboard
+    if (user && (userContext?.isTeamMember || (user.user_metadata?.mobile && user.user_metadata?.role))) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, userContext, authLoading, navigate]);
 
   const handleCompleteSetup = async () => {
     if (!mobile || !role) {
@@ -40,20 +48,15 @@ export function CompleteProfile() {
       setError(error.message);
       setLoading(false);
     } else {
-      // Also update the user_profiles table since the trigger only ran on insert
-      await supabase
-        .from('user_profiles')
-        .update({ global_role: role })
-        .eq('id', user.id);
-        
-      window.location.href = '/dashboard';
+      // Force refresh the user session from Supabase to ensure the new metadata is loaded
+      await supabase.auth.refreshSession();
+      navigate('/dashboard');
     }
   };
 
   const roles = [
     { id: 'Owner', icon: Building, title: 'Property Owner', desc: 'I own and manage properties' },
-    { id: 'Agent', icon: Users, title: 'Property Agent / Manager', desc: 'I manage properties for an owner' },
-    { id: 'Tenant', icon: UserCircle2, title: 'Tenant', desc: 'I am looking to rent or currently renting' }
+    { id: 'Agent', icon: Users, title: 'Property Agent / Manager', desc: 'I manage properties for an owner' }
   ];
 
   if (!user) return null;

@@ -28,7 +28,7 @@ type Payment = {
 };
 
 export function Accounting() {
-  const { session } = useAuth();
+  const { session, userContext } = useAuth();
   const [loading, setLoading] = useState(true);
   const [properties, setProperties] = useState<Property[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -43,19 +43,24 @@ export function Accounting() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (session?.user.id) {
+    if (session?.user.id && userContext) {
       loadLedgerData(session.user.id);
     }
-  }, [session]);
+  }, [session, userContext]);
 
   const loadLedgerData = async (userId: string) => {
     setLoading(true);
     try {
-      // Load properties the user owns or manages
-      const { data: propsData, error: propsError } = await supabase
-        .from('properties')
-        .select('id, address, suburb')
-        .eq('owner_id', userId);
+      const managedPropertyIds = userContext?.teamPropertyIds || [];
+      
+      let propsQuery = supabase.from('properties').select('id, address, suburb');
+      if (managedPropertyIds.length > 0) {
+        propsQuery = propsQuery.or(`owner_id.eq.${userId},id.in.(${managedPropertyIds.join(',')})`);
+      } else {
+        propsQuery = propsQuery.eq('owner_id', userId);
+      }
+
+      const { data: propsData, error: propsError } = await propsQuery;
 
       if (propsError) throw propsError;
       setProperties(propsData || []);

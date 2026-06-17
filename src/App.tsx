@@ -14,13 +14,11 @@ import { InvoiceManagement } from './components/InvoiceManagement';
 import { Tenants } from './components/Tenants';
 import { Accounting } from './components/Accounting';
 import { Login as SupabaseLogin } from './components/Login';
-import { TenantPortal } from './components/TenantPortal';
-
 import { Signup } from './components/Signup';
-import { CompleteProfile } from './components/CompleteProfile';
-import { TenantLeaseDashboard } from './components/TenantLeaseDashboard';
-import { Welcome } from './components/Welcome';
+import { AcceptInvite } from './components/AcceptInvite';
+import { ManagerDashboard } from './components/ManagerDashboard';
 import { useAuth } from './contexts/AuthContext';
+import { CompleteProfile } from './components/CompleteProfile';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -1371,29 +1369,25 @@ function Login() {
 
 
 function DashboardRouter() {
-  const { userContext, session, loading } = useAuth();
+  const { userContext, session, loading, user } = useAuth();
   
   if (loading) return null;
 
-  // ─── Tenant Routing ───
-  if (userContext?.isTenant && !userContext?.isLandlordOrTeam) {
-    const status = userContext.tenantStatus;
-    
-    // Pending or Invited tenants → Welcome/Handshake page
-    if (status === 'Pending' || status === 'Invited') {
-      return <Navigate to="/dashboard/welcome" replace />;
-    }
-    
-    // Active tenants → their lease dashboard
-    return <Navigate to="/dashboard/my-lease" replace />;
+  if (user && !user.user_metadata?.role) {
+    return <Navigate to="/complete-profile" replace />
   }
 
-  // ─── Landlord / Team Routing ───
-  if (userContext?.isLandlordOrTeam) {
+  // ─── Owner Dashboard ───
+  if (userContext?.isOwner) {
     return <Dashboard />;
   }
+
+  // ─── Team / Manager Dashboard ───
+  if (userContext?.isTeamMember) {
+    return <ManagerDashboard />;
+  }
   
-  // Fallback (shouldn't normally reach here)
+  // Fallback to the main owner Dashboard for all direct signups
   return <Dashboard />;
 }
 
@@ -1401,31 +1395,26 @@ import { Team } from './components/Team';
 import { Leases } from './components/Leases';
 
 function AppRoutes() {
-  const location = useLocation();
-
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<SupabaseLogin />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/complete-profile" element={<CompleteProfile />} />
-        <Route path="/dashboard" element={<DashboardRouter />} />
-        <Route path="/dashboard/welcome" element={<Welcome />} />
-        <Route path="/dashboard/my-lease" element={<TenantLeaseDashboard />} />
-        <Route path="/dashboard/properties" element={<Properties />} />
-        <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
-        <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<SupabaseLogin />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/complete-profile" element={<CompleteProfile />} />
+      <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/dashboard" element={<DashboardRouter />} />
+      <Route path="/dashboard/properties" element={<Properties />} />
+      <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
+      <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
 
-        <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
-        <Route path="/dashboard/settings" element={<AccountSettings />} />
-        <Route path="/dashboard/team" element={<Team />} />
-        <Route path="/dashboard/leases" element={<Leases />} />
-        <Route path="/dashboard/tenants" element={<Tenants />} />
-        <Route path="/dashboard/accounting" element={<Accounting />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </AnimatePresence>
+      <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
+      <Route path="/dashboard/settings" element={<AccountSettings />} />
+      <Route path="/dashboard/team" element={<Team />} />
+      <Route path="/dashboard/leases" element={<Leases />} />
+      <Route path="/dashboard/tenants" element={<Tenants />} />
+      <Route path="/dashboard/accounting" element={<Accounting />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
 

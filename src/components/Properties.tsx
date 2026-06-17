@@ -20,20 +20,17 @@ export function Properties() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchProperties();
-  }, []);
+    if (userContext) {
+      fetchProperties();
+    }
+  }, [userContext]);
 
   const fetchProperties = async () => {
     setDataLoading(true);
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
       
-      const { data: teamMemberships } = await supabase
-        .from('property_team')
-        .select('property_id')
-        .eq('user_id', userId);
-        
-      const managedPropertyIds = teamMemberships?.map(m => m.property_id) || [];
+      const managedPropertyIds = userContext?.teamPropertyIds || [];
       
       let query = supabase.from('properties').select('*');
       if (managedPropertyIds.length > 0) {

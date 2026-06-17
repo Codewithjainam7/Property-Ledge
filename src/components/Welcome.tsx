@@ -153,6 +153,7 @@ export function Welcome() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [firstName, setFirstName] = useState('');
 
   // Signature Canvas
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Building, LogOut, PieChart, Wallet, Users, Home, Search, Bell, Menu, X, FileText, HelpCircle, UserPlus, Settings, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -16,6 +17,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   
   const { session, user, userContext, signOut, loading } = useAuth();
+  const [assignedProperties, setAssignedProperties] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (userContext?.isTeamMember && userContext.teamPropertyIds?.length > 0) {
+      const fetchAssignedProperties = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('properties')
+            .select('id, address')
+            .in('id', userContext.teamPropertyIds);
+          if (error) throw error;
+          if (data) {
+            setAssignedProperties(data);
+          }
+        } catch (err) {
+          console.error("Error fetching assigned properties for sidebar:", err);
+        }
+      };
+      fetchAssignedProperties();
+    }
+  }, [userContext]);
   
   const toggleSidebar = () => {
     const newVal = !isCollapsed;
@@ -27,13 +49,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     if (!loading) {
       if (!session) {
         navigate(`/login?redirectTo=${encodeURIComponent(location.pathname + location.search)}`);
-      } else if (!user?.user_metadata?.role) {
-        // Force Google OAuth users to select their role (Owner, Agent, Tenant)
-        navigate('/complete-profile');
+      } else {
+        const pendingInvite = localStorage.getItem('pendingInviteToken');
+        if (pendingInvite) {
+          navigate(`/accept-invite?token=${pendingInvite}`);
+          return;
+        }
+        // Removed complete-profile redirect as all organic signups are now assumed to be Property Owners.
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, loading, user]);
+  }, [session, loading, user, userContext]);
 
   const handleLogout = async () => {
     await signOut();
@@ -123,6 +149,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       { name: 'My Lease', icon: Home, to: '/dashboard/my-lease', exact: true }
     ];
     toolsLinks = [];
+  } else if (userContext?.isTeamMember) {
+    organiseLinks = [
+      { name: 'Portfolio Overview', icon: PieChart, to: '/dashboard', exact: true },
+    ];
+    if (userContext.permissions?.canViewLease || userContext.permissions?.canCreateLease || userContext.permissions?.canEditLease) {
+      organiseLinks.push({ name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false });
+    }
+    if (userContext.permissions?.canManageTenants) {
+      organiseLinks.push({ name: 'Manage Tenants', icon: Users, to: '/dashboard/tenants', exact: false });
+    }
+    toolsLinks = [];
   } else {
     // Default Owner/Team View
     organiseLinks = [
@@ -180,7 +217,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform duration-300">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {!isCollapsed && (
                 <motion.span 
                   initial={{ opacity: 0, width: 0 }}
@@ -196,15 +233,64 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
         
         <nav className={`flex-1 py-6 overflow-y-auto mt-16 md:mt-0 overflow-x-hidden ${isCollapsed ? 'flex flex-col items-center px-0 gap-6' : 'px-5 space-y-8'}`}>
+          {/* Assigned Properties Section for Property Managers */}
+          {userContext?.isTeamMember && assignedProperties.length > 0 && (
+            <div className="space-y-1.5 mb-6">
+              <div className={`h-6 mb-3 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-3'}`}>
+                <AnimatePresence initial={false}>
+                  {!isCollapsed ? (
+                    <motion.span 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
+                    >
+                      Assigned Properties
+                    </motion.span>
+                  ) : (
+                    <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              {assignedProperties.map((prop, idx) => {
+                const isActive = location.pathname === `/dashboard/property/${prop.id}`;
+                return (
+                  <Link 
+                    key={`assigned-prop-${prop.id}`} 
+                    to={`/dashboard/property/${prop.id}`}
+                    title={isCollapsed ? prop.address : ''}
+                    className={`flex items-center font-bold rounded-xl transition-all duration-300 relative group ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-2.5 gap-3'} ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-900'}`}
+                  >
+                    {isActive && !isCollapsed && (
+                      <motion.div layoutId="activeNavAssigned" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                    )}
+                    <Building className={`w-[18px] h-[18px] shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}`} />
+                    <AnimatePresence initial={false}>
+                      {!isCollapsed && (
+                        <motion.span 
+                          initial={{ opacity: 0, width: 0 }} 
+                          animate={{ opacity: 1, width: 'auto' }} 
+                          exit={{ opacity: 0, width: 0 }}
+                          className="whitespace-nowrap overflow-hidden text-[13.5px] font-semibold"
+                        >
+                          {prop.address.split(',')[0]}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <div className={`h-6 mb-3 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-3'}`}>
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {!isCollapsed ? (
                   <motion.span 
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-full"
                   >
-                    {userContext?.isTenant && !userContext?.isLandlordOrTeam ? 'My Rental' : 'Organise'}
+                    {userContext?.isTenant && !userContext?.isLandlordOrTeam ? 'My Rental' : userContext?.isTeamMember ? 'Workspace' : 'Organise'}
                   </motion.span>
                 ) : (
                   <div className="w-6 h-[2px] bg-slate-200 rounded-full" />
@@ -228,7 +314,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <motion.div layoutId="activeNavCollapsedOrg" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
                   )}
                   <link.icon className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}`} />
-                  <AnimatePresence>
+                  <AnimatePresence initial={false}>
                     {!isCollapsed && (
                       <motion.span 
                         initial={{ opacity: 0, width: 0 }} 
@@ -248,7 +334,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {toolsLinks.length > 0 && (
             <div className="space-y-1.5">
               <div className={`h-6 mb-3 flex items-center justify-center ${isCollapsed ? 'px-0' : 'px-3'}`}>
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                   {!isCollapsed ? (
                     <motion.span 
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -278,7 +364,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       <motion.div layoutId="activeNavCollapsedTool" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
                     )}
                     <link.icon className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}`} />
-                    <AnimatePresence>
+                    <AnimatePresence initial={false}>
                       {!isCollapsed && (
                         <motion.span 
                           initial={{ opacity: 0, width: 0 }} 
@@ -300,7 +386,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <nav className={`py-6 space-y-1.5 overflow-x-hidden border-t border-slate-200/50 ${isCollapsed ? 'flex flex-col items-center px-0' : 'px-5'}`}>
            <Link to="#" title="Help centre" className={`flex items-center text-slate-500 hover:bg-slate-100/80 font-bold rounded-xl transition-all duration-300 group ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} hover:text-slate-900`}>
              <HelpCircle className="w-[22px] h-[22px] shrink-0 group-hover:scale-110 transition-transform duration-300" /> 
-             <AnimatePresence>
+             <AnimatePresence initial={false}>
                 {!isCollapsed && (
                   <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[14.5px] whitespace-nowrap overflow-hidden">
                     Help Centre
@@ -313,7 +399,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                <motion.div layoutId="activeNav" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
              )}
              <Settings className={`w-[22px] h-[22px] shrink-0 transition-transform duration-300 ${location.pathname.startsWith('/dashboard/settings') ? 'text-primary scale-110' : 'group-hover:scale-110'}`} /> 
-             <AnimatePresence>
+             <AnimatePresence initial={false}>
                 {!isCollapsed && (
                   <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="text-[14.5px] whitespace-nowrap overflow-hidden">
                     Settings
@@ -402,8 +488,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+                {/* Assigned Properties Section for Property Managers on Mobile */}
+                {userContext?.isTeamMember && assignedProperties.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mb-4">Assigned Properties</div>
+                    {assignedProperties.map((prop) => {
+                      const isActive = location.pathname === `/dashboard/property/${prop.id}`;
+                      return (
+                        <Link 
+                          key={`m-assigned-prop-${prop.id}`} 
+                          to={`/dashboard/property/${prop.id}`} 
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center font-bold rounded-xl px-4 py-3 gap-3 transition-all duration-300 relative ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                        >
+                          {isActive && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                          )}
+                          <Building className={`w-[20px] h-[20px] shrink-0 ${isActive ? 'text-primary scale-110' : ''}`} />
+                          <span className="text-[14px]">{prop.address.split(',')[0]}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mb-4">Organise</div>
+                  <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] mb-4">
+                    {userContext?.isTenant && !userContext?.isLandlordOrTeam ? 'My Rental' : userContext?.isTeamMember ? 'Workspace' : 'Organise'}
+                  </div>
                   {organiseLinks.map((link, idx) => {
                     const isActive = checkIsActive(link);
                     return (

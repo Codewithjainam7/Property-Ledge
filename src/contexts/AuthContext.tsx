@@ -8,6 +8,7 @@ type AuthContextType = {
   user: User | null;
   userContext: UserContextData | null;
   signOut: () => Promise<void>;
+  refreshContext: () => Promise<void>;
   loading: boolean;
 };
 
@@ -23,74 +24,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserContext = async (userId: string) => {
     fetchedUserIdRef.current = userId;
     try {
-      // Check if user is a landlord (owns any properties)
-      const { count: propertiesCount } = await supabase
-        .from('properties')
-        .select('*', { count: 'exact', head: true })
-        .eq('owner_id', userId);
-
-      // Check if user is in a property team
-      const { count: teamCount } = await supabase
-        .from('property_team')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
-
-      // Check if user is a tenant by user_id OR email
-      let tenantRecord = null;
       const { data: { user: authUser } } = await supabase.auth.getUser();
       const userEmail = authUser?.email;
-      const userRole = authUser?.user_metadata?.role; // 'Owner', 'Agent', or 'Tenant'
 
-      // First try by user_id
-      if (userId) {
-        const { data: tenantByUid } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
-        tenantRecord = tenantByUid;
-      }
+      // Parallel fetches: properties owned, team memberships
+      const [propsResponse, teamResponse] = await Promise.all([
+        supabase
+          .from('properties')
+          .select('id', { count: 'exact', head: false })
+          .eq('owner_id', userId),
+        supabase
+          .from('property_team')
+          .select('property_id, permissions')
+          .eq('user_id', userId),
+      ]);
 
-      // Then try by email (catches brand-new signups before user_id is linked)
-      if (!tenantRecord && userEmail) {
-        const { data: tenantByEmail } = await supabase
-          .from('tenants')
-          .select('*')
-          .ilike('email', userEmail)
-          .maybeSingle();
-        
-        if (tenantByEmail) {
-          tenantRecord = tenantByEmail;
-          // Auto-link user_id to tenant record for future lookups
-          await supabase
-            .from('tenants')
-            .update({ user_id: userId })
-            .eq('id', tenantByEmail.id);
-        }
-      }
+      const ownedPropertyCount = propsResponse.data?.length ?? 0;
+      const teamEntries = teamResponse.data ?? [];
+      const teamPropertyIds = teamEntries.map((t: any) => t.property_id);
 
-      const isLandlordOrTeam = (propertiesCount ?? 0) > 0 || (teamCount ?? 0) > 0;
-      const isTenant = !!tenantRecord;
+      const isOwner = ownedPropertyCount > 0 || authUser?.user_metadata?.role === 'Owner';
+      const isTeamMember = teamPropertyIds.length > 0 || authUser?.user_metadata?.role === 'Agent';
+      const isLandlordOrTeam = isOwner || isTeamMember;
 
-      // CRITICAL FIX: If we found no landlord/team records AND no tenant record,
-      // check the user's signup role metadata as the final signal.
-      if (!isLandlordOrTeam && !isTenant) {
-        const signedUpAsTenant = userRole === 'Tenant';
-        setUserContext({
-          isLandlordOrTeam: !signedUpAsTenant,
-          isTenant: signedUpAsTenant,
-          tenantStatus: undefined, // Do NOT default to 'Pending', or it causes an infinite redirect loop if they have no invite!
-        });
-      } else {
-        setUserContext({
-          isLandlordOrTeam,
-          isTenant,
-          tenantStatus: tenantRecord?.status,
-        });
-      }
+      const permissions = {
+        canViewLease: teamEntries.some((t: any) => t.permissions?.can_view_lease === true),
+        canCreateLease: teamEntries.some((t: any) => t.permissions?.can_create_lease === true),
+        canEditLease: teamEntries.some((t: any) => t.permissions?.can_edit_lease === true),
+        canManageTenants: teamEntries.some((t: any) => t.permissions?.can_manage_tenants === true),
+      };
+
+      setUserContext({
+        isLandlordOrTeam,
+        isTenant: false,        // Tenants no longer log in — this is always false
+        isOwner,
+        isTeamMember,
+        teamPropertyIds,
+        tenantStatus: undefined,
+        permissions,
+      });
     } catch (e) {
-      console.error("Error fetching context:", e);
-      setUserContext({ isLandlordOrTeam: true, isTenant: false }); // Fallback
+      console.error("Error fetching user context:", e);
+      // Safe fallback — treat as a landlord/owner so they can access the dashboard
+      setUserContext({
+        isLandlordOrTeam: true,
+        isTenant: false,
+        isOwner: true,
+        isTeamMember: false,
+        teamPropertyIds: [],
+      });
+    }
+  };
+
+  const refreshContext = async () => {
+    if (session?.user?.id) {
+      setLoading(true);
+      await fetchUserContext(session.user.id);
+      setLoading(false);
     }
   };
 
@@ -134,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userContext, signOut, loading }}>
+    <AuthContext.Provider value={{ session, user, userContext, signOut, refreshContext, loading }}>
       {children}
     </AuthContext.Provider>
   );

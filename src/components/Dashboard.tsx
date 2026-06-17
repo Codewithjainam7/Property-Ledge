@@ -25,11 +25,12 @@ export function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch data immediately on mount — don't wait for auth
-  // Supabase RLS handles auth internally; if not authed it just returns []
+  // Fetch data when userContext is ready
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (!authLoading && userContext) {
+      fetchDashboardData();
+    }
+  }, [authLoading, userContext]);
 
   // Redirect only once we KNOW auth is done and user is null
   useEffect(() => {
@@ -44,12 +45,7 @@ export function Dashboard() {
       const userId = (await supabase.auth.getUser()).data.user?.id;
       
       // 1. Fetch team memberships to see if they manage properties
-      const { data: teamMemberships } = await supabase
-        .from('property_team')
-        .select('property_id')
-        .eq('user_id', userId);
-        
-      const managedPropertyIds = teamMemberships?.map(m => m.property_id) || [];
+      const managedPropertyIds = userContext?.teamPropertyIds || [];
       
       // 2. Fetch properties (owned OR managed)
       let propsQuery = supabase.from('properties').select('*');
@@ -372,7 +368,7 @@ export function Dashboard() {
                        )) : (
                          <tr>
                            <td colSpan={7} className="px-6 py-8 text-center text-sm text-on-surface-variant font-medium">
-                             No properties found. {userContext?.isLandlordOrTeam && <Link to="/dashboard/onboarding" className="text-primary hover:underline font-bold">Add your first property.</Link>}
+                             No properties found. <Link to="/dashboard/onboarding" className="text-primary hover:underline font-bold">Add your first property.</Link>
                            </td>
                          </tr>
                        )}

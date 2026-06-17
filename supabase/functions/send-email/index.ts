@@ -47,7 +47,8 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { to, subject, templateType, variables } = await req.json();
+    const reqBody = await req.json();
+    const { to, subject, templateType, variables, attachmentBase64, attachmentFilename } = reqBody;
 
     if (!to || !subject || !templateType || !variables) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject, templateType, variables" }), {
@@ -182,6 +183,157 @@ serve(async (req) => {
   </table>
 </body>
 </html>`;
+    } else if (templateType === "tenant-welcome") {
+      const { 
+        tenantFirstName, propertyAddress, senderName, senderEmail,
+        startDate, endDate, rentAmount, bondAmount, paymentFrequency, specialTerms
+      } = variables;
+
+      const leaseEndStr = endDate ? formatDate(endDate) : "Periodic / Month-to-Month";
+
+      htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Welcome to Your New Home</title></head>
+<body style="margin:0;padding:0;background-color:#f2f4f3;font-family:'Space Grotesk','Outfit','Inter',Helvetica,Arial,sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f2f4f3;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
+        <!-- Header -->
+        <tr><td style="background:#22333b;padding:48px 40px 36px;text-align:center;">
+          <p style="margin:0 0 16px;font-size:13px;font-weight:700;color:#a9927d;letter-spacing:3px;text-transform:uppercase;">Property Ledge</p>
+          <h1 style="margin:0 0 12px;font-size:32px;font-weight:900;color:#ffffff;line-height:1.2;">Welcome Home, ${tenantFirstName || "Tenant"}! 🏡</h1>
+          <p style="margin:0;font-size:16px;color:#f2f4f3;line-height:1.5;opacity:0.9;">Your lease agreement has been confirmed. Please find your details and signed lease attached.</p>
+        </td></tr>
+
+        <!-- Property Card -->
+        <tr><td style="padding:36px 40px 0;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f2f4f3;border:1px solid rgba(34,51,59,0.1);border-radius:16px;padding:24px;">
+            <tr><td>
+              <p style="margin:0 0 6px;font-size:11px;font-weight:800;color:#a9927d;text-transform:uppercase;letter-spacing:1.5px;">Your Property</p>
+              <p style="margin:0;font-size:22px;font-weight:800;color:#22333b;">${propertyAddress || "N/A"}</p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Lease Term -->
+        <tr><td style="padding:28px 40px 0;">
+          <p style="margin:0 0 12px;font-size:11px;font-weight:800;color:#a9927d;text-transform:uppercase;letter-spacing:1.5px;">Lease Term</p>
+          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td width="48%" style="background:#ffffff;border:1px solid rgba(34,51,59,0.1);border-radius:16px;padding:20px;">
+                <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#22333b;opacity:0.7;text-transform:uppercase;">Start Date</p>
+                <p style="margin:0;font-size:18px;font-weight:800;color:#22333b;">${formatDate(startDate)}</p>
+              </td>
+              <td width="4%" style="text-align:center;color:#a9927d;font-size:20px;font-weight:bold;">→</td>
+              <td width="48%" style="background:#ffffff;border:1px solid rgba(34,51,59,0.1);border-radius:16px;padding:20px;">
+                <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#22333b;opacity:0.7;text-transform:uppercase;">End Date</p>
+                <p style="margin:0;font-size:18px;font-weight:800;color:#22333b;">${leaseEndStr}</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Financials -->
+        <tr><td style="padding:28px 40px 0;">
+          <p style="margin:0 0 12px;font-size:11px;font-weight:800;color:#a9927d;text-transform:uppercase;letter-spacing:1.5px;">Financial Summary</p>
+          <table width="100%" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td width="32%" style="background:#22333b;border-radius:16px;padding:20px;text-align:center;">
+                <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#a9927d;text-transform:uppercase;">Rent</p>
+                <p style="margin:0;font-size:22px;font-weight:900;color:#ffffff;">$${Number(rentAmount || 0).toLocaleString()}</p>
+                <p style="margin:4px 0 0;font-size:11px;color:#f2f4f3;opacity:0.8;">${(paymentFrequency || "Weekly").toLowerCase()}</p>
+              </td>
+              <td width="4%"></td>
+              <td width="32%" style="background:#ffffff;border:1px solid rgba(34,51,59,0.1);border-radius:16px;padding:20px;text-align:center;">
+                <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#22333b;opacity:0.7;text-transform:uppercase;">Bond</p>
+                <p style="margin:0;font-size:22px;font-weight:900;color:#22333b;">$${Number(bondAmount || 0).toLocaleString()}</p>
+                <p style="margin:4px 0 0;font-size:11px;color:#22333b;opacity:0.6;">deposit</p>
+              </td>
+              <td width="4%"></td>
+              <td width="32%" style="background:#ffffff;border:1px solid rgba(34,51,59,0.1);border-radius:16px;padding:20px;text-align:center;">
+                <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#22333b;opacity:0.7;text-transform:uppercase;">Frequency</p>
+                <p style="margin:0;font-size:18px;font-weight:900;color:#22333b;">${paymentFrequency || "Weekly"}</p>
+                <p style="margin:4px 0 0;font-size:11px;color:#22333b;opacity:0.6;">cycle</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        ${specialTerms ? `
+        <!-- Special Conditions -->
+        <tr><td style="padding:28px 40px 0;">
+          <p style="margin:0 0 12px;font-size:11px;font-weight:800;color:#a9927d;text-transform:uppercase;letter-spacing:1.5px;">Message from Landlord</p>
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f2f4f3;border-left:4px solid #a9927d;border-radius:0 12px 12px 0;padding:20px;">
+            <tr><td style="font-size:14px;color:#22333b;line-height:1.7;white-space:pre-line;font-weight:500;">${specialTerms}</td></tr>
+          </table>
+        </td></tr>` : ''}
+
+        <!-- From -->
+        <tr><td style="padding:36px 40px 0;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid rgba(34,51,59,0.1);border-radius:16px;padding:20px;">
+            <tr>
+              <td width="44" style="vertical-align:top;">
+                <div style="width:44px;height:44px;background:#22333b;border-radius:50%;text-align:center;line-height:44px;font-size:18px;color:#a9927d;font-weight:800;">${(senderName || senderEmail || 'L').charAt(0).toUpperCase()}</div>
+              </td>
+              <td style="padding-left:16px;vertical-align:middle;">
+                <p style="margin:0 0 4px;font-size:14px;font-weight:800;color:#22333b;">${senderName || "Your Property Manager"}</p>
+                <p style="margin:0;font-size:13px;color:#22333b;opacity:0.7;">${senderEmail || ""}</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:40px 40px;text-align:center;margin-top:40px;">
+          <p style="margin:0 0 8px;font-size:12px;color:#22333b;opacity:0.5;font-weight:500;">This email was securely delivered by Property Ledge.</p>
+          <p style="margin:0;font-size:11px;color:#22333b;opacity:0.3;font-weight:600;">&copy; 2026 Property Ledge. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+      // Override the "from" to use the landlord/PM email
+      const fromEmail = Deno.env.get("MAILTRAP_SENDER_EMAIL") || "mailtrap@sandbox.api.mailtrap.io";
+      const fromName = senderName || "Property Ledge";
+
+      const mailtrapPayload: any = {
+        from: { email: fromEmail, name: fromName },
+        to: [{ email: to }],
+        subject: subject,
+        html: htmlContent,
+        category: "Tenant Welcome"
+      };
+
+      if (reqBody && reqBody.attachmentBase64) {
+        mailtrapPayload.attachments = [
+          {
+            filename: reqBody.attachmentFilename || "Lease_Agreement.pdf",
+            content: reqBody.attachmentBase64.split(',')[1] || reqBody.attachmentBase64,
+            type: "application/pdf",
+            disposition: "attachment"
+          }
+        ];
+      }
+
+      // ─── Send email via Mailtrap Sandbox API ───
+      const mailtrapRes2 = await fetch(`https://sandbox.api.mailtrap.io/api/send/${inboxId}`, {
+        method: "POST",
+        headers: { "Api-Token": mailtrapToken, "Content-Type": "application/json" },
+        body: JSON.stringify(mailtrapPayload),
+      });
+
+      if (!mailtrapRes2.ok) {
+        const errText = await mailtrapRes2.text();
+        throw new Error(`Mailtrap API failed (${mailtrapRes2.status}): ${errText}`);
+      }
+
+      const resJson2 = await mailtrapRes2.json();
+      return new Response(JSON.stringify({ success: true, message: "Welcome email sent", data: resJson2 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+      });
+
     } else {
       throw new Error(`Unknown templateType: ${templateType}`);
     }

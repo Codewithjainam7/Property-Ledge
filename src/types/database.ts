@@ -18,5 +18,28 @@ export interface TenantAccessLevel {
 export interface UserContextData {
   isLandlordOrTeam: boolean;
   isTenant: boolean;
+  isOwner: boolean;         // true if user owns properties directly
+  isTeamMember: boolean;    // true if user was invited via team invite
+  teamPropertyIds: string[]; // property IDs the user can access via team membership
   tenantStatus?: string;
+  permissions?: {
+    canViewLease: boolean;
+    canCreateLease: boolean;
+    canEditLease: boolean;
+    canManageTenants: boolean;
+  };
+}
+
+export interface TeamInvitation {
+  id: string;
+  property_id: string;
+  invited_by: string;
+  email: string;
+  role: string;
+  permissions?: PropertyTeamPermissions;
+  token: string;
+  status: 'Pending' | 'Accepted' | 'Declined' | 'Expired';
+  expires_at: string;
+  created_at: string;
+  accepted_at?: string;
 }

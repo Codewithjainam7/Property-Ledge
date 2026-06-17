@@ -126,6 +126,17 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
       try {
         const propertyIdStr = 'PL-' + Math.floor(1000 + Math.random() * 9000).toString();
         
+        // Ensure user exists in public.user_profiles to prevent foreign key errors if DB was manually wiped
+        const { data: existingUser } = await supabase.from('user_profiles').select('id').eq('id', session.user.id).maybeSingle();
+        if (!existingUser) {
+          await supabase.from('user_profiles').insert({
+             id: session.user.id,
+             email: session.user.email,
+             first_name: session.user.user_metadata?.first_name || session.user.user_metadata?.full_name?.split(' ')[0] || 'Unknown',
+             last_name: session.user.user_metadata?.last_name || 'User'
+          });
+        }
+
         // 1. Insert Property
         const { data: propData, error: propertyError } = await supabase
           .from('properties')
@@ -154,69 +165,48 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
 
         if (propertyError) throw propertyError;
 
-        // 2. Automatically create tenant & lease records and dispatch email invite if tenant details are provided
-        if (formData.tenantEmail && formData.tenantName) {
-          const nameParts = formData.tenantName.trim().split(/\s+/);
-          const firstName = nameParts[0] || 'Tenant';
-          const lastName = nameParts.slice(1).join(' ') || '';
+        // If tenant details are provided, immediately insert into tenants and leases table to auto-populate the system
+        if (formData.tenantName || formData.tenantEmail) {
+          let existingUserId = null;
+          if (formData.tenantEmail) {
+            const { data: userId } = await supabase.rpc('get_user_by_email', { p_email: formData.tenantEmail });
+            if (userId) existingUserId = userId;
+          }
 
-          // Find if user already exists
-          const { data: existingUserId } = await supabase.rpc('get_user_by_email', { p_email: formData.tenantEmail });
+          let firstName = '';
+          let lastName = '';
+          if (formData.tenantName) {
+             const parts = formData.tenantName.trim().split(/\s+/);
+             firstName = parts[0] || '';
+             lastName = parts.slice(1).join(' ') || '';
+          }
 
-          // Create tenant
-          const { data: tenantData, error: tenantErr } = await supabase
+          await supabase
             .from('tenants')
             .insert({
               property_id: propData.id,
               owner_id: session.user.id,
               first_name: firstName,
               last_name: lastName,
-              email: formData.tenantEmail,
-              user_id: existingUserId || null,
-              status: 'Pending',
+              email: formData.tenantEmail || null,
+              user_id: existingUserId,
+              status: 'Active',
               access_level: { receives_emails: true, can_login: true }
-            })
-            .select()
-            .single();
+            });
 
-          if (tenantErr) throw tenantErr;
-
-          // Create pending lease
-          const { error: leaseErr } = await supabase
+          await supabase
             .from('leases')
             .insert({
               property_id: propData.id,
               created_by: session.user.id,
               start_date: formData.leaseStart || new Date().toISOString().split('T')[0],
+              end_date: null,
               rent_amount: Number(formData.rentAmount) || 0,
+              status: 'Active',
               payment_frequency: formData.paymentFrequency || 'Weekly',
-              status: 'Pending'
+              bond_amount: (Number(formData.rentAmount) || 0) * 4
             });
-
-          if (leaseErr) throw leaseErr;
-
-          // Trigger email invitation via secure Edge Function
-          try {
-            await supabase.functions.invoke('send-email', {
-              body: {
-                to: formData.tenantEmail,
-                subject: `Welcome to Property Ledge - Accept Your Lease at ${formData.address}`,
-                templateType: 'tenant-invite',
-                variables: {
-                  firstName: firstName,
-                  lastName: lastName,
-                  propertyAddress: `${formData.address}, ${formData.suburb}`,
-                  inviteUrl: `${window.location.origin}/signup?invite=true&email=${formData.tenantEmail}`,
-                  rentAmount: formData.rentAmount || '0',
-                  leaseStart: formData.leaseStart || new Date().toISOString().split('T')[0]
-                }
-              }
-            });
-          } catch (emailErr: any) {
-            console.error("Failed to send automated onboarding email:", emailErr);
-          }
         }
-
         if (onSuccess) {
           onSuccess();
         } else {
@@ -389,9 +379,6 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
       case 2:
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3, p: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: -1 }}>
-              You can optionally invite a tenant and set up a lease now.
-            </Typography>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
               <TextField 
                 label="Tenant Name" 

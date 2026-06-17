@@ -8,8 +8,10 @@ import { InvoiceGenerator } from './InvoiceGenerator';
 import { InvoiceTemplateBuilder } from './InvoiceTemplateBuilder';
 import JSZip from 'jszip';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export function InvoiceManagement() {
+  const { userContext } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [showGenerator, setShowGenerator] = useState(false);
   const [showTemplateBuilder, setShowTemplateBuilder] = useState(false);
@@ -30,14 +32,27 @@ export function InvoiceManagement() {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) return;
 
+    const managedPropertyIds = userContext?.teamPropertyIds || [];
+
+    let invsQuery = supabase.from('invoices').select('*, properties(address, tenant_name)').order('created_at', { ascending: false });
+    let propsQuery = supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency');
+
+    if (managedPropertyIds.length > 0) {
+      invsQuery = invsQuery.or(`user_id.eq.${userId},property_id.in.(${managedPropertyIds.join(',')})`);
+      propsQuery = propsQuery.or(`owner_id.eq.${userId},id.in.(${managedPropertyIds.join(',')})`);
+    } else {
+      invsQuery = invsQuery.eq('user_id', userId);
+      propsQuery = propsQuery.eq('owner_id', userId);
+    }
+
     const [
       { data: inv, error: invError },
       { data: props, error: propsError },
       { data: tmpl, error: tmplError },
       { data: enqs }
     ] = await Promise.all([
-      supabase.from('invoices').select('*, properties(address, tenant_name)').order('created_at', { ascending: false }),
-      supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency'),
+      invsQuery,
+      propsQuery,
       supabase.from('invoice_templates').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
       supabase.from('property_enquiries').select('property_id, first_name, last_name, email').eq('status', 'Accepted')
     ]);
@@ -79,8 +94,10 @@ export function InvoiceManagement() {
   };
 
   useEffect(() => {
-    loadData();
-  }, [showGenerator, showTemplateBuilder]);
+    if (userContext) {
+      loadData();
+    }
+  }, [showGenerator, showTemplateBuilder, userContext]);
 
   const confirmDelete = async () => {
     if (deleteConfirm.id) {

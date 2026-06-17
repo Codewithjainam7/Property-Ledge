@@ -31,7 +31,7 @@ type Invoice = {
 };
 
 export function Tenants() {
-  const { session } = useAuth();
+  const { session, userContext } = useAuth();
   const navigate = useNavigate();
   
   const [properties, setProperties] = useState<Property[]>([]);
@@ -42,32 +42,40 @@ export function Tenants() {
   const [statusFilter, setStatusFilter] = useState('All');
 
   useEffect(() => {
-    if (session?.user.id) {
+    if (session?.user.id && userContext) {
       loadData(session.user.id);
     }
-  }, [session]);
+  }, [session, userContext]);
 
   const loadData = async (userId: string) => {
     setLoading(true);
     try {
+      const managedPropertyIds = userContext?.teamPropertyIds || [];
+      
+      let propsQuery = supabase.from('properties').select('id, address, suburb');
+      let tenantsQuery = supabase.from('tenants').select('*');
+      let invoicesQuery = supabase.from('invoices').select('property_id, status, due_date');
+
+      if (managedPropertyIds.length > 0) {
+        propsQuery = propsQuery.or(`owner_id.eq.${userId},id.in.(${managedPropertyIds.join(',')})`);
+        tenantsQuery = tenantsQuery.or(`owner_id.eq.${userId},property_id.in.(${managedPropertyIds.join(',')})`);
+        invoicesQuery = invoicesQuery.or(`user_id.eq.${userId},property_id.in.(${managedPropertyIds.join(',')})`);
+      } else {
+        propsQuery = propsQuery.eq('owner_id', userId);
+        tenantsQuery = tenantsQuery.eq('owner_id', userId);
+        invoicesQuery = invoicesQuery.eq('user_id', userId);
+      }
+
       // Fetch landlord's properties
-      const { data: propsData } = await supabase
-        .from('properties')
-        .select('id, address, suburb')
-        .eq('owner_id', userId);
+      const { data: propsData } = await propsQuery;
 
       const propsList = propsData || [];
       setProperties(propsList);
 
       // Fetch tenants and invoices
       const [tenantsResponse, invoicesResponse] = await Promise.all([
-        supabase
-          .from('tenants')
-          .select('*')
-          .eq('owner_id', userId),
-        supabase
-          .from('invoices')
-          .select('property_id, status, due_date')
+        tenantsQuery,
+        invoicesQuery
       ]);
 
       if (tenantsResponse.data) {
