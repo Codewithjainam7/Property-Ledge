@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building, Shield, CheckCircle2, AlertTriangle, ArrowRight, Eye, EyeOff, Loader2, User, Mail, Clock, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import logoImg from '../assets/logo.png';
 
 interface InvitePreview {
   id: string;
@@ -302,11 +303,8 @@ export function AcceptInvite() {
       >
         {/* Property Ledge brand */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/20">
-              <Building className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-black text-[#2d3748] tracking-tight">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
+          <Link to="/" className="inline-flex items-center">
+            <img src={logoImg} alt="PropertyLedge" className="h-7 w-auto object-contain" />
           </Link>
         </div>
 
@@ -552,7 +550,7 @@ export function AcceptInvite() {
         </div>
 
         <p className="text-center text-xs text-slate-400 font-medium mt-6">
-          <span className="font-black text-[#2d3748]">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span> — Secure team access management
+          <img src={logoImg} alt="PropertyLedge" className="h-4 w-auto object-contain inline mr-1" /> — Secure team access management
         </p>
       </motion.div>
     </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card as MuiCard, CardContent, Avatar as MuiAvatar, Rating as MuiRating, Chip as MuiChip, Box, Typography } from '@mui/material';
 import { FAQ } from './components/FAQ';
 import dashboardPreview from './assets/dashboard-preview.png';
+import logoImg from './assets/logo.png';
 import { Dashboard } from './components/Dashboard';
 import { PropertyOnboarding } from './components/PropertyOnboarding';
 import { PropertyDetails } from './components/PropertyDetails';
@@ -67,12 +68,7 @@ function Navigation() {
             className="flex items-center gap-2.5 group z-50 shrink-0"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm transition-all duration-300 shrink-0">
-              <Building className="w-5 h-5 text-on-primary" />
-            </div>
-            <span className="font-black text-[15px] sm:text-[17px] tracking-tight leading-none text-[#2d3748]">
-              PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span>
-            </span>
+            <img src={logoImg} alt="PropertyLedge" className="h-7 sm:h-8 w-auto object-contain" />
           </Link>
 
           {/* Desktop Navigation Links */}
