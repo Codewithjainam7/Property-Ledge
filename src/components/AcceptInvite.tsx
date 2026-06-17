@@ -303,8 +303,9 @@ export function AcceptInvite() {
       >
         {/* Property Ledge brand */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center">
+          <Link to="/" className="inline-flex items-center gap-2">
             <img src={logoImg} alt="PropertyLedge" className="h-7 w-auto object-contain" />
+            <span className="text-xl font-black text-[#2d3748] tracking-tight">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
           </Link>
         </div>
 

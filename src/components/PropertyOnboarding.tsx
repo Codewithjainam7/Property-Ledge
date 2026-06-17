@@ -79,10 +79,6 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
     carSpaces: '',
     rentAmount: '',
     paymentFrequency: 'Weekly',
-    tenantName: '',
-    tenantEmail: '',
-    leaseStart: '',
-    leaseDuration: '',
     image: null,
   });
 
@@ -154,10 +150,6 @@ export function PropertyOnboarding({ onCancel, onSuccess }: PropertyOnboardingPr
             car_spaces: Number(formData.carSpaces),
             rent_amount: Number(formData.rentAmount) || 0,
             payment_frequency: formData.paymentFrequency,
-            tenant_name: formData.tenantName || null,
-            tenant_email: formData.tenantEmail || null,
-            lease_start: formData.leaseStart || null,
-            lease_duration: formData.leaseDuration || null,
             image: formData.image || null,
           })
           .select()

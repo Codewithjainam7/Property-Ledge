@@ -69,6 +69,9 @@ function Navigation() {
             onClick={() => setMobileMenuOpen(false)}
           >
             <img src={logoImg} alt="PropertyLedge" className="h-7 sm:h-8 w-auto object-contain" />
+            <span className="font-black text-[15px] sm:text-[17px] tracking-tight leading-none text-[#2d3748] hidden sm:inline">
+              PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation Links */}

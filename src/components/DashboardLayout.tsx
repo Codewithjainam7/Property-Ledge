@@ -200,6 +200,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="md:hidden fixed top-0 w-full bg-surface/80 backdrop-blur-xl border-b border-outline-variant/40 z-50 px-4 py-4 flex justify-between items-center shadow-sm">
         <Link to="/" className="text-xl font-extrabold tracking-tighter text-primary flex items-center gap-2">
           <img src={logoImg} alt="PropertyLedge" className="h-6 w-auto object-contain" />
+          <span className="font-black text-[14px] tracking-tight text-[#2d3748]">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
         </Link>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-on-surface">
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -226,6 +227,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   className="overflow-hidden"
                 >
                   <img src={logoImg} alt="PropertyLedge" className="h-6 w-auto object-contain" />
+                  <span className="font-black text-[14px] tracking-tight text-[#2d3748]">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
                 </motion.span>
               )}
             </AnimatePresence>
