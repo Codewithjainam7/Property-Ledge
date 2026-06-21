@@ -408,7 +408,7 @@ export function Team() {
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -5, scale: 0.95 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute right-0 top-full mt-1.5 w-32 bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-1.5 z-50 overflow-hidden"
+                                className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-32 bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-1.5 z-50 overflow-hidden"
                               >
                                 {['Manager', 'Strata', 'Agent'].map((r) => {
                                   const rConf = roleConfig[r] || rc;
