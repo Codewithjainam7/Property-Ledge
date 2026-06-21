@@ -53,20 +53,46 @@ export function ManagerDashboard() {
 
       const { data, error } = await supabase
         .from('properties')
-        .select('*')
+        .select(`
+          *,
+          leases (
+            status,
+            lease_tenants (
+              tenants (
+                first_name,
+                last_name,
+                email
+              )
+            )
+          )
+        `)
         .in('id', managedPropertyIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       if (data) {
-        setProperties(data.map(p => ({
-          ...p,
-          rentAmount: p.rent_amount,
-          propertyType: p.property_type,
-          paymentFrequency: p.payment_frequency,
-          tenantName: p.tenant_name,
-          tenantEmail: p.tenant_email
-        })));
+        setProperties(data.map(p => {
+          const activeLease = p.leases?.find((l: any) => l.status === 'Active');
+          let tenantNameStr = p.tenant_name;
+          let tenantEmailStr = p.tenant_email;
+
+          if (activeLease && activeLease.lease_tenants?.length > 0) {
+             const activeTenants = activeLease.lease_tenants.map((lt: any) => lt.tenants).filter(Boolean);
+             if (activeTenants.length > 0) {
+               tenantNameStr = activeTenants.map((t: any) => `${t.first_name} ${t.last_name}`).join(', ');
+               tenantEmailStr = activeTenants.map((t: any) => t.email).filter(Boolean).join(', ');
+             }
+          }
+
+          return {
+            ...p,
+            rentAmount: p.rent_amount,
+            propertyType: p.property_type,
+            paymentFrequency: p.payment_frequency,
+            tenantName: tenantNameStr,
+            tenantEmail: tenantEmailStr
+          };
+        }));
       }
     } catch (err) {
       console.error('Error fetching manager dashboard data:', err);
@@ -151,10 +177,10 @@ export function ManagerDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="relative overflow-hidden min-h-screen pb-20 bg-surface">
-        {/* Modern iOS 26 Blurred Accent Orbs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-[130px] pointer-events-none" />
-        <div className="absolute bottom-10 left-10 w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-sky-500/5 to-indigo-500/10 blur-[120px] pointer-events-none" />
+      <div className="relative overflow-hidden min-h-screen pb-20">
+        {/* Dynamic Background Orbs matching main theme */}
+        <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
+        <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none" />
 
         {/* Action Alert Banner */}
         <AnimatePresence>
@@ -173,36 +199,36 @@ export function ManagerDashboard() {
           )}
         </AnimatePresence>
 
-        {/* Title Header with Modern Layout */}
-        <header className="px-6 md:px-10 pt-8 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 relative z-10">
+        {/* Premium Header */}
+        <header className="px-6 md:px-10 pt-8 pb-4 flex flex-col md:flex-row md:justify-between md:items-end gap-6 relative z-10">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-600 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-indigo-500/15">
-                <Shield className="w-3 h-3" /> Property Manager Workspace
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 border border-primary/20">
+                <Shield className="w-3.5 h-3.5" /> Property Manager Workspace
               </span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-on-surface font-display flex items-center gap-2">
-              Hello, {user?.user_metadata?.first_name || user?.email?.split('@')[0]} <span className="animate-bounce">👋</span>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-on-surface font-display flex items-center gap-2">
+              Hello, {user?.user_metadata?.first_name || user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]} <span className="animate-bounce text-3xl">👋</span>
             </h1>
-            <p className="text-sm text-on-surface-variant font-semibold mt-1">Here is a visual brief of the properties you manage.</p>
+            <p className="text-sm text-on-surface-variant font-medium mt-1">Here is a visual brief of the properties you manage.</p>
           </div>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsNoticeModalOpen(true)}
-              className="px-5 py-3 rounded-2xl bg-surface border border-slate-200/80 hover:bg-slate-50 text-slate-700 text-sm font-extrabold flex items-center gap-2 transition-all shadow-sm active:scale-95"
+              className="px-5 py-3 rounded-full bg-surface border border-outline-variant hover:bg-surface-container-low text-on-surface text-sm font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95"
             >
               <Send className="w-4 h-4 text-on-surface-variant" /> Send Notice
             </button>
             <button 
               onClick={() => setIsMaintenanceModalOpen(true)}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-sm font-extrabold flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/15 active:scale-95"
+              className="px-6 py-3 rounded-full bg-primary hover:bg-primary/95 text-on-primary text-sm font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95"
             >
               <Wrench className="w-4 h-4" /> Request Maintenance
             </button>
           </div>
         </header>
 
-        {/* Workspace Quick Stats (iOS / Google Material Design Vibe) */}
+        {/* Premium Top Stats Row */}
         <div className="px-6 md:px-10 max-w-[1600px] mx-auto relative z-10 mt-6">
           <motion.div 
             variants={containerVariants}
@@ -210,55 +236,60 @@ export function ManagerDashboard() {
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8"
           >
-            <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[28px] border border-outline-variant/50 shadow-sm flex flex-col justify-between min-h-[145px] hover:shadow-md transition-shadow">
+            {/* Weekly Rent Flow (Highlighted) */}
+            <motion.div variants={itemVariants} className="bg-primary p-6 rounded-[24px] shadow-sm flex flex-col min-h-[145px] relative overflow-hidden group col-span-1 sm:col-span-2 lg:col-span-1 order-1 lg:order-none">
+              <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+              <div className="flex justify-between items-start relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white backdrop-blur-sm">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-black text-white/70 uppercase tracking-widest bg-white/10 px-2 py-1 rounded-md">Weekly</span>
+              </div>
+              <div className="mt-auto relative z-10 pt-4">
+                <span className="block text-4xl font-black font-display text-white leading-none mb-1.5 tracking-tight">${formatCurrency(totalRentManaged)}</span>
+                <span className="text-xs text-white/80 font-bold tracking-wide">Weekly Rent Flow</span>
+              </div>
+            </motion.div>
+
+            {/* Managed Properties */}
+            <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[24px] border border-outline-variant/50 shadow-sm flex flex-col min-h-[145px] hover:shadow-md transition-shadow group">
               <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
                   <Building className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned</span>
               </div>
-              <div>
-                <span className="block text-3xl font-black text-on-surface leading-none mb-1.5">{properties.length}</span>
-                <span className="text-xs text-on-surface-variant font-bold">Managed Properties</span>
+              <div className="mt-auto pt-4">
+                <span className="block text-4xl font-black font-display text-on-surface leading-none mb-1.5">{properties.length}</span>
+                <span className="text-xs text-on-surface-variant font-bold tracking-wide">Managed Properties</span>
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[28px] border border-outline-variant/50 shadow-sm flex flex-col justify-between min-h-[145px] hover:shadow-md transition-shadow">
+            {/* Leased Properties */}
+            <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[24px] border border-outline-variant/50 shadow-sm flex flex-col min-h-[145px] hover:shadow-md transition-shadow group">
               <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600 group-hover:scale-110 transition-transform">
                   <Users className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active</span>
               </div>
-              <div>
-                <span className="block text-3xl font-black text-on-surface leading-none mb-1.5">{activeTenanciesCount}</span>
-                <span className="text-xs text-on-surface-variant font-bold">Leased Properties</span>
+              <div className="mt-auto pt-4">
+                <span className="block text-4xl font-black font-display text-on-surface leading-none mb-1.5">{activeTenanciesCount}</span>
+                <span className="text-xs text-on-surface-variant font-bold tracking-wide">Leased Properties</span>
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[28px] border border-outline-variant/50 shadow-sm flex flex-col justify-between min-h-[145px] hover:shadow-md transition-shadow">
+            {/* Unfinished Tasks */}
+            <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[24px] border border-outline-variant/50 shadow-sm flex flex-col min-h-[145px] hover:shadow-md transition-shadow group">
               <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                  <Wallet className="w-5 h-5" />
-                </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weekly</span>
-              </div>
-              <div>
-                <span className="block text-3xl font-black text-on-surface leading-none mb-1.5">${formatCurrency(totalRentManaged)}</span>
-                <span className="text-xs text-on-surface-variant font-bold">Weekly Rent Flow</span>
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-surface p-6 rounded-[28px] border border-outline-variant/50 shadow-sm flex flex-col justify-between min-h-[145px] hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform">
                   <ClipboardList className="w-5 h-5" />
                 </div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To Do</span>
               </div>
-              <div>
-                <span className="block text-3xl font-black text-on-surface leading-none mb-1.5">{tasks.filter(t=>!t.done).length}</span>
-                <span className="text-xs text-on-surface-variant font-bold">Unfinished Tasks</span>
+              <div className="mt-auto pt-4">
+                <span className="block text-4xl font-black font-display text-on-surface leading-none mb-1.5">{tasks.filter(t=>!t.done).length}</span>
+                <span className="text-xs text-on-surface-variant font-bold tracking-wide">Unfinished Tasks</span>
               </div>
             </motion.div>
           </motion.div>
@@ -266,49 +297,46 @@ export function ManagerDashboard() {
           {/* Main Grid: Checklist & Properties */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             
-            {/* Left Side: Modern Interactive Checklist (Google/Material Type Task Tracker) */}
+            {/* Left Side: Modern Interactive Checklist */}
             <div className="lg:col-span-1 space-y-6">
-              <div className="bg-surface p-6 rounded-[32px] border border-outline-variant/50 shadow-sm flex flex-col h-full">
-                <div className="flex justify-between items-center mb-6">
+              <div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-outline-variant/50 shadow-sm flex flex-col h-full">
+                <div className="flex justify-between items-center mb-8">
                   <div>
-                    <h3 className="text-lg font-black text-on-surface tracking-tight flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-indigo-500" /> Action Checklist
+                    <h3 className="text-xl font-black text-on-surface tracking-tight flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-primary" /> Action Checklist
                     </h3>
-                    <p className="text-xs text-on-surface-variant font-semibold mt-0.5">Your personal operations log.</p>
+                    <p className="text-sm text-on-surface-variant font-medium mt-1">Your personal operations log.</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase">
-                    {tasks.filter(t => t.done).length}/{tasks.length} Completed
-                  </span>
                 </div>
                 
-                <div className="space-y-3 flex-1 overflow-y-auto max-h-[360px] pr-1">
+                <div className="space-y-4 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
                   {tasks.map((task) => (
                     <div 
                       key={task.id}
                       onClick={() => toggleTask(task.id)}
-                      className={`flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                      className={`flex items-start gap-4 p-4 rounded-2xl border transition-all duration-300 cursor-pointer group ${
                         task.done 
-                          ? 'bg-slate-50/50 border-slate-200/40 opacity-75' 
-                          : 'bg-surface border-slate-200 hover:border-indigo-500/35 hover:shadow-sm'
+                          ? 'bg-surface-container-low border-outline-variant/30 opacity-60' 
+                          : 'bg-surface border-outline-variant hover:border-primary/40 hover:shadow-sm'
                       }`}
                     >
-                      <button className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                      <button className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
                         task.done 
-                          ? 'bg-indigo-500 border-indigo-500 text-white' 
-                          : 'border-slate-300 bg-surface hover:border-slate-400'
+                          ? 'bg-primary border-primary text-on-primary' 
+                          : 'border-slate-300 bg-surface group-hover:border-primary'
                       }`}>
-                        {task.done && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {task.done && <CheckCircle2 className="w-4 h-4" />}
                       </button>
                       <div className="flex-1">
-                        <span className={`text-sm font-semibold leading-snug block ${
-                          task.done ? 'line-through text-slate-400' : 'text-slate-700'
+                        <span className={`text-sm font-bold leading-relaxed block ${
+                          task.done ? 'line-through text-slate-400' : 'text-on-surface'
                         }`}>
                           {task.text}
                         </span>
                         {!task.done && (
-                          <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full mt-1.5 ${
-                            task.priority === 'High' ? 'bg-rose-50 text-rose-600' : 
-                            task.priority === 'Medium' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-on-surface-variant'
+                          <span className={`inline-block text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md mt-2 ${
+                            task.priority === 'High' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 
+                            task.priority === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-slate-100 text-slate-600 border border-slate-200'
                           }`}>
                             {task.priority} Priority
                           </span>
@@ -322,29 +350,29 @@ export function ManagerDashboard() {
 
             {/* Right Side: Assigned Properties & Search Dashboard */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-surface p-6 rounded-[32px] border border-outline-variant/50 shadow-sm">
+              <div className="bg-surface p-6 sm:p-8 rounded-[32px] border border-outline-variant/50 shadow-sm min-h-full">
                 
                 {/* Search and Filter Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                   <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-4.5 top-1/2 -translate-y-1/2" />
+                    <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input 
                       type="text"
                       placeholder="Search by address or tenant..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-sm font-medium outline-none focus:bg-surface focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all text-on-surface"
+                      className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-surface-container-low border border-outline-variant text-sm font-semibold outline-none focus:bg-surface focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-on-surface placeholder:font-medium placeholder:text-slate-400"
                     />
                   </div>
                   
-                  <div className="flex items-center gap-1.5 shrink-0 bg-slate-100 p-1 rounded-xl">
+                  <div className="flex items-center gap-2 shrink-0 bg-surface-container-low p-1.5 rounded-2xl border border-outline-variant/50">
                     {['All', 'Residential', 'Commercial'].map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                           selectedCategory === cat 
-                            ? 'bg-surface text-indigo-600 shadow-sm' 
+                            ? 'bg-surface text-primary shadow-sm' 
                             : 'text-on-surface-variant hover:text-on-surface'
                         }`}
                       >
@@ -357,71 +385,71 @@ export function ManagerDashboard() {
                 {/* Properties Cards List */}
                 <div className="space-y-4">
                   {dataLoading ? (
-                    [...Array(2)].map((_, idx) => (
-                      <div key={idx} className="h-28 bg-slate-50 rounded-2xl animate-pulse" />
+                    [...Array(3)].map((_, idx) => (
+                      <div key={idx} className="h-32 bg-surface-container-low rounded-[24px] animate-pulse" />
                     ))
                   ) : filteredProperties.length > 0 ? (
                     filteredProperties.map((p) => (
                       <div 
                         key={p.id}
                         onClick={() => navigate(`/dashboard/property/${p.id}`)}
-                        className="group relative flex flex-col md:flex-row gap-5 p-5 rounded-2xl border border-slate-100 bg-surface hover:border-indigo-500/35 hover:shadow-md hover:shadow-indigo-600/5 transition-all cursor-pointer"
+                        className="group relative flex flex-col md:flex-row gap-5 p-5 rounded-[24px] border border-outline-variant/60 bg-surface hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer"
                       >
                         {/* Property Image / Fallback Avatar */}
-                        <div className="w-full md:w-28 h-20 rounded-xl bg-slate-100 overflow-hidden shrink-0 relative flex items-center justify-center border border-slate-200/40">
+                        <div className="w-full md:w-36 h-28 rounded-2xl bg-slate-100 overflow-hidden shrink-0 relative flex items-center justify-center border border-slate-200/40">
                           {p.image ? (
-                            <img src={p.image} alt="Property" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img src={p.image} alt="Property" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           ) : (
-                            <Building className="w-6 h-6 text-slate-400" />
+                            <Building className="w-8 h-8 text-slate-300" />
                           )}
-                          <span className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-black text-indigo-600 bg-indigo-50 rounded-full border border-indigo-500/15">
+                          <span className="absolute top-2 left-2 px-2.5 py-1 text-[10px] font-black text-white bg-slate-900/60 backdrop-blur-md rounded-md uppercase tracking-wider shadow-sm">
                             {p.property_category}
                           </span>
                         </div>
 
                         {/* Property Data */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                           <div>
                             <div className="flex justify-between items-start gap-2">
-                              <h4 className="font-extrabold text-[15px] text-on-surface truncate group-hover:text-indigo-600 transition-colors leading-tight">
+                              <h4 className="font-black text-lg text-on-surface truncate group-hover:text-primary transition-colors leading-tight">
                                 {p.address}
                               </h4>
-                              <span className="text-sm font-black text-on-surface shrink-0">
-                                ${formatCurrency(p.rentAmount)}/{p.paymentFrequency === 'Fortnightly' ? 'fn' : p.paymentFrequency === 'Monthly' ? 'mo' : 'wk'}
+                              <span className="text-sm font-black text-on-surface shrink-0 bg-surface-container-low px-3 py-1 rounded-lg border border-outline-variant/50">
+                                ${formatCurrency(p.rentAmount)} <span className="text-xs text-on-surface-variant font-bold">/{p.paymentFrequency === 'Fortnightly' ? 'fn' : p.paymentFrequency === 'Monthly' ? 'mo' : 'wk'}</span>
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-1">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400" /> {p.suburb || 'N/A'}, {p.state || 'N/A'} {p.postcode || ''}
+                            <p className="text-sm text-on-surface-variant font-semibold flex items-center gap-1.5 mt-1.5">
+                              <MapPin className="w-4 h-4" /> {p.suburb || 'N/A'}, {p.state || 'N/A'} {p.postcode || ''}
                             </p>
                           </div>
 
-                          <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
+                          <div className="flex items-center justify-between border-t border-outline-variant/40 pt-4 mt-4">
                             <div className="flex items-center gap-2">
                               {p.tenantName ? (
                                 <>
-                                  <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
-                                    <Users className="w-3.5 h-3.5 text-indigo-500" />
+                                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                    <UserCheck className="w-4 h-4 text-primary" />
                                   </div>
-                                  <span className="text-xs font-bold text-slate-600">Tenant: <strong className="font-extrabold text-on-surface">{p.tenantName}</strong></span>
+                                  <span className="text-sm font-bold text-on-surface-variant">Tenant: <strong className="font-black text-on-surface">{p.tenantName}</strong></span>
                                 </>
                               ) : (
-                                <span className="text-xs text-rose-500 font-extrabold flex items-center gap-1">
-                                  <AlertCircle className="w-3.5 h-3.5" /> Vacant Property
+                                <span className="text-sm text-rose-500 font-black flex items-center gap-1.5">
+                                  <AlertCircle className="w-4 h-4" /> Vacant Property
                                 </span>
                               )}
                             </div>
 
-                            <span className="text-[11px] font-extrabold text-indigo-600 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                              Inspect <ArrowRight className="w-3.5 h-3.5" />
+                            <span className="text-xs font-black text-primary group-hover:translate-x-1 transition-transform flex items-center gap-1 uppercase tracking-widest bg-primary/5 px-3 py-1.5 rounded-md">
+                              Inspect <ArrowRight className="w-4 h-4" />
                             </span>
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                      <Building className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-sm font-bold text-on-surface-variant">No managed properties found matching criteria.</p>
+                    <div className="p-12 text-center bg-surface-container-low rounded-[24px] border border-dashed border-outline-variant">
+                      <Building className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-base font-bold text-on-surface-variant">No managed properties found matching criteria.</p>
                     </div>
                   )}
                 </div>

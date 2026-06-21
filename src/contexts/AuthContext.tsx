@@ -43,10 +43,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const teamEntries = teamResponse.data ?? [];
       const teamPropertyIds = teamEntries.map((t: any) => t.property_id);
 
-      const isOwner = authUser?.user_metadata?.role === 'Owner' || (ownedPropertyCount > 0 && authUser?.user_metadata?.role !== 'Tenant');
-      const isTeamMember = authUser?.user_metadata?.role === 'Agent' || (teamPropertyIds.length > 0 && authUser?.user_metadata?.role !== 'Tenant');
-      const isTenant = authUser?.user_metadata?.role === 'Tenant';
+      const rawRole = authUser?.user_metadata?.role as string | undefined;
+      const isOwner = rawRole === 'Owner' || (ownedPropertyCount > 0 && rawRole !== 'Tenant');
+      const isTeamMember = rawRole === 'Agent' || rawRole === 'Strata' || rawRole === 'Manager' || (teamPropertyIds.length > 0 && rawRole !== 'Tenant');
+      const isTenant = rawRole === 'Tenant';
       const isLandlordOrTeam = isOwner || isTeamMember;
+      const userRole = rawRole || (isOwner ? 'Owner' : isTeamMember ? 'Manager' : isTenant ? 'Tenant' : 'Owner');
 
       const permissions = {
         canViewLease: teamEntries.some((t: any) => t.permissions?.can_view_lease === true),
@@ -60,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isTenant,
         isOwner,
         isTeamMember,
+        userRole,
         teamPropertyIds,
         tenantStatus: undefined,
         permissions,

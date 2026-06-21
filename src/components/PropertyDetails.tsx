@@ -129,23 +129,78 @@ export function PropertyDetails() {
         setActiveLease(leaseData);
       }
 
-      // Fetch tenants linked to the active lease
-      if (leaseData) {
+      // Primary: fetch all tenants directly from the `tenants` table by property_id
+      const { data: directTenants } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('property_id', id);
+
+      if (directTenants && directTenants.length > 0) {
+        // Got tenants directly — use them. Also try to enrich with rent share from lease_tenants if available.
+        if (leaseData) {
+          const { data: leaseTenantsData } = await supabase
+            .from('lease_tenants')
+            .select('tenant_id, rent_share_percentage, is_primary')
+            .eq('lease_id', leaseData.id);
+
+          const shareMap: Record<string, { rent_share_percentage: number; is_primary: boolean }> = {};
+          if (leaseTenantsData) {
+            for (const lt of leaseTenantsData) {
+              shareMap[lt.tenant_id] = {
+                rent_share_percentage: lt.rent_share_percentage,
+                is_primary: lt.is_primary
+              };
+            }
+          }
+
+          setTenants(directTenants.map(t => ({
+            ...t,
+            rent_share_percentage: shareMap[t.id]?.rent_share_percentage ?? t.rent_share_percentage ?? Math.round(100 / directTenants.length),
+            is_primary: shareMap[t.id]?.is_primary ?? t.is_primary ?? false
+          })));
+        } else {
+          // No active lease, just show tenants as-is
+          setTenants(directTenants.map(t => ({
+            ...t,
+            rent_share_percentage: t.rent_share_percentage ?? Math.round(100 / directTenants.length),
+            is_primary: t.is_primary ?? false
+          })));
+        }
+      } else if (leaseData) {
+        // Fallback: try lease_tenants junction table
         const { data: leaseTenantsData } = await supabase
           .from('lease_tenants')
           .select('rent_share_percentage, is_primary, tenants(*)')
           .eq('lease_id', leaseData.id);
           
-        if (leaseTenantsData) {
-          const activeTenants = leaseTenantsData.map(lt => ({
+        if (leaseTenantsData && leaseTenantsData.length > 0) {
+          setTenants(leaseTenantsData.map(lt => ({
             ...lt.tenants,
             rent_share_percentage: lt.rent_share_percentage,
             is_primary: lt.is_primary
-          }));
-          setTenants(activeTenants);
+          })));
+        } else if (mapped.tenantName) {
+          setTenants([{
+             id: 'fallback',
+             first_name: mapped.tenantName.split(' ')[0] || mapped.tenantName,
+             last_name: mapped.tenantName.split(' ').slice(1).join(' ') || '',
+             email: mapped.tenantEmail || '',
+             rent_share_percentage: 100,
+             is_primary: true
+          }]);
         } else {
           setTenants([]);
         }
+      } else if (mapped.tenantName) {
+        // Last resort: use the denormalized tenant_name on the property itself
+        setTenants([{
+           id: 'fallback',
+           first_name: mapped.tenantName.split(' ')[0] || mapped.tenantName,
+           last_name: mapped.tenantName.split(' ').slice(1).join(' ') || '',
+           email: mapped.tenantEmail || '',
+           rent_share_percentage: 100,
+           is_primary: true
+        }]);
       } else {
         setTenants([]);
       }
@@ -297,6 +352,7 @@ export function PropertyDetails() {
 
       // Create tenant (Invited or Active)
       const inviteToken = method === 'invite' ? crypto.randomUUID() : null;
+      const passcode = method === 'invite' ? Math.floor(100000 + Math.random() * 900000).toString() : null;
       const status = method === 'invite' ? 'Invited' : 'Active';
 
       const { data: newTenant, error: tenantErr } = await supabase
@@ -310,6 +366,7 @@ export function PropertyDetails() {
           user_id: !rpcError && existingUserId ? existingUserId : null,
           status: status,
           invite_token: inviteToken,
+          passcode: passcode,
           access_level: { receives_emails: true, can_login: method === 'invite' }
         })
         .select()
@@ -323,16 +380,12 @@ export function PropertyDetails() {
       let shouldUpdateExisting = false;
 
       if (existingLease) {
-        if (method === 'invite') {
-          remainderShare = 0; // Don't dilute existing active tenants yet
-        } else {
-          // Direct add: recalculate for everyone
-          const activeTenantsCount = tenants.filter(t => t.status === 'Active').length;
-          const newTenantCount = activeTenantsCount + 1;
-          newShare = Math.floor(100 / newTenantCount);
-          remainderShare = 100 - (newShare * (newTenantCount - 1));
-          shouldUpdateExisting = true;
-        }
+        // Recalculate for everyone regardless of invite or direct add
+        const currentTenantsCount = tenants.length;
+        const newTenantCount = currentTenantsCount + 1;
+        newShare = Math.floor(100 / newTenantCount);
+        remainderShare = 100 - (newShare * currentTenantsCount);
+        shouldUpdateExisting = true;
       }
 
       if (shouldUpdateExisting) {
@@ -382,6 +435,7 @@ export function PropertyDetails() {
                 tenantFirstName: inviteForm.firstName,
                 propertyAddress: `${property.address}, ${property.suburb}`,
                 inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
+                passcode: passcode,
                 startDate: inviteForm.leaseStart,
                 rentAmount: inviteForm.rentAmount || '0',
                 senderName: landlordEmail,
@@ -1407,9 +1461,24 @@ export function PropertyDetails() {
                       </div>
                       
                       <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 flex flex-col">
-                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-2">Tenant</span>
-                        <span className="text-sm font-bold text-on-surface">{property.tenantName || 'N/A'}</span>
-                        <span className="text-xs text-on-surface-variant mt-1">{property.tenantEmail || 'N/A'}</span>
+                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider mb-3">Tenants</span>
+                        {tenants.length > 0 ? (
+                          <div className="space-y-4">
+                            {tenants.map((t, idx) => (
+                              <div key={t.id || idx} className="flex flex-col">
+                                <span className="text-sm font-bold text-on-surface">
+                                  {t.first_name} {t.last_name} {t.status === 'Invited' ? '(Invited)' : ''}
+                                </span>
+                                <span className="text-xs text-on-surface-variant mt-0.5">{t.email}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-sm font-bold text-on-surface">{property.tenantName || 'N/A'}</span>
+                            <span className="text-xs text-on-surface-variant mt-1">{property.tenantEmail || 'N/A'}</span>
+                          </>
+                        )}
                       </div>
                     </div>
 

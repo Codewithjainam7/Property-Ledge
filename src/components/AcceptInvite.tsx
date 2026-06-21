@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building, Shield, CheckCircle2, AlertTriangle, ArrowRight, Eye, EyeOff, Loader2, User, Mail, Clock, Lock, Sparkles } from 'lucide-react';
+import { Building, Shield, CheckCircle2, AlertTriangle, ArrowRight, Eye, EyeOff, Loader2, User, Mail, Clock, Lock, Sparkles, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logoImg from '../assets/logo.png';
+import sideImg from '../assets/side_img.png';
 
 interface InvitePreview {
   id: string;
@@ -266,226 +267,240 @@ export function AcceptInvite() {
   const emailMismatch = session && invite && session.user?.email?.toLowerCase() !== invite.email.toLowerCase();
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-[#f0f4f8] font-sans selection:bg-indigo-600/20">
-      {/* ─── iOS 26 / Google Material 3 Ambient Backgrounds ─── */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#E0E7FF] blur-[100px] opacity-70 animate-pulse-slow mix-blend-multiply" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#E0F2FE] blur-[120px] opacity-70 mix-blend-multiply" />
-      <div className="absolute top-[20%] right-[10%] w-[30vw] h-[30vw] rounded-full bg-[#FCE7F3] blur-[90px] opacity-60 mix-blend-multiply" />
+    <div className="min-h-screen w-full relative bg-[#0f172a] font-sans">
+      
+      {/* Left Panel - Auth Area */}
+      <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col absolute left-0 top-0 bottom-0 p-6 lg:p-12 items-center justify-center min-h-screen z-20 bg-[#f8fafc] lg:rounded-r-[40px] shadow-[20px_0_40px_rgba(0,0,0,0.1)] overflow-hidden">
+        
+        {/* Subtle Aurora Background Glows */}
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-[30%] right-[-20%] w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.7, type: 'spring', stiffness: 100, damping: 20 }}
-        className="w-full max-w-[560px] relative z-10 my-8"
-      >
-        {/* Brand */}
-        <div className="text-center mb-10">
-          <motion.div 
-            initial={{ scale: 0 }} 
-            animate={{ scale: 1 }} 
-            transition={{ delay: 0.3, type: "spring" }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-[24px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-white mb-6"
-          >
-            <img src={logoImg} alt="Logo" className="h-8 w-auto object-contain" />
-          </motion.div>
-          <h1 className="text-[40px] leading-[1.1] font-black text-slate-900 tracking-[-0.04em]">
-            Team Invitation
-          </h1>
-          <p className="text-slate-500 font-medium text-lg mt-3">You've been invited to collaborate.</p>
+        {/* Logo Area */}
+        <div className="absolute top-6 left-6 lg:top-10 lg:left-10 flex items-center gap-2.5 z-10">
+          <img src={logoImg} alt="Logo" className="w-8 h-8 object-contain" />
+          <span className="font-bold text-[#0f172a] text-[18px] tracking-tight">Property Ledge</span>
         </div>
 
-        {/* Liquid Glass Main Container */}
-        <div className="relative rounded-[40px] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.07)]">
-          {/* Glass background layers */}
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-[40px] z-0" />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/80 to-white/20 z-0" />
-          <div className="absolute inset-0 border-[1.5px] border-white/80 rounded-[40px] z-0 pointer-events-none" />
-
-          {/* Content */}
-          <div className="relative z-10">
-            {/* Header / Property Preview */}
-            <div className="p-8 sm:p-10 border-b border-white/40 bg-white/20">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 border-2 border-white">
-                  <Shield className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/60 border border-white/60 shadow-sm mb-2">
-                    <User className="w-3.5 h-3.5 text-indigo-600" />
-                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Invited by {invite?.inviter_name}</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-slate-800 leading-tight">
-                    {invite?.property_address}
-                  </h2>
-                  <p className="text-sm font-black text-indigo-600 uppercase tracking-widest mt-2 bg-indigo-500/10 inline-block px-3 py-1 rounded-full">{invite?.role}</p>
-                </div>
+        {/* Main Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-[440px] bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 sm:p-10 border border-slate-100 flex flex-col items-center relative z-10"
+        >
+          <h1 className="text-[32px] font-bold text-[#0f172a] mb-2 text-center tracking-tight">Team Invitation</h1>
+          <p className="text-[#64748b] font-bold text-[10px] tracking-[0.15em] uppercase mb-8 text-center">Join the Management Team</p>
+          
+          {(() => {
+            const roleConfig: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
+              Agent: { color: 'text-blue-600', bg: 'bg-blue-50', icon: <User className="w-3.5 h-3.5" /> },
+              Strata: { color: 'text-violet-600', bg: 'bg-violet-50', icon: <Building className="w-3.5 h-3.5" /> },
+              Manager: { color: 'text-emerald-600', bg: 'bg-emerald-50', icon: <Shield className="w-3.5 h-3.5" /> },
+            };
+            const cfg = roleConfig[invite?.role || ''] || roleConfig['Manager'];
+            return (
+              <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full ${cfg.bg} ${cfg.color} mb-6`}>
+                {cfg.icon}
+                <span className="text-[10px] font-bold uppercase tracking-widest">{invite?.role} Role</span>
               </div>
-            </div>
+            );
+          })()}
 
-            {/* Form Area */}
-            <div className="p-8 sm:p-10">
-              {acceptError && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="mb-8 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-700 rounded-3xl text-sm font-bold flex gap-3 items-center backdrop-blur-md"
-                >
-                  <AlertTriangle className="w-5 h-5 shrink-0" />
-                  <p>{acceptError}</p>
-                </motion.div>
-              )}
+          <h2 className="text-[28px] font-bold text-[#0f172a] text-center leading-tight">{invite?.property_address}</h2>
+          <p className="text-[14px] font-semibold text-[#64748b] mt-1.5 mb-8 text-center">Invited by {invite?.inviter_name}</p>
 
+          <div className="w-full h-px bg-slate-100 mb-8" />
+
+          {/* Action Area */}
+          <div className="w-full relative min-h-[220px]">
+            {acceptError && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm font-bold flex gap-2 items-center"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <p className="text-sm">{acceptError}</p>
+              </motion.div>
+            )}
+
+            <AnimatePresence mode="wait">
               {/* ─── CASE 1: Logged in, email matches ─── */}
               {session && !emailMismatch && (
-                <div className="text-center py-4">
-                  <div className="w-20 h-20 rounded-full bg-slate-100 border-4 border-white shadow-md mx-auto mb-6 flex items-center justify-center text-2xl font-black text-slate-400">
-                    {session.user?.email?.[0].toUpperCase()}
-                  </div>
-                  <p className="text-slate-500 text-base font-medium mb-8">
-                    You're logged in as <span className="font-bold text-slate-800">{session.user?.email}</span>.
-                  </p>
+                <motion.div 
+                  key="case-match"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center absolute inset-0 w-full"
+                >
+                  <p className="text-[#64748b] text-[13px] font-medium mb-1">This invite is securely meant for</p>
+                  <p className="font-bold text-[#451a03] text-[14px] mb-4">{invite?.email}</p>
+                  
+                  <p className="text-[#64748b] text-[13px] font-medium mb-1">And you're correctly logged in as</p>
+                  <p className="font-bold text-[#451a03] text-[14px] mb-8">{session.user?.email}.</p>
+                  
                   <button
                     onClick={handleAcceptExisting}
                     disabled={accepting}
-                    className="relative w-full group overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-4.5 rounded-full transition-all shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.25)] flex items-center justify-center gap-2 text-lg disabled:opacity-70 disabled:hover:scale-100 hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full bg-[#0a5cff] hover:bg-blue-700 text-white font-bold py-3.5 rounded-full transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 text-[15px] disabled:opacity-70"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
-                    {accepting ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <>
-                        Accept Invitation <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      </>
-                    )}
+                    {accepting ? <Loader2 className="w-5 h-5 animate-spin" /> : <> <CheckCircle2 className="w-5 h-5" /> Accept Invitation </>}
                   </button>
-                </div>
+                </motion.div>
               )}
 
               {/* ─── CASE 2: Logged in, email DOESN'T match ─── */}
               {session && emailMismatch && (
-                <div className="text-center space-y-6">
-                  <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-3xl backdrop-blur-md">
-                    <p className="text-amber-700 text-base font-medium">
-                      This invite is for <span className="font-black">{invite?.email}</span>, but you're logged in as <span className="font-black">{session.user?.email}</span>.
-                    </p>
-                  </div>
+                <motion.div 
+                  key="case-mismatch"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center absolute inset-0 w-full"
+                >
+                  <p className="text-[#64748b] text-[13px] font-medium mb-1">This invite is securely meant for</p>
+                  <p className="font-bold text-[#451a03] text-[14px] mb-4">{invite?.email}</p>
+                  
+                  <p className="text-[#64748b] text-[13px] font-medium mb-1">But you're currently logged in as</p>
+                  <p className="font-bold text-[#451a03] text-[14px] mb-8">{session.user?.email}.</p>
+
                   <button
                     onClick={async () => { await supabase.auth.signOut(); }}
-                    className="w-full bg-white/70 border border-slate-200/50 hover:bg-white text-slate-900 font-bold py-4.5 rounded-full transition-all shadow-sm text-base"
+                    className="w-full bg-[#0a5cff] hover:bg-blue-700 text-white font-bold py-3.5 rounded-full transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 text-[15px]"
                   >
-                    Sign Out &amp; Switch Account
+                    <RefreshCw className="w-4 h-4" />
+                    Sign Out & Switch Account
                   </button>
-                </div>
+                </motion.div>
               )}
 
               {/* ─── CASE 3: Not logged in ─── */}
               {!session && invite && (
-                <form onSubmit={handleSignupAndAccept} className="space-y-6">
-                  {/* Locked Email */}
-                  <div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400">
-                        <Mail className="w-5 h-5" />
+                <motion.div 
+                  key="case-signup"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-full"
+                >
+                  <form onSubmit={handleSignupAndAccept} className="space-y-4">
+                    {/* Locked Email */}
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          value={invite.email}
+                          disabled
+                          className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl pl-10 pr-4 py-3.5 text-slate-500 font-medium text-[13px] cursor-not-allowed"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                          <Lock className="w-4 h-4" />
+                        </div>
                       </div>
-                      <input
-                        type="email"
-                        value={invite.email}
-                        disabled
-                        className="w-full bg-slate-100/50 border border-slate-200/50 rounded-full pl-12 pr-6 py-4 text-slate-500 font-bold text-base cursor-not-allowed"
-                      />
-                      <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Lock className="w-4 h-4" />
+                    </div>
+
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          required
+                          value={firstName}
+                          onChange={e => setFirstName(e.target.value)}
+                          placeholder="First Name"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-[#0f172a] font-medium text-[13px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                        />
+                        <input
+                          type="text"
+                          required
+                          value={lastName}
+                          onChange={e => setLastName(e.target.value)}
+                          placeholder="Last Name"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-[#0f172a] font-medium text-[13px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                        />
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="relative group">
                       <input
-                        type="text"
+                        type="tel"
                         required
-                        value={firstName}
-                        onChange={e => setFirstName(e.target.value)}
-                        placeholder="First Name"
-                        className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-[24px] px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
+                        value={mobile}
+                        onChange={e => setMobile(e.target.value)}
+                        placeholder="Mobile Number"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-[#0f172a] font-medium text-[13px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 mt-3"
+                      />
+                    </motion.div>
+
+                    <div className="relative mt-3">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Create a Password"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 pr-10 text-[#0f172a] font-medium text-[13px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors bg-white w-7 h-7 rounded-md flex items-center justify-center"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    <div className="relative mt-3">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm Password"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 pr-10 text-[#0f172a] font-medium text-[13px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
                       />
                     </div>
-                    <div className="relative group">
-                      <input
-                        type="text"
-                        required
-                        value={lastName}
-                        onChange={e => setLastName(e.target.value)}
-                        placeholder="Last Name"
-                        className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-[24px] px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
 
-                  <div className="relative group">
-                    <input
-                      type="tel"
-                      required
-                      value={mobile}
-                      onChange={e => setMobile(e.target.value)}
-                      placeholder="Mobile Number"
-                      className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-full px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <div className="relative group">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="Create a Password"
-                      className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-[24px] px-6 py-4 pr-14 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
-                    />
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors bg-white/80 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-white"
+                      type="submit"
+                      disabled={accepting}
+                      className="w-full bg-[#0a5cff] hover:bg-blue-700 text-white font-bold py-4 rounded-full transition-all flex items-center justify-center gap-2 text-[15px] mt-4 disabled:opacity-70 shadow-md shadow-blue-500/20"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {accepting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign Up & Continue'}
                     </button>
-                  </div>
-
-                  <div className="relative group">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm Password"
-                      className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-full px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={accepting}
-                    className="relative w-full group overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-4.5 rounded-full transition-all shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.25)] flex items-center justify-center gap-2 text-lg mt-8 disabled:opacity-70 disabled:hover:scale-100 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
-                    {accepting ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <>
-                        Create Account & Accept <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      </>
-                    )}
-                  </button>
-                </form>
+                  </form>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
+        </motion.div>
+      </div>
+
+      {/* Right Panel - Features & Image */}
+      <div className="hidden lg:flex w-full lg:w-[60%] xl:w-[65%] bg-[#0f172a] absolute right-0 top-0 bottom-0 h-screen overflow-hidden items-center z-10">
+        
+        {/* Full-bleed Background Image */}
+        <div className="absolute inset-0 w-full h-full z-0">
+          <img 
+            src={sideImg} 
+            alt="Building" 
+            className="w-full h-full object-cover object-[center_right]" 
+          />
         </div>
 
-        <p className="text-center text-sm font-bold text-slate-400 mt-8 flex items-center justify-center gap-2">
-          Powered by <img src={logoImg} alt="PropertyLedge" className="h-4 w-auto grayscale opacity-70" /> Property Ledge
-        </p>
-      </motion.div>
+        {/* Text Content */}
+        <div className="relative z-10 pr-12 py-12 pl-28 xl:pr-20 xl:py-20 xl:pl-36 flex flex-col justify-start pt-[12vh] xl:pt-[15vh] h-full max-w-[650px]">
+          {/* Top text over light sky remains dark */}
+          <h2 className="text-[44px] xl:text-[52px] font-bold text-[#0f172a] leading-[1.1] mb-5 tracking-tight drop-shadow-sm">
+            Manage Properties,<br /><span className="text-[#0a5cff]">Effortlessly.</span>
+          </h2>
+          <p className="text-[#1e293b] text-[15px] xl:text-[16px] font-medium max-w-[400px] leading-relaxed drop-shadow-sm">
+            Collaborate seamlessly with agents, strata, and landlords to streamline your property management.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

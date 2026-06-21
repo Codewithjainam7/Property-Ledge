@@ -32,7 +32,20 @@ export function Properties() {
       
       const managedPropertyIds = userContext?.teamPropertyIds || [];
       
-      let query = supabase.from('properties').select('*');
+      let query = supabase.from('properties').select(`
+        *,
+        leases (
+          status,
+          lease_tenants (
+            tenants (
+              first_name,
+              last_name,
+              email
+            )
+          )
+        )
+      `);
+
       if (managedPropertyIds.length > 0) {
         query = query.or(`owner_id.eq.${userId},id.in.(${managedPropertyIds.join(',')})`);
       } else {
@@ -43,15 +56,29 @@ export function Properties() {
         
       if (error) throw error;
       if (data) {
-        const mappedData = data.map(p => ({
-          ...p,
-          rentAmount: p.rent_amount,
-          propertyType: p.property_type,
-          paymentFrequency: p.payment_frequency,
-          tenantName: p.tenant_name,
-          tenantEmail: p.tenant_email,
-          leaseStart: p.lease_start
-        }));
+        const mappedData = data.map(p => {
+          const activeLease = p.leases?.find((l: any) => l.status === 'Active');
+          let tenantNameStr = p.tenant_name;
+          let tenantEmailStr = p.tenant_email;
+
+          if (activeLease && activeLease.lease_tenants?.length > 0) {
+             const activeTenants = activeLease.lease_tenants.map((lt: any) => lt.tenants).filter(Boolean);
+             if (activeTenants.length > 0) {
+               tenantNameStr = activeTenants.map((t: any) => `${t.first_name} ${t.last_name}`).join(', ');
+               tenantEmailStr = activeTenants.map((t: any) => t.email).filter(Boolean).join(', ');
+             }
+          }
+
+          return {
+            ...p,
+            rentAmount: p.rent_amount,
+            propertyType: p.property_type,
+            paymentFrequency: p.payment_frequency,
+            tenantName: tenantNameStr,
+            tenantEmail: tenantEmailStr,
+            leaseStart: p.lease_start
+          };
+        });
         setProperties(mappedData);
       }
     } catch (error) {

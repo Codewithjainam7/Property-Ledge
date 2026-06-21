@@ -152,16 +152,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     ];
     toolsLinks = [];
   } else if (userContext?.isTeamMember) {
+    const role = userContext.userRole; // 'Agent' | 'Strata' | 'Manager'
+    const isStrata = role === 'Strata';
+    
     organiseLinks = [
       { name: 'Portfolio Overview', icon: PieChart, to: '/dashboard', exact: true },
+      { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
+      ...(!isStrata ? [{ name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false }] : []),
+      ...(!isStrata ? [{ name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false }] : []),
     ];
-    if (userContext.permissions?.canViewLease || userContext.permissions?.canCreateLease || userContext.permissions?.canEditLease) {
-      organiseLinks.push({ name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false });
-    }
-    if (userContext.permissions?.canManageTenants) {
-      organiseLinks.push({ name: 'Manage Tenants', icon: Users, to: '/dashboard/tenants', exact: false });
-    }
-    toolsLinks = [];
+    toolsLinks = [
+      ...(!isStrata ? [{ name: 'Invoices', icon: FileText, to: '/dashboard/invoices', exact: false }] : []),
+    ];
   } else {
     // Default Owner/Team View
     organiseLinks = [
@@ -300,8 +302,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </AnimatePresence>
             </div>
             
-            {organiseLinks.map((link, idx) => {
-              const isActive = checkIsActive(link);
+            {organiseLinks.map((link: any, idx: number) => {
+              const isActive = checkIsActive(link) && !link.locked;
+              if (link.locked) {
+                return (
+                  <div
+                    key={`org-${idx}`}
+                    title={isCollapsed ? `${link.name} (No Access)` : ''}
+                    className={`flex items-center rounded-xl transition-all duration-300 relative opacity-35 cursor-not-allowed ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} text-slate-400`}
+                  >
+                    <link.icon className="w-[22px] h-[22px] shrink-0" />
+                    <AnimatePresence initial={false}>
+                      {!isCollapsed && (
+                        <motion.span
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: 'auto' }}
+                          exit={{ opacity: 0, width: 0 }}
+                          className="whitespace-nowrap overflow-hidden text-[14.5px] flex items-center gap-2"
+                        >
+                          {link.name}
+                          <span className="text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-md">No Access</span>
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              }
               return (
                 <Link 
                   key={`org-${idx}`} 
@@ -350,8 +376,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </AnimatePresence>
               </div>
               
-              {toolsLinks.map((link, idx) => {
-                const isActive = checkIsActive(link);
+              {toolsLinks.map((link: any, idx: number) => {
+                const isActive = checkIsActive(link) && !link.locked;
+                if (link.locked) {
+                  return (
+                    <div
+                      key={`tool-${idx}`}
+                      title={isCollapsed ? `${link.name} (No Access)` : ''}
+                      className={`flex items-center rounded-xl transition-all duration-300 relative opacity-35 cursor-not-allowed ${isCollapsed ? 'w-11 h-11 justify-center p-0 mb-1' : 'px-4 py-3 gap-4'} text-slate-400`}
+                    >
+                      <link.icon className="w-[22px] h-[22px] shrink-0" />
+                      <AnimatePresence initial={false}>
+                        {!isCollapsed && (
+                          <motion.span
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ opacity: 1, width: 'auto' }}
+                            exit={{ opacity: 0, width: 0 }}
+                            className="whitespace-nowrap overflow-hidden text-[14.5px] flex items-center gap-2"
+                          >
+                            {link.name}
+                            <span className="text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-md">No Access</span>
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                }
                 return (
                   <Link 
                     key={`tool-${idx}`} 

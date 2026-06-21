@@ -25,15 +25,9 @@ import { LeaseGenerator } from './LeaseGenerator';type Lease = {
 
 export function Leases() {
   const { session, user } = useAuth();
-  const [leases, setLeases] = useState<Lease[]>(() => {
-    const cached = sessionStorage.getItem('cached_leases');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [properties, setProperties] = useState<any[]>(() => {
-    const cached = sessionStorage.getItem('cached_properties');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [loading, setLoading] = useState(() => !sessionStorage.getItem('cached_leases'));
+  const [leases, setLeases] = useState<Lease[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showGeneratorModal, setShowGeneratorModal] = useState(false);
   const [canEditPropertyIds, setCanEditPropertyIds] = useState<string[]>([]);
   
@@ -45,6 +39,9 @@ export function Leases() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    // Always clear cache so edits are reflected immediately
+    sessionStorage.removeItem('cached_leases');
+    sessionStorage.removeItem('cached_properties');
     if (session?.user?.id) {
       loadData(session.user.id);
     }
@@ -220,7 +217,7 @@ export function Leases() {
                         <td className="p-4">
                           <div className="flex items-center gap-1 font-bold text-on-surface">
                             <DollarSign className="w-4 h-4 text-emerald-500" />
-                            {lease.rent_amount} <span className="text-xs font-medium text-slate-400 font-normal">/ {lease.payment_frequency.toLowerCase().replace('ly', '')}</span>
+                            {Number(lease.rent_amount).toLocaleString('en-AU')} <span className="text-xs font-medium text-slate-400 font-normal">/ {lease.payment_frequency?.toLowerCase().replace('ly', '') || 'week'}</span>
                           </div>
                         </td>
                         <td className="p-4">

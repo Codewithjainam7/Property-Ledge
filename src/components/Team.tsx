@@ -156,7 +156,7 @@ export function Team() {
           role: inviteRole,
           permissions: {
             can_view_property: true,
-            can_view_lease: true,
+            can_view_lease: inviteRole !== 'Strata',
             can_create_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
             can_edit_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
             can_manage_tenants: inviteRole === 'Manager' || inviteRole === 'Agent',
@@ -304,140 +304,111 @@ export function Team() {
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div></div>
       ) : (
-        <div className="grid gap-6">
+        <div>
           {properties.length === 0 ? (
             <div className="bg-white rounded-[32px] p-12 text-center border border-outline-variant/30 shadow-sm">
               <Building className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-on-surface mb-2">No Properties Found</h3>
               <p className="text-on-surface-variant">You need to add a property before you can assign team members.</p>
             </div>
+          ) : teamMembers.length === 0 ? (
+            <div className="bg-white rounded-[32px] p-12 text-center border border-outline-variant/30 shadow-sm">
+              <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-on-surface mb-2">No Team Members Yet</h3>
+              <p className="text-on-surface-variant">Invite an agent, strata manager, or co-owner to collaborate.</p>
+            </div>
           ) : (
-            properties.map(property => {
-              const members = teamMembers.filter(m => m.property_id === property.id);
-              
-              return (
-                <div key={property.id} className="bg-white rounded-2xl border border-outline-variant/50 overflow-hidden shadow-sm">
-                  <div className="bg-surface-container-low border-b border-outline-variant/50 p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-outline-variant/50 shadow-sm">
-                        <Building className="w-5 h-5 text-primary" />
+            <div className="space-y-3">
+              {teamMembers.map(member => {
+                const property = properties.find(p => p.id === member.property_id);
+                const roleConfig: Record<string, { color: string; bg: string; border: string }> = {
+                  Agent:   { color: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200' },
+                  Strata:  { color: 'text-violet-700',  bg: 'bg-violet-50',  border: 'border-violet-200' },
+                  Manager: { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+                };
+                const rc = roleConfig[member.role] || { color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200' };
+
+                const permDefs = [
+                  { key: 'can_view_lease',     label: 'View Leases',     blocked: false },
+                  { key: 'can_create_lease',   label: 'Create Leases',   blocked: member.role === 'Strata' },
+                  { key: 'can_edit_lease',     label: 'Edit Leases',     blocked: member.role === 'Strata' },
+                  { key: 'can_manage_tenants', label: 'Manage Tenants',  blocked: member.role === 'Strata' },
+                ];
+
+                return (
+                  <div key={member.id} className="bg-white rounded-2xl border border-outline-variant/30 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                    {/* Top row: avatar + info + role + property + actions */}
+                    <div className="flex items-center gap-4 px-6 py-5">
+                      {/* Avatar */}
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-base shrink-0 ${member.isPending ? 'bg-amber-50 text-amber-500 border-2 border-amber-200' : 'bg-primary/10 text-primary border-2 border-primary/20'}`}>
+                        {(member.first_name || member.email || '?').charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <h3 className="font-bold text-on-surface">{property.address}</h3>
-                        <p className="text-xs text-on-surface-variant font-medium">{property.suburb}</p>
+
+                      {/* Name + email */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-on-surface text-sm">
+                            {member.isPending
+                              ? member.email
+                              : (member.first_name || member.last_name)
+                                ? `${member.first_name || ''} ${member.last_name || ''}`.trim()
+                                : member.email}
+                          </span>
+                          {member.status === 'Active'  && <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">Active</span>}
+                          {member.status === 'Pending' && <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />Pending</span>}
+                          {member.status === 'Expired' && <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700">Expired</span>}
+                        </div>
+                        {!member.isPending && <div className="text-xs text-on-surface-variant mt-0.5 truncate">{member.email}</div>}
+                        {property && <div className="text-xs text-on-surface-variant/70 mt-0.5 flex items-center gap-1"><Building className="w-3 h-3" />{property.address}</div>}
+                      </div>
+
+                      {/* Role badge */}
+                      <span className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border ${rc.color} ${rc.bg} ${rc.border}`}>
+                        {member.role}
+                      </span>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {member.isPending && (
+                          <button onClick={() => resendInvite(member)} className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors" title="Resend Invitation">
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button onClick={() => removeMember(member)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors" title={member.isPending ? 'Revoke Invite' : 'Remove Member'}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    <div className="text-xs font-bold text-on-surface-variant bg-white px-3 py-1 rounded-full border border-outline-variant/50">
-                      {members.length} {members.length === 1 ? 'Member' : 'Members'}
+
+                    {/* Bottom row: permissions */}
+                    <div className={`flex items-center gap-3 flex-wrap px-6 py-3 bg-surface-container-lowest border-t border-outline-variant/20 ${member.isPending ? 'opacity-40 pointer-events-none' : ''}`}>
+                      <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mr-1">Permissions</span>
+                      {permDefs.map(({ key, label, blocked }) => {
+                        const checked = (member.permissions as any)?.[key] || false;
+                        return (
+                          <button
+                            key={key}
+                            disabled={blocked}
+                            onClick={() => !blocked && togglePermission(member, key, checked)}
+                            title={blocked ? `${member.role}s cannot have this permission` : (checked ? `Revoke: ${label}` : `Grant: ${label}`)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                              blocked
+                                ? 'opacity-25 cursor-not-allowed bg-slate-50 border-slate-200 text-slate-400'
+                                : checked
+                                  ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
+                                  : 'bg-white border-outline-variant/50 text-slate-400 hover:border-slate-400 hover:text-slate-600'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${blocked ? 'bg-slate-300' : checked ? 'bg-primary' : 'bg-slate-300'}`} />
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                  
-                  <div className="p-0">
-                    {members.length === 0 ? (
-                      <div className="p-8 text-center text-on-surface-variant font-medium text-sm">
-                        No team members assigned to this property.
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-slate-100">
-                        {members.map(member => (
-                          <div key={member.id} className="p-5 hover:bg-surface-container-low transition-colors">
-                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                              
-                              {/* Member Info */}
-                              <div className="flex items-center gap-4 min-w-[250px]">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-inner ${member.isPending ? 'bg-amber-50 text-amber-500 border border-amber-200' : 'bg-gradient-to-br from-primary/10 to-white border border-primary/20 text-primary'}`}>
-                                  {member.first_name ? member.first_name.charAt(0) : member.email.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <div className="font-bold text-on-surface flex items-center gap-2">
-                                    {member.isPending 
-                                      ? member.email 
-                                      : (member.first_name || member.last_name)
-                                        ? `${member.first_name || ''} ${member.last_name || ''}`.trim()
-                                        : member.email
-                                    }
-                                    {member.status === 'Active' && <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">Active</span>}
-                                    {member.status === 'Pending' && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-700"><Clock className="w-2.5 h-2.5" /> Pending</span>}
-                                    {member.status === 'Expired' && <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700">Expired</span>}
-                                  </div>
-                                  {!member.isPending && (
-                                    <div className="text-xs text-on-surface-variant">{member.email}</div>
-                                  )}
-                                  <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 border border-outline-variant/50">
-                                    {member.role}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Permissions Grid */}
-                              <div className={`flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 ${member.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                  <input 
-                                    type="checkbox" 
-                                    className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.permissions?.can_view_lease || false}
-                                    onChange={() => togglePermission(member, 'can_view_lease', member.permissions?.can_view_lease || false)}
-                                  />
-                                  <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">View Leases</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                  <input 
-                                    type="checkbox" 
-                                    className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.permissions?.can_create_lease || false}
-                                    onChange={() => togglePermission(member, 'can_create_lease', member.permissions?.can_create_lease || false)}
-                                  />
-                                  <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Create Leases</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                  <input 
-                                    type="checkbox" 
-                                    className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.permissions?.can_edit_lease || false}
-                                    onChange={() => togglePermission(member, 'can_edit_lease', member.permissions?.can_edit_lease || false)}
-                                  />
-                                  <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Edit Leases</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                  <input 
-                                    type="checkbox" 
-                                    className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-indigo-600 cursor-pointer"
-                                    checked={member.permissions?.can_manage_tenants || false}
-                                    onChange={() => togglePermission(member, 'can_manage_tenants', member.permissions?.can_manage_tenants || false)}
-                                  />
-                                  <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Manage Tenants</span>
-                                </label>
-                              </div>
-
-                              {/* Actions */}
-                              <div className="flex items-center gap-2">
-                                {member.isPending && (
-                                  <button 
-                                    onClick={() => resendInvite(member)}
-                                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                    title="Resend Invitation"
-                                  >
-                                    <RefreshCw className="w-5 h-5" />
-                                  </button>
-                                )}
-                                <button 
-                                  onClick={() => removeMember(member)}
-                                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                  title={member.isPending ? "Revoke Invite" : "Remove Member"}
-                                >
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
-                              </div>
-
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
       )}

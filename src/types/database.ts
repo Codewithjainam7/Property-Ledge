@@ -20,6 +20,7 @@ export interface UserContextData {
   isTenant: boolean;
   isOwner: boolean;         // true if user owns properties directly
   isTeamMember: boolean;    // true if user was invited via team invite
+  userRole?: string;        // 'Owner' | 'Agent' | 'Strata' | 'Manager' | 'Tenant'
   teamPropertyIds: string[]; // property IDs the user can access via team membership
   tenantStatus?: string;
   permissions?: {

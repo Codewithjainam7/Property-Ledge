@@ -203,9 +203,23 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
     onAfterPrint: async () => {
       setIsSaving(true);
       try {
+        // Fetch the active lease for this property to attach it to the invoice
+        let activeLeaseId = null;
+        if (state.propertyId) {
+          const { data: lease } = await supabase
+            .from('leases')
+            .select('id')
+            .eq('property_id', state.propertyId)
+            .eq('status', 'Active')
+            .maybeSingle();
+          
+          if (lease) activeLeaseId = lease.id;
+        }
+
         const { data: invData, error: invError } = await supabase.from('invoices').insert({
           user_id: user?.id,
           property_id: state.propertyId,
+          lease_id: activeLeaseId,
           invoice_number: state.invoiceNumber,
           status: 'Draft',
           total_amount: total,
@@ -224,6 +238,7 @@ export function InvoiceGenerator({ onClose, properties = [] }: { onClose: () => 
           // Auto-sync with Phase 4 Ledger
           await supabase.from('payments').insert({
              property_id: state.propertyId,
+             lease_id: activeLeaseId,
              amount_due: total,
              due_date: state.dueDate || new Date().toISOString().split('T')[0],
              status: 'Pending',
