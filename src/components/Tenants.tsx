@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building, Users, Clock, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldCheck, Mail, Phone } from 'lucide-react';
+import { Search, Building, Users, Clock, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldCheck, Mail, Phone, X, Send, XCircle, FileUp, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 type Property = {
   id: string;
   address: string;
   suburb: string;
+  rent_amount?: number;
+  payment_frequency?: string;
+  lease_start?: string;
 };
 
 type Tenant = {
@@ -48,6 +52,24 @@ export function Tenants() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  // Add Tenant State
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [showInviteSuccessModal, setShowInviteSuccessModal] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
+  const [invitingType, setInvitingType] = useState<'direct' | 'invite' | null>(null);
+  const [leaseFile, setLeaseFile] = useState<File | null>(null);
+  const [leaseFileBase64, setLeaseFileBase64] = useState<string | null>(null);
+  
+  const [inviteForm, setInviteForm] = useState({
+    propertyId: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    rentAmount: '',
+    leaseStart: ''
+  });
 
   useEffect(() => {
     if (session?.user.id && userContext) {
@@ -138,6 +160,224 @@ export function Tenants() {
     }
   };
 
+  const handleInviteSubmit = async (e: React.FormEvent, method: 'direct' | 'invite' = 'direct') => {
+    e.preventDefault();
+    setInviteError('');
+    setInvitingType(method);
+
+    if (!inviteForm.propertyId) {
+      setInviteError('Please select a property.');
+      setInvitingType(null);
+      return;
+    }
+
+    try {
+      const userRes = await supabase.auth.getUser();
+      const currentUserId = userRes.data.user?.id;
+      if (!currentUserId) throw new Error("Not authenticated");
+
+      const property = properties.find(p => p.id === inviteForm.propertyId);
+      if (!property) throw new Error("Property not found");
+
+      // Check if user with this email already exists
+      const { data: existingUserId, error: rpcError } = await supabase.rpc('get_user_by_email', { p_email: inviteForm.email });
+
+      // Check if an active lease already exists
+      let targetLeaseId = null;
+      const { data: existingLease } = await supabase
+        .from('leases')
+        .select('id')
+        .eq('property_id', property.id)
+        .eq('status', 'Active')
+        .limit(1)
+        .maybeSingle();
+
+      if (existingLease) {
+        targetLeaseId = existingLease.id;
+      } else {
+        // Create active lease FIRST if none exists
+        const { data: newLease, error: leaseErr } = await supabase
+          .from('leases')
+          .insert({
+            property_id: property.id,
+            created_by: currentUserId,
+            start_date: inviteForm.leaseStart,
+            rent_amount: parseFloat(inviteForm.rentAmount) || 0,
+            status: 'Active',
+            payment_frequency: property.payment_frequency || 'Weekly'
+          })
+          .select()
+          .single();
+
+        if (leaseErr) throw leaseErr;
+        targetLeaseId = newLease.id;
+      }
+
+      // Create tenant (Invited or Active)
+      const inviteToken = method === 'invite' ? crypto.randomUUID() : null;
+      const passcode = method === 'invite' ? Math.floor(100000 + Math.random() * 900000).toString() : null;
+      const status = method === 'invite' ? 'Invited' : 'Active';
+
+      const { data: newTenant, error: tenantErr } = await supabase
+        .from('tenants')
+        .insert({
+          property_id: property.id,
+          owner_id: currentUserId,
+          first_name: inviteForm.firstName,
+          last_name: inviteForm.lastName,
+          email: inviteForm.email,
+          user_id: !rpcError && existingUserId ? existingUserId : null,
+          status: status,
+          invite_token: inviteToken,
+          passcode: passcode,
+          access_level: { receives_emails: true, can_login: method === 'invite' }
+        })
+        .select()
+        .single();
+
+      if (tenantErr) throw tenantErr;
+
+      // Calculate new rent share
+      let newShare = 100;
+      let remainderShare = 100;
+      let shouldUpdateExisting = false;
+      const currentTenantsCount = tenants.filter(t => t.property_id === property.id).length;
+
+      if (existingLease) {
+        // Recalculate for everyone regardless of invite or direct add
+        const newTenantCount = currentTenantsCount + 1;
+        newShare = Math.floor(100 / newTenantCount);
+        remainderShare = 100 - (newShare * currentTenantsCount);
+        shouldUpdateExisting = true;
+      }
+
+      if (shouldUpdateExisting) {
+        // Update all existing tenants to the evenly divided share
+        await supabase
+          .from('lease_tenants')
+          .update({ rent_share_percentage: newShare })
+          .eq('lease_id', targetLeaseId);
+      }
+
+      // Link new tenant to lease
+      const { error: junctionErr } = await supabase
+        .from('lease_tenants')
+        .insert({
+          lease_id: targetLeaseId,
+          tenant_id: newTenant.id,
+          is_primary: !existingLease,
+          rent_share_percentage: existingLease ? remainderShare : 100
+        });
+
+      if (junctionErr) throw junctionErr;
+
+      // Update property columns
+      await supabase
+        .from('properties')
+        .update({
+          tenant_name: `${inviteForm.firstName} ${inviteForm.lastName}`,
+          tenant_email: inviteForm.email,
+          rent_amount: parseFloat(inviteForm.rentAmount) || property.rent_amount || 0,
+          lease_start: inviteForm.leaseStart
+        })
+        .eq('id', property.id);
+
+      // Send email invite / welcome
+      try {
+        const landlordEmail = session?.user?.email;
+
+        if (method === 'invite') {
+           // Send Digital Handshake / Portal Invitation
+           await supabase.functions.invoke('send-email', {
+            body: {
+              to: inviteForm.email,
+              subject: `Invitation to access your Resident Portal for ${property.address}`,
+              templateType: 'tenant-invite',
+              variables: {
+                tenantFirstName: inviteForm.firstName,
+                propertyAddress: `${property.address}, ${property.suburb}`,
+                inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
+                passcode: passcode,
+                startDate: inviteForm.leaseStart,
+                rentAmount: inviteForm.rentAmount || '0',
+                senderName: landlordEmail,
+                senderEmail: landlordEmail
+              }
+            }
+          });
+          setInviteSuccess("Invitation sent! Tenant's status is now 'Invited'.");
+        } else {
+          // Direct Confirmation (Offline tenant)
+          if (leaseFileBase64) {
+            // Send Welcome Email with Attachment
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: inviteForm.email,
+                subject: `Welcome to Property Ledge - Your Lease for ${property.address}`,
+                templateType: 'tenant-welcome',
+                attachmentBase64: leaseFileBase64,
+                attachmentFilename: leaseFile?.name || "Lease_Agreement.pdf",
+                variables: {
+                  tenantFirstName: inviteForm.firstName,
+                  propertyAddress: `${property.address}, ${property.suburb}`,
+                  startDate: inviteForm.leaseStart,
+                  endDate: null,
+                  rentAmount: inviteForm.rentAmount || '0',
+                  bondAmount: (parseFloat(inviteForm.rentAmount) * 4) || 0,
+                  paymentFrequency: property.payment_frequency || 'Weekly',
+                  specialTerms: "Please find your attached lease agreement. Please review and contact us if you have any questions.",
+                  senderName: landlordEmail,
+                  senderEmail: landlordEmail
+                }
+              }
+            });
+          } else {
+            // Send Confirmation/Welcome Email (without attachment)
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: inviteForm.email,
+                subject: `Confirmation: You have been added as a Tenant at ${property.address}`,
+                templateType: 'tenant-welcome',
+                variables: {
+                  tenantFirstName: inviteForm.firstName,
+                  propertyAddress: `${property.address}, ${property.suburb}`,
+                  startDate: inviteForm.leaseStart,
+                  endDate: null,
+                  rentAmount: inviteForm.rentAmount || '0',
+                  bondAmount: (parseFloat(inviteForm.rentAmount) * 4) || 0,
+                  paymentFrequency: property.payment_frequency || 'Weekly',
+                  specialTerms: "You have been registered for this property. We will send you any further updates regarding your lease or invoices via email.",
+                  senderName: landlordEmail,
+                  senderEmail: landlordEmail
+                }
+              }
+            });
+          }
+          setInviteSuccess('Tenant confirmed successfully and welcome email sent.');
+        }
+        
+        setShowInviteSuccessModal(true);
+        loadData(currentUserId); // Reload data to show new tenant
+        
+        setTimeout(() => {
+          setIsInviteModalOpen(false);
+          setShowInviteSuccessModal(false);
+          setInviteForm({ propertyId: '', firstName: '', lastName: '', email: '', rentAmount: '', leaseStart: '' });
+          setLeaseFile(null);
+          setLeaseFileBase64(null);
+        }, 3000);
+      } catch (emailErr: any) {
+        console.error("Mailtrap Edge Function call failed:", emailErr);
+      }
+
+    } catch (err: any) {
+      console.error("Invite error:", err);
+      setInviteError(err.message || "An error occurred during tenant setup.");
+    } finally {
+      setInvitingType(null);
+    }
+  };
+
   const filteredTenants = tenants.filter(t => {
     const fullName = `${t.first_name || ''} ${t.last_name || ''}`.toLowerCase();
     const email = (t.email || '').toLowerCase();
@@ -173,6 +413,13 @@ export function Tenants() {
               </h1>
               <p className="text-on-surface-variant mt-2 font-medium">Read-only directory of current and pending residents linked to your properties.</p>
             </div>
+            
+            <button
+              onClick={() => setIsInviteModalOpen(true)}
+              className="bg-primary text-on-primary hover:bg-primary/90 transition-all font-bold text-sm px-6 py-3.5 rounded-full shadow-md flex items-center gap-2 cursor-pointer shrink-0"
+            >
+              <Users className="w-4 h-4" /> Add Tenant
+            </button>
           </div>
 
           {/* Search and Filters panel */}
@@ -325,6 +572,222 @@ export function Tenants() {
           )}
         </div>
       </div>
+
+      {/* Invite Tenant Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {isInviteModalOpen && (
+            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+                onClick={() => setIsInviteModalOpen(false)}
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-lg bg-transparent shadow-[0_24px_48px_-12px_rgba(34,51,59,0.2)] flex flex-col z-10 rounded-[28px]"
+              >
+                <div className="bg-primary px-6 sm:px-8 py-6 rounded-t-[28px] flex items-center justify-between shrink-0 border-b border-primary-fixed-dim/20">
+                  <div className="text-on-primary">
+                    <h3 className="text-xl sm:text-2xl font-black tracking-tight mb-1">Add Tenant</h3>
+                    <p className="text-on-primary/80 text-xs sm:text-sm font-medium">Add a tenant and link them to a property.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsInviteModalOpen(false)} 
+                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors cursor-pointer shrink-0"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form className="p-6 sm:p-8 space-y-6 bg-white rounded-b-[28px] overflow-y-auto custom-scrollbar">
+                  {inviteError && (
+                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-[16px] text-xs font-bold flex items-center gap-2 shadow-sm">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      {inviteError}
+                    </div>
+                  )}
+
+                  {inviteSuccess && (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-[16px] text-xs font-bold flex items-center gap-2 shadow-sm">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      {inviteSuccess}
+                    </div>
+                  )}
+
+                  <div className="relative">
+                    <select
+                      required
+                      id="propertyId"
+                      value={inviteForm.propertyId}
+                      onChange={e => setInviteForm({ ...inviteForm, propertyId: e.target.value })}
+                      className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold appearance-none"
+                    >
+                      <option value="" disabled>Select a Property...</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>{p.address}, {p.suburb}</option>
+                      ))}
+                    </select>
+                    <label htmlFor="propertyId" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Target Property</label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 sm:gap-5 mt-2">
+                    <div className="relative">
+                      <input
+                        required
+                        type="text"
+                        id="firstName"
+                        value={inviteForm.firstName}
+                        onChange={e => setInviteForm({ ...inviteForm, firstName: e.target.value })}
+                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                        placeholder=" "
+                      />
+                      <label htmlFor="firstName" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">First Name</label>
+                    </div>
+                    <div className="relative">
+                      <input
+                        required
+                        type="text"
+                        id="lastName"
+                        value={inviteForm.lastName}
+                        onChange={e => setInviteForm({ ...inviteForm, lastName: e.target.value })}
+                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                        placeholder=" "
+                      />
+                      <label htmlFor="lastName" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Last Name</label>
+                    </div>
+                  </div>
+
+                  <div className="relative mt-2">
+                    <input
+                      required
+                      type="email"
+                      id="email"
+                      value={inviteForm.email}
+                      onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
+                      className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                      placeholder=" "
+                    />
+                    <label htmlFor="email" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Tenant Email</label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 sm:gap-5 mt-2">
+                    <div className="relative">
+                      <input
+                        required
+                        type="number"
+                        id="rentAmount"
+                        value={inviteForm.rentAmount}
+                        onChange={e => setInviteForm({ ...inviteForm, rentAmount: e.target.value })}
+                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
+                        placeholder=" "
+                      />
+                      <label htmlFor="rentAmount" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Weekly Rent ($)</label>
+                    </div>
+                    <div className="relative">
+                      <input
+                        required
+                        type="date"
+                        id="leaseStart"
+                        value={inviteForm.leaseStart}
+                        onChange={e => setInviteForm({ ...inviteForm, leaseStart: e.target.value })}
+                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold [color-scheme:light]"
+                        placeholder=" "
+                      />
+                      <label htmlFor="leaseStart" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-primary transition-all pointer-events-none">Lease Start</label>
+                    </div>
+                  </div>
+
+                  <div className="relative overflow-hidden group mt-4">
+                    <div className="relative p-6 border-2 border-dashed border-primary/30 rounded-[20px] flex flex-col items-center justify-center text-center hover:border-primary/60 transition-colors bg-surface-container-lowest/50 hover:bg-primary/5 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setLeaseFile(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const base64String = reader.result?.toString().split(',')[1];
+                              if (base64String) setLeaseFileBase64(base64String);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        {leaseFile ? <FileUp className="w-6 h-6" /> : <Download className="w-6 h-6" />}
+                      </div>
+                      <p className="text-sm font-bold text-on-surface mb-1">
+                        {leaseFile ? leaseFile.name : "Upload Signed Lease PDF (Optional)"}
+                      </p>
+                      <p className="text-[11px] font-medium text-on-surface-variant">
+                        {leaseFile ? "Click to change file" : "Drag and drop or click to browse"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex flex-col gap-3">
+                    <button 
+                      type="button"
+                      onClick={(e) => handleInviteSubmit(e, 'invite')}
+                      disabled={invitingType !== null}
+                      className="w-full py-4 rounded-[16px] bg-primary text-white font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 group cursor-pointer"
+                    >
+                      {invitingType === 'invite' ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>Send Digital Invite <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /></>
+                      )}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={(e) => handleInviteSubmit(e, 'direct')}
+                      disabled={invitingType !== null}
+                      className="w-full py-4 rounded-[16px] bg-surface-container border border-outline-variant text-on-surface font-black text-xs uppercase tracking-widest hover:bg-surface-container-high transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 cursor-pointer"
+                    >
+                      {invitingType === 'direct' ? (
+                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      ) : (
+                        "Add Directly (No Login Required)"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Success Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {showInviteSuccessModal && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative bg-white rounded-[32px] p-8 max-w-sm w-full text-center shadow-2xl">
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">Tenant Added!</h3>
+                <p className="text-slate-500 font-medium mb-8">The tenant has been successfully registered to the property.</p>
+                <button onClick={() => setShowInviteSuccessModal(false)} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors cursor-pointer shadow-lg shadow-slate-900/20">
+                  Done
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </DashboardLayout>
   );
 }
