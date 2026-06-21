@@ -251,6 +251,32 @@ export function Team() {
     }
   };
 
+  const changeRole = async (member: TeamMemberRow, newRole: string) => {
+    try {
+      if (member.isPending) {
+        // Update team_invitations
+        const { error } = await supabase
+          .from('team_invitations')
+          .update({ role: newRole })
+          .eq('id', member.id);
+        if (error) throw error;
+      } else {
+        // Update property_team
+        const { error } = await supabase
+          .from('property_team')
+          .update({ role: newRole })
+          .eq('id', member.id);
+        if (error) throw error;
+      }
+      
+      // Optimistic update
+      setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
+    } catch (err) {
+      console.error("Error changing role:", err);
+      alert("Failed to change role.");
+    }
+  };
+
   const removeMember = async (member: TeamMemberRow) => {
     const msg = member.isPending 
       ? "Are you sure you want to revoke this invitation?"
@@ -362,10 +388,21 @@ export function Team() {
                         {property && <div className="text-xs text-on-surface-variant/70 mt-0.5 flex items-center gap-1"><Building className="w-3 h-3" />{property.address}</div>}
                       </div>
 
-                      {/* Role badge */}
-                      <span className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border ${rc.color} ${rc.bg} ${rc.border}`}>
-                        {member.role}
-                      </span>
+                      {/* Role selector dropdown */}
+                      <div className="relative shrink-0">
+                        <select
+                          value={member.role}
+                          onChange={(e) => changeRole(member, e.target.value)}
+                          className={`pl-3 pr-7 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border outline-none cursor-pointer appearance-none ${rc.color} ${rc.bg} ${rc.border} hover:opacity-80 transition-opacity`}
+                        >
+                          <option value="Manager">Manager</option>
+                          <option value="Strata">Strata</option>
+                          <option value="Agent">Agent</option>
+                        </select>
+                        <div className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${rc.color}`}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                      </div>
 
                       {/* Actions */}
                       <div className="flex items-center gap-1 shrink-0">
@@ -391,16 +428,20 @@ export function Team() {
                             disabled={blocked}
                             onClick={() => !blocked && togglePermission(member, key, checked)}
                             title={blocked ? `${member.role}s cannot have this permission` : (checked ? `Revoke: ${label}` : `Grant: ${label}`)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all ${
                               blocked
-                                ? 'opacity-25 cursor-not-allowed bg-slate-50 border-slate-200 text-slate-400'
+                                ? 'opacity-40 cursor-not-allowed bg-slate-50/50 border-transparent'
                                 : checked
-                                  ? 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
-                                  : 'bg-white border-outline-variant/50 text-slate-400 hover:border-slate-400 hover:text-slate-600'
+                                  ? 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
+                                  : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
                             }`}
                           >
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${blocked ? 'bg-slate-300' : checked ? 'bg-primary' : 'bg-slate-300'}`} />
-                            {label}
+                            <div className="relative inline-flex items-center pointer-events-none">
+                              <div className={`w-9 h-5 rounded-full transition-colors duration-300 ease-in-out relative ${checked ? (blocked ? 'bg-slate-300' : 'bg-emerald-500') : 'bg-slate-200'}`}>
+                                <div className={`absolute top-[2px] left-[2px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
+                              </div>
+                            </div>
+                            <span className={`text-xs font-bold ${checked ? 'text-slate-800' : 'text-slate-500'}`}>{label}</span>
                           </button>
                         );
                       })}
