@@ -355,6 +355,12 @@ export function Team() {
                 };
                 const rc = roleConfig[member.role] || { color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200' };
 
+                const displayRoles: Record<string, string> = {
+                  Agent: 'Real Estate Agent',
+                  Strata: 'Strata Manager',
+                  Manager: 'Property Manager'
+                };
+
                 const permDefs = [
                   { key: 'can_view_lease',     label: 'View Leases',     blocked: false },
                   { key: 'can_create_lease',   label: 'Create Leases',   blocked: member.role === 'Strata' },
@@ -395,7 +401,7 @@ export function Team() {
                           onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === member.id ? null : member.id); }}
                           className={`flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border transition-all ${rc.color} ${rc.bg} ${rc.border} hover:opacity-80`}
                         >
-                          {member.role}
+                          {displayRoles[member.role] || member.role}
                           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdownId === member.id ? 'rotate-180' : ''}`} />
                         </button>
                         
@@ -408,7 +414,7 @@ export function Team() {
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -5, scale: 0.95 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-32 bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-1.5 z-50 overflow-hidden"
+                                className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-44 bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-1.5 z-50 overflow-hidden"
                               >
                                 {['Manager', 'Strata', 'Agent'].map((r) => {
                                   const rConf = roleConfig[r] || rc;
@@ -421,7 +427,7 @@ export function Team() {
                                       }}
                                       className={`w-full text-left px-4 py-2.5 text-[11px] font-black uppercase tracking-wider transition-colors hover:bg-slate-50 ${member.role === r ? rConf.color + ' bg-slate-50/50' : 'text-slate-500'}`}
                                     >
-                                      {r}
+                                      {displayRoles[r] || r}
                                     </button>
                                   );
                                 })}
@@ -574,13 +580,20 @@ export function Team() {
 
                     <div>
                       <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Assign Role</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {['Agent', 'Strata', 'Manager'].map(role => (
-                          <label key={role} className={`cursor-pointer border rounded-2xl p-3 text-center transition-all ${inviteRole === role ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-outline-variant/50 hover:border-outline-variant/80 text-on-surface-variant font-medium'}`}>
-                            <input type="radio" name="role" value={role} checked={inviteRole === role} onChange={() => setInviteRole(role)} className="hidden" />
-                            <div className="text-sm">{role}</div>
-                          </label>
-                        ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {['Agent', 'Strata', 'Manager'].map(role => {
+                          const displayRoles: Record<string, string> = {
+                            Agent: 'Real Estate Agent',
+                            Strata: 'Strata Manager',
+                            Manager: 'Property Manager'
+                          };
+                          return (
+                            <label key={role} className={`cursor-pointer border rounded-2xl p-3 text-center transition-all ${inviteRole === role ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-outline-variant/50 hover:border-outline-variant/80 text-on-surface-variant font-medium'}`}>
+                              <input type="radio" name="role" value={role} checked={inviteRole === role} onChange={() => setInviteRole(role)} className="hidden" />
+                              <div className="text-sm">{displayRoles[role] || role}</div>
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
 
