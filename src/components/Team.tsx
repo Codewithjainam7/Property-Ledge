@@ -455,17 +455,13 @@ export function Team() {
                             disabled={blocked}
                             onClick={() => !blocked && togglePermission(member, key, checked)}
                             title={blocked ? `${member.role}s cannot have this permission` : (checked ? `Revoke: ${label}` : `Grant: ${label}`)}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all ${
-                              blocked
-                                ? 'opacity-40 cursor-not-allowed bg-slate-50/50 border-transparent'
-                                : checked
-                                  ? 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
-                                  : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                            className={`flex items-center gap-2 px-1 py-1 transition-all ${
+                              blocked ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:opacity-80 cursor-pointer'
                             }`}
                           >
                             <div className="relative inline-flex items-center pointer-events-none">
-                              <div className={`w-9 h-5 rounded-full transition-colors duration-300 ease-in-out relative ${checked ? (blocked ? 'bg-slate-300' : 'bg-emerald-500') : 'bg-slate-200'}`}>
-                                <div className={`absolute top-[2px] left-[2px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
+                              <div className={`w-8 h-4.5 rounded-full transition-colors duration-300 ease-in-out relative ${checked ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                                <div className={`absolute top-[2px] left-[2px] w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${checked ? 'translate-x-3.5' : 'translate-x-0'}`} />
                               </div>
                             </div>
                             <span className={`text-xs font-bold ${checked ? 'text-slate-800' : 'text-slate-500'}`}>{label}</span>

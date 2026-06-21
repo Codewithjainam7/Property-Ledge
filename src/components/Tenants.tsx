@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building, Users, Clock, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldCheck, Mail, Phone, X, Send, XCircle, FileUp, Download } from 'lucide-react';
+import { Search, Building, Users, Clock, AlertTriangle, CheckCircle2, ArrowUpRight, ShieldCheck, Mail, Phone, X, Send, XCircle, FileUp, Download, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -61,6 +61,7 @@ export function Tenants() {
   const [invitingType, setInvitingType] = useState<'direct' | 'invite' | null>(null);
   const [leaseFile, setLeaseFile] = useState<File | null>(null);
   const [leaseFileBase64, setLeaseFileBase64] = useState<string | null>(null);
+  const [isPropertyDropdownOpen, setIsPropertyDropdownOpen] = useState(false);
   
   const [inviteForm, setInviteForm] = useState({
     propertyId: '',
@@ -620,19 +621,54 @@ export function Tenants() {
                   )}
 
                   <div className="relative">
-                    <select
-                      required
-                      id="propertyId"
-                      value={inviteForm.propertyId}
-                      onChange={e => setInviteForm({ ...inviteForm, propertyId: e.target.value })}
-                      className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold appearance-none"
+                    <div
+                      onClick={() => setIsPropertyDropdownOpen(!isPropertyDropdownOpen)}
+                      className={`peer w-full bg-transparent border-2 ${isPropertyDropdownOpen ? 'border-primary' : 'border-outline-variant/40 hover:border-outline-variant/80'} rounded-[16px] px-4 py-3.5 text-sm text-on-surface transition-all font-semibold cursor-pointer flex justify-between items-center`}
                     >
-                      <option value="" disabled>Select a Property...</option>
-                      {properties.map(p => (
-                        <option key={p.id} value={p.id}>{p.address}, {p.suburb}</option>
-                      ))}
-                    </select>
-                    <label htmlFor="propertyId" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Target Property</label>
+                      <span>
+                        {inviteForm.propertyId 
+                          ? (() => {
+                              const p = properties.find(prop => prop.id === inviteForm.propertyId);
+                              return p ? `${p.address}, ${p.suburb}` : 'Select a Property...';
+                            })()
+                          : <span className="text-on-surface-variant/70">Select a Property...</span>
+                        }
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-on-surface-variant transition-transform ${isPropertyDropdownOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                    <label className={`absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold transition-all pointer-events-none ${isPropertyDropdownOpen ? 'text-primary' : 'text-on-surface-variant'}`}>Target Property</label>
+                    
+                    <AnimatePresence>
+                      {isPropertyDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsPropertyDropdownOpen(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-2 z-50 max-h-60 overflow-y-auto custom-scrollbar"
+                          >
+                            {properties.map(p => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => {
+                                  setInviteForm({ ...inviteForm, propertyId: p.id, rentAmount: p.rent_amount ? p.rent_amount.toString() : '', leaseStart: p.lease_start || '' });
+                                  setIsPropertyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors hover:bg-primary/5 ${inviteForm.propertyId === p.id ? 'bg-primary/10 text-primary' : 'text-on-surface'}`}
+                              >
+                                {p.address}, <span className="opacity-70 font-medium">{p.suburb}</span>
+                              </button>
+                            ))}
+                            {properties.length === 0 && (
+                              <div className="px-4 py-3 text-sm text-on-surface-variant text-center font-medium">No properties available</div>
+                            )}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 sm:gap-5 mt-2">
