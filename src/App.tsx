@@ -1373,6 +1373,11 @@ function DashboardRouter() {
     return <Navigate to="/complete-profile" replace />
   }
 
+  // ─── Tenant Dashboard ───
+  if (userContext?.isTenant) {
+    return <TenantPortal />;
+  }
+
   // ─── Owner Dashboard ───
   if (userContext?.isOwner) {
     return <Dashboard />;
@@ -1389,8 +1394,12 @@ function DashboardRouter() {
 
 import { Team } from './components/Team';
 import { Leases } from './components/Leases';
+import { AcceptTenantInvite } from './components/AcceptTenantInvite';
+import { TenantPortal } from './components/TenantPortal';
+import { TenantInvoices } from './components/TenantInvoices';
 
 function AppRoutes() {
+  const { userContext } = useAuth();
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -1398,12 +1407,15 @@ function AppRoutes() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/complete-profile" element={<CompleteProfile />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/accept-tenant-invite" element={<AcceptTenantInvite />} />
       <Route path="/dashboard" element={<DashboardRouter />} />
       <Route path="/dashboard/properties" element={<Properties />} />
       <Route path="/dashboard/onboarding" element={<PropertyOnboarding />} />
       <Route path="/dashboard/property/:id" element={<PropertyDetails />} />
 
-      <Route path="/dashboard/invoices" element={<InvoiceManagement />} />
+      <Route path="/dashboard/invoices" element={
+        userContext?.isTenant && !userContext?.isLandlordOrTeam ? <TenantInvoices /> : <InvoiceManagement />
+      } />
       <Route path="/dashboard/settings" element={<AccountSettings />} />
       <Route path="/dashboard/team" element={<Team />} />
       <Route path="/dashboard/leases" element={<Leases />} />

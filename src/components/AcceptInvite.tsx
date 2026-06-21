@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building, Shield, CheckCircle2, AlertTriangle, ArrowRight, Eye, EyeOff, Loader2, User, Mail, Clock, ExternalLink } from 'lucide-react';
+import { Building, Shield, CheckCircle2, AlertTriangle, ArrowRight, Eye, EyeOff, Loader2, User, Mail, Clock, Lock, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logoImg from '../assets/logo.png';
 
@@ -117,13 +117,9 @@ export function AcceptInvite() {
       }
 
       setAccepted(true);
-      // Clear the stored invite token
       localStorage.removeItem('pendingInviteToken');
-
-      // Refresh the context so they are recognized as a team member immediately
       await refreshContext();
 
-      // Redirect to dashboard after a short celebration delay
       setTimeout(() => navigate('/dashboard'), 2500);
     } catch (err) {
       setAcceptError('An unexpected error occurred. Please try again.');
@@ -150,7 +146,6 @@ export function AcceptInvite() {
     setAcceptError('');
 
     try {
-      // Create the account
       const { data: signupData, error: signupError } = await supabase.auth.signUp({
         email: invite.email,
         password,
@@ -171,13 +166,11 @@ export function AcceptInvite() {
       }
 
       if (!signupData.session) {
-        // Email confirmation required — store token and ask them to verify
         localStorage.setItem('pendingInviteToken', token);
         setAcceptError('Please check your email to confirm your account, then return to this page to complete accepting the invitation.');
         return;
       }
 
-      // Now accept the invite with the new session
       const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/accept-team-invite`, {
         method: 'POST',
         headers: {
@@ -197,8 +190,6 @@ export function AcceptInvite() {
 
       setAccepted(true);
       localStorage.removeItem('pendingInviteToken');
-
-      // Refresh the context so they are recognized as a team member immediately
       await refreshContext();
 
       setTimeout(() => navigate('/dashboard'), 2500);
@@ -209,45 +200,30 @@ export function AcceptInvite() {
     }
   };
 
-  const calculateStrength = (pass: string) => {
-    let s = 0;
-    if (pass.length > 7) s += 25;
-    if (pass.length > 12) s += 25;
-    if (pass.match(/[A-Z]/)) s += 15;
-    if (pass.match(/[0-9]/)) s += 15;
-    if (pass.match(/[^a-zA-Z0-9]/)) s += 20;
-    return Math.min(100, s);
-  };
-
-  const roleColor = (role: string) => {
-    if (role === 'Manager') return 'text-purple-600 bg-purple-50 border-purple-200';
-    if (role === 'Agent') return 'text-blue-600 bg-blue-50 border-blue-200';
-    if (role === 'Strata') return 'text-amber-600 bg-amber-50 border-amber-200';
-    return 'text-slate-600 bg-slate-50 border-slate-200';
-  };
-
   // ─── Render: Accepted success screen ───────────────────────
   if (accepted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f8f9fc] to-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f2f5] p-4 font-sans">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="text-center max-w-md"
+          className="text-center max-w-md bg-white/70 backdrop-blur-3xl p-12 rounded-[40px] shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-white"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6"
+            className="w-28 h-28 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-8 border-8 border-white shadow-xl"
           >
-            <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+            <CheckCircle2 className="w-14 h-14 text-emerald-500" />
           </motion.div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2">You're in!</h1>
-          <p className="text-slate-500 font-medium mb-1">
-            You now have access to <span className="text-slate-700 font-bold">{invite?.property_address}</span>
+          <h1 className="text-4xl font-black text-slate-900 mb-3 tracking-tight">You're in!</h1>
+          <p className="text-slate-500 font-medium mb-1 text-lg">
+            You now have access to <span className="text-slate-800 font-bold">{invite?.property_address}</span>
           </p>
-          <p className="text-slate-400 text-sm">Redirecting you to your dashboard...</p>
+          <p className="text-slate-400 text-sm mt-6 flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> Redirecting to dashboard...
+          </p>
         </motion.div>
       </div>
     );
@@ -256,10 +232,10 @@ export function AcceptInvite() {
   // ─── Render: Loading ────────────────────────────────────────
   if (previewLoading || sessionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f8f9fc] to-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f2f5]">
         <div className="text-center">
-          <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-slate-500 font-medium">Loading your invitation...</p>
+          <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-6" />
+          <h2 className="text-xl font-bold text-slate-800">Securing connection...</h2>
         </div>
       </div>
     );
@@ -268,19 +244,19 @@ export function AcceptInvite() {
   // ─── Render: Error (invalid / expired token) ────────────────
   if (previewError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f8f9fc] to-white p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f2f5] p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md bg-white rounded-3xl border border-slate-200 p-10 shadow-xl"
+          className="text-center max-w-md bg-white/70 backdrop-blur-3xl rounded-[40px] border border-white p-12 shadow-[0_20px_60px_rgba(0,0,0,0.05)]"
         >
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="w-8 h-8 text-red-400" />
+          <div className="w-24 h-24 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-8 border-8 border-white shadow-xl">
+            <AlertTriangle className="w-10 h-10 text-rose-500" />
           </div>
-          <h1 className="text-2xl font-black text-slate-900 mb-3">Invalid Invitation</h1>
-          <p className="text-slate-500 font-medium mb-8 text-sm leading-relaxed">{previewError}</p>
-          <Link to="/" className="text-primary font-bold hover:underline text-sm">
-            Return to Property Ledge →
+          <h1 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Invalid Invitation</h1>
+          <p className="text-slate-500 font-medium mb-10 text-base leading-relaxed">{previewError}</p>
+          <Link to="/" className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-full font-bold hover:scale-105 transition-transform shadow-lg">
+            Return Home <ArrowRight className="w-4 h-4" />
           </Link>
         </motion.div>
       </div>
@@ -290,268 +266,224 @@ export function AcceptInvite() {
   const emailMismatch = session && invite && session.user?.email?.toLowerCase() !== invite.email.toLowerCase();
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-gradient-to-b from-[#f8f9fc] via-white to-[#f8f9fc]">
-      {/* Background blobs */}
-      <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-primary/8 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-indigo-400/8 blur-[120px] pointer-events-none" />
+    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-[#f0f4f8] font-sans selection:bg-indigo-600/20">
+      {/* ─── iOS 26 / Google Material 3 Ambient Backgrounds ─── */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#E0E7FF] blur-[100px] opacity-70 animate-pulse-slow mix-blend-multiply" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#E0F2FE] blur-[120px] opacity-70 mix-blend-multiply" />
+      <div className="absolute top-[20%] right-[10%] w-[30vw] h-[30vw] rounded-full bg-[#FCE7F3] blur-[90px] opacity-60 mix-blend-multiply" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-[520px] relative z-10"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.7, type: 'spring', stiffness: 100, damping: 20 }}
+        className="w-full max-w-[560px] relative z-10 my-8"
       >
-        {/* Property Ledge brand */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <img src={logoImg} alt="PropertyLedge" className="h-7 w-auto object-contain" />
-            <span className="text-xl font-black text-[#2d3748] tracking-tight">PropertyLedge<span className="font-normal text-[#4a5568]">.com.au</span></span>
-          </Link>
+        {/* Brand */}
+        <div className="text-center mb-10">
+          <motion.div 
+            initial={{ scale: 0 }} 
+            animate={{ scale: 1 }} 
+            transition={{ delay: 0.3, type: "spring" }}
+            className="inline-flex items-center justify-center w-16 h-16 rounded-[24px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-white mb-6"
+          >
+            <img src={logoImg} alt="Logo" className="h-8 w-auto object-contain" />
+          </motion.div>
+          <h1 className="text-[40px] leading-[1.1] font-black text-slate-900 tracking-[-0.04em]">
+            Team Invitation
+          </h1>
+          <p className="text-slate-500 font-medium text-lg mt-3">You've been invited to collaborate.</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-2xl rounded-[32px] border border-white shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="px-8 pt-8 pb-6 border-b border-slate-100">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-indigo-100 flex items-center justify-center shrink-0 border border-primary/20">
-                <Shield className="w-7 h-7 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Team Invitation</p>
-                <h1 className="text-2xl font-black text-slate-900 leading-tight">You've been invited!</h1>
+        {/* Liquid Glass Main Container */}
+        <div className="relative rounded-[40px] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.07)]">
+          {/* Glass background layers */}
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[40px] z-0" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/80 to-white/20 z-0" />
+          <div className="absolute inset-0 border-[1.5px] border-white/80 rounded-[40px] z-0 pointer-events-none" />
+
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Header / Property Preview */}
+            <div className="p-8 sm:p-10 border-b border-white/40 bg-white/20">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 border-2 border-white">
+                  <Shield className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/60 border border-white/60 shadow-sm mb-2">
+                    <User className="w-3.5 h-3.5 text-indigo-600" />
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Invited by {invite?.inviter_name}</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800 leading-tight">
+                    {invite?.property_address}
+                  </h2>
+                  <p className="text-sm font-black text-indigo-600 uppercase tracking-widest mt-2 bg-indigo-500/10 inline-block px-3 py-1 rounded-full">{invite?.role}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Invite details card */}
-          <div className="px-8 py-6 bg-slate-50/60 border-b border-slate-100">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Building className="w-4 h-4 text-slate-400 shrink-0" />
-                <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Property</span>
-                  <span className="font-bold text-slate-800 text-sm">{invite?.property_address}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-slate-400 shrink-0" />
-                <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Invited by</span>
-                  <span className="font-bold text-slate-800 text-sm">{invite?.inviter_name}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">For email</span>
-                  <span className="font-bold text-slate-800 text-sm">{invite?.email}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Expires</span>
-                  <span className="font-bold text-slate-800 text-sm">
-                    {invite?.expires_at ? new Date(invite.expires_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
-                  </span>
-                </div>
-              </div>
-              <div className="pt-1">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${invite?.role ? roleColor(invite.role) : ''}`}>
-                  Role: {invite?.role}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Main action area */}
-          <div className="px-8 py-8">
-            {acceptError && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-semibold flex gap-3 items-start"
-              >
-                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                <p>{acceptError}</p>
-              </motion.div>
-            )}
-
-            {/* ─── CASE 1: Logged in, email matches ─── */}
-            {session && !emailMismatch && (
-              <div className="text-center">
-                <p className="text-slate-500 text-sm font-medium mb-6">
-                  You're logged in as <span className="font-bold text-slate-800">{session.user?.email}</span>. Click below to accept this invitation.
-                </p>
-                <button
-                  onClick={handleAcceptExisting}
-                  disabled={accepting}
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 text-base disabled:opacity-60"
+            {/* Form Area */}
+            <div className="p-8 sm:p-10">
+              {acceptError && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mb-8 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-700 rounded-3xl text-sm font-bold flex gap-3 items-center backdrop-blur-md"
                 >
-                  {accepting ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      Accept Invitation <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  <p>{acceptError}</p>
+                </motion.div>
+              )}
 
-            {/* ─── CASE 2: Logged in, email DOESN'T match ─── */}
-            {session && emailMismatch && (
-              <div className="text-center space-y-4">
-                <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-                  <p className="text-amber-700 text-sm font-semibold">
-                    This invite is for <span className="font-black">{invite?.email}</span>, but you're logged in as <span className="font-black">{session.user?.email}</span>.
+              {/* ─── CASE 1: Logged in, email matches ─── */}
+              {session && !emailMismatch && (
+                <div className="text-center py-4">
+                  <div className="w-20 h-20 rounded-full bg-slate-100 border-4 border-white shadow-md mx-auto mb-6 flex items-center justify-center text-2xl font-black text-slate-400">
+                    {session.user?.email?.[0].toUpperCase()}
+                  </div>
+                  <p className="text-slate-500 text-base font-medium mb-8">
+                    You're logged in as <span className="font-bold text-slate-800">{session.user?.email}</span>.
                   </p>
-                  <p className="text-amber-600 text-xs font-medium mt-1">Please sign out and then open this link again.</p>
+                  <button
+                    onClick={handleAcceptExisting}
+                    disabled={accepting}
+                    className="relative w-full group overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-4.5 rounded-full transition-all shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.25)] flex items-center justify-center gap-2 text-lg disabled:opacity-70 disabled:hover:scale-100 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
+                    {accepting ? (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <>
+                        Accept Invitation <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </button>
                 </div>
-                <button
-                  onClick={async () => { await supabase.auth.signOut(); }}
-                  className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-2xl transition-colors text-sm"
-                >
-                  Sign Out &amp; Switch Account
-                </button>
-              </div>
-            )}
+              )}
 
-            {/* ─── CASE 3: Not logged in ─── */}
-            {!session && invite && (
-              <div>
-                <p className="text-center text-slate-500 text-sm font-medium mb-6">
-                  Create a free account to accept this invitation and access the property dashboard.
-                </p>
-                <form onSubmit={handleSignupAndAccept} className="space-y-4">
-                  {/* Email — locked to invite email */}
+              {/* ─── CASE 2: Logged in, email DOESN'T match ─── */}
+              {session && emailMismatch && (
+                <div className="text-center space-y-6">
+                  <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-3xl backdrop-blur-md">
+                    <p className="text-amber-700 text-base font-medium">
+                      This invite is for <span className="font-black">{invite?.email}</span>, but you're logged in as <span className="font-black">{session.user?.email}</span>.
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => { await supabase.auth.signOut(); }}
+                    className="w-full bg-white/70 border border-slate-200/50 hover:bg-white text-slate-900 font-bold py-4.5 rounded-full transition-all shadow-sm text-base"
+                  >
+                    Sign Out &amp; Switch Account
+                  </button>
+                </div>
+              )}
+
+              {/* ─── CASE 3: Not logged in ─── */}
+              {!session && invite && (
+                <form onSubmit={handleSignupAndAccept} className="space-y-6">
+                  {/* Locked Email */}
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Email Address</label>
-                    <input
-                      type="email"
-                      value={invite.email}
-                      disabled
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-slate-500 font-bold text-sm cursor-not-allowed"
-                    />
-                    <p className="text-xs text-slate-400 font-medium mt-1 ml-1">Email is locked to the invited address.</p>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400">
+                        <Mail className="w-5 h-5" />
+                      </div>
+                      <input
+                        type="email"
+                        value={invite.email}
+                        disabled
+                        className="w-full bg-slate-100/50 border border-slate-200/50 rounded-full pl-12 pr-6 py-4 text-slate-500 font-bold text-base cursor-not-allowed"
+                      />
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">First Name</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="relative group">
                       <input
                         type="text"
                         required
                         value={firstName}
                         onChange={e => setFirstName(e.target.value)}
-                        placeholder="Sarah"
-                        className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 font-medium text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                        placeholder="First Name"
+                        className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-[24px] px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Last Name</label>
+                    <div className="relative group">
                       <input
                         type="text"
                         required
                         value={lastName}
                         onChange={e => setLastName(e.target.value)}
-                        placeholder="Jenkins"
-                        className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 font-medium text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                        placeholder="Last Name"
+                        className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-[24px] px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Mobile Number</label>
+                  <div className="relative group">
                     <input
                       type="tel"
                       required
                       value={mobile}
                       onChange={e => setMobile(e.target.value)}
-                      placeholder="+61 400 000 000"
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 font-medium text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      placeholder="Mobile Number"
+                      className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-full px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Set Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 pr-11 text-slate-900 font-medium text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {password && (
-                      <div className="mt-2">
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full transition-all duration-300 ${calculateStrength(password) < 40 ? 'bg-red-400' : calculateStrength(password) < 80 ? 'bg-amber-400' : 'bg-emerald-400'}`}
-                            style={{ width: `${calculateStrength(password)}%` }}
-                          />
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                          {calculateStrength(password) < 40 ? 'Weak' : calculateStrength(password) < 80 ? 'Good' : 'Strong'}
-                        </p>
-                      </div>
-                    )}
+                  <div className="relative group">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Create a Password"
+                      className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-[24px] px-6 py-4 pr-14 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors bg-white/80 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-white"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Confirm Password</label>
+                  <div className="relative group">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-slate-900 font-medium text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                      placeholder="Confirm Password"
+                      className="w-full bg-white/70 border border-white/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] rounded-full px-6 py-4 text-slate-900 font-bold text-base focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/30 outline-none transition-all placeholder:text-slate-400"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={accepting}
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 text-sm mt-2 disabled:opacity-60"
+                    className="relative w-full group overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-4.5 rounded-full transition-all shadow-[0_10px_25px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.25)] flex items-center justify-center gap-2 text-lg mt-8 disabled:opacity-70 disabled:hover:scale-100 hover:scale-[1.02] active:scale-[0.98]"
                   >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
                     {accepting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-6 h-6 animate-spin" />
                     ) : (
                       <>
-                        Create Account &amp; Accept Invitation <ArrowRight className="w-4 h-4" />
+                        Create Account & Accept <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
                   </button>
                 </form>
-
-                <div className="mt-6 text-center">
-                  <p className="text-sm text-slate-400 font-medium">
-                    Already have a Property Ledge account?{' '}
-                    <Link
-                      to={`/login?redirect=${encodeURIComponent(`/accept-invite?token=${token}`)}`}
-                      className="text-primary font-bold hover:underline"
-                    >
-                      Log in instead
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        <p className="text-center text-xs text-slate-400 font-medium mt-6">
-          <img src={logoImg} alt="PropertyLedge" className="h-4 w-auto object-contain inline mr-1" /> — Secure team access management
+        <p className="text-center text-sm font-bold text-slate-400 mt-8 flex items-center justify-center gap-2">
+          Powered by <img src={logoImg} alt="PropertyLedge" className="h-4 w-auto grayscale opacity-70" /> Property Ledge
         </p>
       </motion.div>
     </div>

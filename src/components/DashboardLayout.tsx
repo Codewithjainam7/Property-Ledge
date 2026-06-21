@@ -147,7 +147,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   if (userContext?.isTenant && !userContext?.isLandlordOrTeam) {
     organiseLinks = [
-      { name: 'My Lease', icon: Home, to: '/dashboard/my-lease', exact: true }
+      { name: 'My Lease', icon: Home, to: '/dashboard', exact: true },
+      { name: 'Invoices', icon: FileText, to: '/dashboard/invoices', exact: false }
     ];
     toolsLinks = [];
   } else if (userContext?.isTeamMember) {

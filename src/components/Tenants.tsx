@@ -22,6 +22,14 @@ type Tenant = {
   phone: string;
   status: string;
   created_at: string;
+  lease_tenants?: {
+    is_primary: boolean;
+    leases: {
+      id: string;
+      property_id: string;
+      status: string;
+    };
+  }[];
 };
 
 type Invoice = {
@@ -53,7 +61,13 @@ export function Tenants() {
       const managedPropertyIds = userContext?.teamPropertyIds || [];
       
       let propsQuery = supabase.from('properties').select('id, address, suburb');
-      let tenantsQuery = supabase.from('tenants').select('*');
+      let tenantsQuery = supabase.from('tenants').select(`
+        *,
+        lease_tenants(
+          is_primary,
+          leases(id, property_id, status)
+        )
+      `);
       let invoicesQuery = supabase.from('invoices').select('property_id, status, due_date');
 
       if (managedPropertyIds.length > 0) {
@@ -114,6 +128,8 @@ export function Tenants() {
     switch (status) {
       case 'Active':
         return { label: 'Active', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
+      case 'Past':
+        return { label: 'Past Tenant', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
       case 'Pending':
       case 'Invited':
         return { label: 'Pending Invite', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' };
@@ -122,15 +138,21 @@ export function Tenants() {
     }
   };
 
-  // Search & Filtered Tenants
   const filteredTenants = tenants.filter(t => {
     const fullName = `${t.first_name || ''} ${t.last_name || ''}`.toLowerCase();
     const email = (t.email || '').toLowerCase();
     const matchesSearch = fullName.includes(searchQuery.toLowerCase()) || email.includes(searchQuery.toLowerCase());
     
+    // Determine derived status
+    const activeLease = t.lease_tenants?.find(lt => lt.leases?.status === 'Active');
+    const derivedStatus = (t.status === 'Invited' || t.status === 'Pending') 
+      ? t.status 
+      : (activeLease ? 'Active' : (t.lease_tenants?.length ? 'Past' : t.status));
+
     if (statusFilter === 'All') return matchesSearch;
-    if (statusFilter === 'Active') return matchesSearch && t.status === 'Active';
-    if (statusFilter === 'Pending') return matchesSearch && (t.status === 'Pending' || t.status === 'Invited');
+    if (statusFilter === 'Active') return matchesSearch && derivedStatus === 'Active';
+    if (statusFilter === 'Pending') return matchesSearch && (derivedStatus === 'Pending' || derivedStatus === 'Invited');
+    if (statusFilter === 'Past') return matchesSearch && derivedStatus === 'Past';
     return matchesSearch;
   });
 
@@ -167,7 +189,7 @@ export function Tenants() {
             </div>
             
             <div className="flex gap-2">
-              {['All', 'Active', 'Pending'].map((status) => (
+              {['All', 'Active', 'Pending', 'Past'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
@@ -215,9 +237,17 @@ export function Tenants() {
                     <tbody className="divide-y divide-outline-variant/30">
                       <AnimatePresence mode="popLayout">
                         {filteredTenants.map((tenant) => {
-                          const prop = properties.find(p => p.id === tenant.property_id);
-                          const payStatus = getPaymentStatus(tenant.property_id);
-                          const leaseBadge = getLeaseStatusBadge(tenant.status);
+                          const activeLease = tenant.lease_tenants?.find(lt => lt.leases?.status === 'Active')?.leases;
+                          const anyLease = activeLease || tenant.lease_tenants?.[0]?.leases;
+                          
+                          const resolvedPropertyId = anyLease?.property_id || tenant.property_id;
+                          const prop = properties.find(p => p.id === resolvedPropertyId);
+                          const payStatus = getPaymentStatus(resolvedPropertyId);
+                          
+                          const derivedStatus = (tenant.status === 'Invited' || tenant.status === 'Pending') 
+                            ? tenant.status 
+                            : (activeLease ? 'Active' : (tenant.lease_tenants?.length ? 'Past' : tenant.status));
+                          const leaseBadge = getLeaseStatusBadge(derivedStatus);
 
                           return (
                             <motion.tr 
@@ -272,9 +302,9 @@ export function Tenants() {
 
                               {/* View Property Link */}
                               <td className="py-5 px-6 text-right">
-                                {tenant.property_id ? (
+                                {resolvedPropertyId ? (
                                   <button
-                                    onClick={() => navigate(`/dashboard/property/${tenant.property_id}`)}
+                                    onClick={() => navigate(`/dashboard/property/${resolvedPropertyId}`)}
                                     className="inline-flex items-center gap-1.5 bg-surface border border-outline-variant/50 hover:bg-primary hover:text-on-primary hover:border-primary px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95"
                                   >
                                     View Property <ArrowUpRight className="w-3.5 h-3.5" />

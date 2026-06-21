@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, User, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X, CheckCircle2, Send, Mail, Phone, Briefcase, DollarSign, AlertTriangle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, User, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X, CheckCircle2, Send, Mail, Phone, Briefcase, DollarSign, AlertTriangle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
+import { TextField, Box, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
 import { SkeletonDetails } from './Skeletons';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -34,7 +35,8 @@ export function PropertyDetails() {
   const [editing, setEditing] = useState(false);
 
   // Tenant Invitation State
-  const [tenant, setTenant] = useState<any>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  const [tenants, setTenants] = useState<any[]>([]);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [showInviteSuccessModal, setShowInviteSuccessModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({
@@ -44,7 +46,7 @@ export function PropertyDetails() {
     rentAmount: '',
     leaseStart: ''
   });
-  const [inviting, setInviting] = useState(false);
+  const [invitingType, setInvitingType] = useState<'direct' | 'invite' | null>(null);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [leaseFile, setLeaseFile] = useState<File | null>(null);
@@ -127,14 +129,28 @@ export function PropertyDetails() {
         setActiveLease(leaseData);
       }
 
-      // Fetch tenant details linked to this property
-      const { data: tenantData } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('property_id', id)
-        .maybeSingle();
-
-      setTenant(tenantData);
+      // Fetch tenants linked to the active lease
+      if (leaseData) {
+        const { data: leaseTenantsData } = await supabase
+          .from('lease_tenants')
+          .select('rent_share_percentage, is_primary, tenants(*)')
+          .eq('lease_id', leaseData.id);
+          
+        if (leaseTenantsData) {
+          const activeTenants = leaseTenantsData.map(lt => ({
+            ...lt.tenants,
+            rent_share_percentage: lt.rent_share_percentage,
+            is_primary: lt.is_primary
+          }));
+          setTenants(activeTenants);
+        } else {
+          setTenants([]);
+        }
+      } else {
+        setTenants([]);
+      }
+      
+      setLoadingData(false);
     };
     loadProperty();
   }, [id, navigate]);
@@ -152,7 +168,7 @@ export function PropertyDetails() {
     return () => clearInterval(interval);
   }, [images.length, isFullScreenMode, isHovering, isMenuOpen]);
 
-  if (!property) {
+  if (!property || loadingData) {
     return (
       <DashboardLayout>
         <SkeletonDetails />
@@ -235,10 +251,10 @@ export function PropertyDetails() {
 
 
 
-  const handleInviteSubmit = async (e: React.FormEvent) => {
+  const handleInviteSubmit = async (e: React.FormEvent, method: 'direct' | 'invite' = 'direct') => {
     e.preventDefault();
     setInviteError('');
-    setInviting(true);
+    setInvitingType(method);
 
     try {
       const userRes = await supabase.auth.getUser();
@@ -248,7 +264,41 @@ export function PropertyDetails() {
       // Check if user with this email already exists
       const { data: existingUserId, error: rpcError } = await supabase.rpc('get_user_by_email', { p_email: inviteForm.email });
 
-      // Create pending tenant
+      // Check if an active lease already exists
+      let targetLeaseId = null;
+      const { data: existingLease } = await supabase
+        .from('leases')
+        .select('id')
+        .eq('property_id', id)
+        .eq('status', 'Active')
+        .limit(1)
+        .maybeSingle();
+
+      if (existingLease) {
+        targetLeaseId = existingLease.id;
+      } else {
+        // Create active lease FIRST if none exists
+        const { data: newLease, error: leaseErr } = await supabase
+          .from('leases')
+          .insert({
+            property_id: id,
+            created_by: currentUserId,
+            start_date: inviteForm.leaseStart,
+            rent_amount: parseFloat(inviteForm.rentAmount) || 0,
+            status: 'Active',
+            payment_frequency: property.paymentFrequency || 'Weekly'
+          })
+          .select()
+          .single();
+
+        if (leaseErr) throw leaseErr;
+        targetLeaseId = newLease.id;
+      }
+
+      // Create tenant (Invited or Active)
+      const inviteToken = method === 'invite' ? crypto.randomUUID() : null;
+      const status = method === 'invite' ? 'Invited' : 'Active';
+
       const { data: newTenant, error: tenantErr } = await supabase
         .from('tenants')
         .insert({
@@ -258,27 +308,52 @@ export function PropertyDetails() {
           last_name: inviteForm.lastName,
           email: inviteForm.email,
           user_id: !rpcError && existingUserId ? existingUserId : null,
-          status: 'Active',
-          access_level: { receives_emails: true, can_login: true }
+          status: status,
+          invite_token: inviteToken,
+          access_level: { receives_emails: true, can_login: method === 'invite' }
         })
         .select()
         .single();
 
       if (tenantErr) throw tenantErr;
 
-      // Create pending lease
-      const { error: leaseErr } = await supabase
-        .from('leases')
+      // Calculate new rent share
+      let newShare = 100;
+      let remainderShare = 100;
+      let shouldUpdateExisting = false;
+
+      if (existingLease) {
+        if (method === 'invite') {
+          remainderShare = 0; // Don't dilute existing active tenants yet
+        } else {
+          // Direct add: recalculate for everyone
+          const activeTenantsCount = tenants.filter(t => t.status === 'Active').length;
+          const newTenantCount = activeTenantsCount + 1;
+          newShare = Math.floor(100 / newTenantCount);
+          remainderShare = 100 - (newShare * (newTenantCount - 1));
+          shouldUpdateExisting = true;
+        }
+      }
+
+      if (shouldUpdateExisting) {
+        // Update all existing tenants to the evenly divided share
+        await supabase
+          .from('lease_tenants')
+          .update({ rent_share_percentage: newShare })
+          .eq('lease_id', targetLeaseId);
+      }
+
+      // Link new tenant to lease
+      const { error: junctionErr } = await supabase
+        .from('lease_tenants')
         .insert({
-          property_id: id,
-          created_by: currentUserId,
-          start_date: inviteForm.leaseStart,
-          rent_amount: parseFloat(inviteForm.rentAmount) || 0,
-          status: 'Active',
-          payment_frequency: property.paymentFrequency || 'Weekly'
+          lease_id: targetLeaseId,
+          tenant_id: newTenant.id,
+          is_primary: !existingLease,
+          rent_share_percentage: existingLease ? remainderShare : 100
         });
 
-      if (leaseErr) throw leaseErr;
+      if (junctionErr) throw junctionErr;
 
       // Update property columns
       await supabase
@@ -296,48 +371,76 @@ export function PropertyDetails() {
         const userRes = await supabase.auth.getUser();
         const landlordEmail = userRes.data.user?.email;
 
-        if (leaseFileBase64) {
-          // Send Welcome Email with Attachment
-          await supabase.functions.invoke('send-email', {
+        if (method === 'invite') {
+           // Send Digital Handshake / Portal Invitation
+           await supabase.functions.invoke('send-email', {
             body: {
               to: inviteForm.email,
-              subject: `Welcome to Property Ledge - Your Lease for ${property.address}`,
-              templateType: 'tenant-welcome',
-              attachmentBase64: leaseFileBase64,
-              attachmentFilename: leaseFile?.name || "Lease_Agreement.pdf",
+              subject: `Invitation to access your Resident Portal for ${property.address}`,
+              templateType: 'tenant-invite',
               variables: {
                 tenantFirstName: inviteForm.firstName,
                 propertyAddress: `${property.address}, ${property.suburb}`,
+                inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
                 startDate: inviteForm.leaseStart,
-                endDate: null,
                 rentAmount: inviteForm.rentAmount || '0',
-                bondAmount: (parseFloat(inviteForm.rentAmount) * 4) || 0,
-                paymentFrequency: property.paymentFrequency || 'Weekly',
-                specialTerms: "Please find your attached lease agreement. Please review and contact us if you have any questions.",
                 senderName: landlordEmail,
                 senderEmail: landlordEmail
               }
             }
           });
+          setInviteSuccess("Invitation sent! Tenant's status is now 'Invited'.");
         } else {
-          // Send Standard Invite Email
-          await supabase.functions.invoke('send-email', {
-            body: {
-              to: inviteForm.email,
-              subject: `Welcome to Property Ledge - Accept Your Lease at ${property.address}`,
-              templateType: 'tenant-invite',
-              variables: {
-                firstName: inviteForm.firstName,
-                lastName: inviteForm.lastName,
-                propertyAddress: `${property.address}, ${property.suburb}`,
-                inviteUrl: `${window.location.origin}/signup?invite=true&email=${inviteForm.email}`,
-                rentAmount: inviteForm.rentAmount || '0',
-                leaseStart: inviteForm.leaseStart
+          // Direct Confirmation (Offline tenant)
+          if (leaseFileBase64) {
+            // Send Welcome Email with Attachment
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: inviteForm.email,
+                subject: `Welcome to Property Ledge - Your Lease for ${property.address}`,
+                templateType: 'tenant-welcome',
+                attachmentBase64: leaseFileBase64,
+                attachmentFilename: leaseFile?.name || "Lease_Agreement.pdf",
+                variables: {
+                  tenantFirstName: inviteForm.firstName,
+                  propertyAddress: `${property.address}, ${property.suburb}`,
+                  startDate: inviteForm.leaseStart,
+                  endDate: null,
+                  rentAmount: inviteForm.rentAmount || '0',
+                  bondAmount: (parseFloat(inviteForm.rentAmount) * 4) || 0,
+                  paymentFrequency: property.paymentFrequency || 'Weekly',
+                  specialTerms: "Please find your attached lease agreement. Please review and contact us if you have any questions.",
+                  senderName: landlordEmail,
+                  senderEmail: landlordEmail
+                }
               }
-            }
-          });
+            });
+          } else {
+            // Send Confirmation/Welcome Email (without attachment)
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: inviteForm.email,
+                subject: `Confirmation: You have been added as a Tenant at ${property.address}`,
+                templateType: 'tenant-welcome',
+                variables: {
+                  tenantFirstName: inviteForm.firstName,
+                  propertyAddress: `${property.address}, ${property.suburb}`,
+                  startDate: inviteForm.leaseStart,
+                  endDate: null,
+                  rentAmount: inviteForm.rentAmount || '0',
+                  bondAmount: (parseFloat(inviteForm.rentAmount) * 4) || 0,
+                  paymentFrequency: property.paymentFrequency || 'Weekly',
+                  specialTerms: "You have been registered for this property. We will send you any further updates regarding your lease or invoices via email.",
+                  senderName: landlordEmail,
+                  senderEmail: landlordEmail
+                }
+              }
+            });
+          }
+          setInviteSuccess('Tenant confirmed successfully and welcome email sent.');
         }
-      } catch (emailErr: any) {
+        
+        setShowInviteSuccessModal(true);} catch (emailErr: any) {
         console.error("Mailtrap Edge Function call failed:", emailErr);
       }
 
@@ -345,7 +448,8 @@ export function PropertyDetails() {
       setIsInviteModalOpen(false);
       setShowInviteSuccessModal(true);
       
-      setTenant(newTenant);
+      // Instead of setting a single tenant, we just reload the property to get fresh lease_tenants
+      loadProperty();
       setProperty(prev => ({
         ...prev,
         tenantName: `${inviteForm.firstName} ${inviteForm.lastName}`,
@@ -368,12 +472,12 @@ export function PropertyDetails() {
       console.error("Failed to invite tenant:", err);
       setInviteError(err.message || "Failed to create invitation. Please try again.");
     } finally {
-      setInviting(false);
+      setInvitingType(null);
     }
   };
 
   const handleResendInvite = async () => {
-    if (!tenant) return;
+    if (tenants.length === 0) return;
     try {
       const userRes = await supabase.auth.getUser();
       const landlordEmail = userRes.data.user?.email || '';
@@ -399,25 +503,29 @@ export function PropertyDetails() {
     }
   };
 
-  const handleCancelInvite = async () => {
+  const handleCancelInvite = async (tenantId: string) => {
     if (!window.confirm("Are you sure you want to cancel this pending tenant invitation?")) return;
     try {
-      await supabase.from('tenants').delete().eq('property_id', id).in('status', ['Pending', 'Invited']);
-      await supabase.from('leases').delete().eq('property_id', id).in('status', ['Pending', 'Invited']);
+      await supabase.from('tenants').delete().eq('id', tenantId);
 
-      await supabase.from('properties').update({
-        tenant_name: null,
-        tenant_email: null,
-        lease_start: null
-      }).eq('id', id);
-
-      setTenant(null);
-      setProperty(prev => ({
-        ...prev,
-        tenantName: null,
-        tenantEmail: null,
-        leaseStart: null
-      }));
+      const newTenants = tenants.filter((t: any) => t.id !== tenantId);
+      
+      if (newTenants.length === 0) {
+        await supabase.from('leases').delete().eq('property_id', id).in('status', ['Pending', 'Invited']);
+        await supabase.from('properties').update({
+          tenant_name: null,
+          tenant_email: null,
+          lease_start: null
+        }).eq('id', id);
+        setProperty(prev => ({
+          ...prev,
+          tenantName: null,
+          tenantEmail: null,
+          leaseStart: null
+        }));
+      }
+      
+      setTenants(newTenants);
       alert("Tenant invitation canceled.");
     } catch (err) {
       console.error("Error canceling invite:", err);
@@ -425,25 +533,29 @@ export function PropertyDetails() {
     }
   };
 
-  const handleRemoveTenant = async () => {
-    if (!permissions?.can_manage_tenants) return;
-    if (window.confirm("Are you sure you want to remove the current tenant? This will also terminate their active lease.")) {
-      await supabase.from('properties').update({
-        tenant_name: null,
-        tenant_email: null,
-        lease_start: null
-      }).eq('id', id);
+  const handleRemoveTenant = async (tenantId: string) => {
+    if (!permissions?.can_manage_tenants && !permissions?.is_owner) return;
+    if (window.confirm("Are you sure you want to remove this tenant?")) {
+      await supabase.from('tenants').delete().eq('id', tenantId);
+      
+      const newTenants = tenants.filter((t: any) => t.id !== tenantId);
 
-      await supabase.from('leases').update({
-        status: 'Terminated',
-        end_date: new Date().toISOString().split('T')[0]
-      }).eq('property_id', id).eq('status', 'Active');
+      if (newTenants.length === 0) {
+        await supabase.from('properties').update({
+          tenant_name: null,
+          tenant_email: null,
+          lease_start: null
+        }).eq('id', id);
+        setProperty(prev => ({ ...prev, tenantName: null, tenantEmail: null, leaseStart: null }));
 
-      await supabase.from('tenants').delete().eq('property_id', id);
+        await supabase.from('leases').update({
+          status: 'Terminated',
+          end_date: new Date().toISOString().split('T')[0]
+        }).eq('property_id', id).eq('status', 'Active');
+      }
 
-      setTenant(null);
-      setProperty(prev => ({ ...prev, tenantName: null, tenantEmail: null, leaseStart: null }));
-      alert("Tenant removed and active leases terminated.");
+      setTenants(newTenants);
+      alert("Tenant removed.");
     }
   };
 
@@ -475,6 +587,7 @@ export function PropertyDetails() {
         bedrooms: parseInt(editingProperty.bedrooms) || 0,
         bathrooms: parseFloat(editingProperty.bathrooms) || 0,
         car_spaces: parseInt(editingProperty.car_spaces) || 0,
+        rent_amount: parseFloat(editingProperty.rentAmount || editingProperty.rent_amount) || 0,
         status: editingProperty.status
       }).eq('id', id);
 
@@ -490,30 +603,30 @@ export function PropertyDetails() {
     }
   };
 
-  const bentoTenantItems = property.tenantName ? [
-    { title: 'Tenant Profile', desc: `Current tenant: ${property.tenantName}. Contact: ${property.tenantEmail || 'N/A'}.`, icon: Users, action: 'View Profile', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/10' },
-    { title: 'Lease Agreement', desc: `Started: ${property.leaseStart ? new Date(property.leaseStart).toLocaleDateString() : 'N/A'}. Duration: ${property.leaseDuration || '12'} months.`, icon: FileText, action: 'View Lease', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Rent Status', desc: 'Rent is currently paid up to date. Next payment due in 4 days.', icon: Wallet, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Communication', desc: 'Message tenant, log calls, and view email history.', icon: Home, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Upcoming Inspections', desc: 'Routine inspection scheduled for next month.', icon: Clock, action: 'Manage', colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary-container text-on-secondary-container', accent: 'text-on-secondary-container', iconBg: 'bg-white/30' },
+  const bentoTenantItems = tenants.length > 0 ? [
+    { title: 'Tenant Profile', desc: `Current tenants: ${tenants.map(t => t.first_name).join(', ')}. Contact: ${tenants[0]?.email || 'N/A'}.`, icon: Users, action: 'View Profile', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary/90 backdrop-blur-xl border border-primary/20 shadow-lg text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/20' },
+    { title: 'Lease Agreement', desc: `Started: ${property.leaseStart ? new Date(property.leaseStart).toLocaleDateString() : 'N/A'}. Duration: ${property.leaseDuration || '12'} months.`, icon: FileText, action: 'View Lease', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Rent Status', desc: 'Rent is currently paid up to date. Next payment due in 4 days.', icon: Wallet, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Communication', desc: 'Message tenant, log calls, and view email history.', icon: Home, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Upcoming Inspections', desc: 'Routine inspection scheduled for next month.', icon: Clock, action: 'Manage', colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary/10 backdrop-blur-xl border border-secondary/20 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-secondary', iconBg: 'bg-white/50' },
   ] : [
-    { title: 'Create Ad', desc: 'Craft your property listing and broadcast it to major real estate portals.', icon: FileText, action: 'Get Started', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/10' },
-    { title: 'Applications', desc: 'Review background checks, rental history, and affordability scores.', icon: ClipboardList, action: 'Review', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Enquiries', desc: 'Manage prospect messages, emails, and direct phone calls instantly.', icon: Home, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Tenant Checks', desc: 'Identity verification and National Tenancy Database (NTD) screening.', icon: Users, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Tenancy Setup', desc: 'Finalize the digital lease agreement and collect the initial bond payment.', icon: Clock, action: 'Continue', colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary-container text-on-secondary-container', accent: 'text-on-secondary-container', iconBg: 'bg-white/30' },
+    { title: 'Create Ad', desc: 'Craft your property listing and broadcast it to major real estate portals.', icon: FileText, action: 'Get Started', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary/90 backdrop-blur-xl border border-primary/20 shadow-lg text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/20' },
+    { title: 'Applications', desc: 'Review background checks, rental history, and affordability scores.', icon: ClipboardList, action: 'Review', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Enquiries', desc: 'Manage prospect messages, emails, and direct phone calls instantly.', icon: Home, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Tenant Checks', desc: 'Identity verification and National Tenancy Database (NTD) screening.', icon: Users, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Tenancy Setup', desc: 'Finalize the digital lease agreement and collect the initial bond payment.', icon: Clock, action: 'Continue', colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary/10 backdrop-blur-xl border border-secondary/20 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-secondary', iconBg: 'bg-white/50' },
   ];
 
   const bentoManageItems = [
-    { title: 'Finance Report', desc: 'Generate EOFY tax-ready reports tracking all income and depreciable assets.', icon: BarChart3, action: 'View Report', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/10' },
-    { title: 'Maintenance', desc: 'Track repair requests, approve quotes, and schedule tradies.', icon: Wrench, action: 'Manage', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Condition Report', desc: 'Digital entry, routine, and exit inspection photos and logs.', icon: Clock, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Tenant Bills', desc: 'Forward water usage and utility invoices directly to your tenant.', icon: FileText, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-surface-container-high text-on-surface', accent: 'text-primary', iconBg: 'bg-primary/10' },
-    { title: 'Bond & Rent', desc: 'Monitor active ledger, upcoming due dates, and lodged bond receipts.', icon: Wallet, chevron: true, colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary-container text-on-secondary-container', accent: 'text-on-secondary-container', iconBg: 'bg-white/30' },
+    { title: 'Finance Report', desc: 'Generate EOFY tax-ready reports tracking all income and depreciable assets.', icon: BarChart3, action: 'View Report', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary/90 backdrop-blur-xl border border-primary/20 shadow-lg text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/20' },
+    { title: 'Maintenance', desc: 'Track repair requests, approve quotes, and schedule tradies.', icon: Wrench, action: 'Manage', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Condition Report', desc: 'Digital entry, routine, and exit inspection photos and logs.', icon: Clock, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Tenant Bills', desc: 'Forward water usage and utility invoices directly to your tenant.', icon: FileText, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
+    { title: 'Bond & Rent', desc: 'Monitor active ledger, upcoming due dates, and lodged bond receipts.', icon: Wallet, chevron: true, colSpan: 'md:col-span-2 lg:col-span-1', bg: 'bg-secondary/10 backdrop-blur-xl border border-secondary/20 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-secondary', iconBg: 'bg-white/50' },
   ];
 
   const renderTenantTab = () => {
-    if (!tenant) {
+    if (tenants.length === 0) {
       return (
         <div className="col-span-full bg-slate-900 border border-white/10 rounded-[32px] p-8 md:p-12 text-center shadow-2xl relative overflow-hidden text-white">
           <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px] pointer-events-none z-0" />
@@ -529,17 +642,10 @@ export function PropertyDetails() {
             </div>
             <button 
               onClick={() => {
-                let fName = '';
-                let lName = '';
-                if (property?.tenantName) {
-                  const parts = property.tenantName.trim().split(/\s+/);
-                  fName = parts[0] || '';
-                  lName = parts.slice(1).join(' ') || '';
-                }
                 setInviteForm({
-                  firstName: fName,
-                  lastName: lName,
-                  email: property?.tenantEmail || '',
+                  firstName: '',
+                  lastName: '',
+                  email: '',
                   rentAmount: property?.rentAmount || '',
                   leaseStart: property?.leaseStart || ''
                 });
@@ -554,54 +660,107 @@ export function PropertyDetails() {
       );
     }
 
-    if (tenant) {
-      return (
-        <div className="col-span-full bg-surface-container-lowest border border-outline-variant/50 rounded-[32px] p-8 md:p-12 text-center shadow-sm relative overflow-hidden">
-          <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none z-0" />
+    return (
+        <div className="col-span-full bg-white/20 backdrop-blur-3xl border border-white/60 rounded-[32px] p-8 md:p-12 text-center shadow-[0_8px_32px_rgba(0,0,0,0.05)] relative overflow-hidden">
+          {/* Intense Liquid Glass Background Blobs */}
+          <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-300/30 blur-[80px] pointer-events-none z-0" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-teal-300/20 blur-[80px] pointer-events-none z-0" />
           <div className="relative z-10 space-y-6">
             <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl flex items-center justify-center mx-auto shadow-inner text-emerald-600">
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <div className="space-y-2">
               <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 uppercase tracking-widest mb-2">
-                Active Tenant
+                Active Tenants
               </div>
               <h3 className="text-2xl font-black text-on-surface tracking-tight">
                 Lease Confirmed & Active
               </h3>
               <p className="text-on-surface-variant/80 max-w-md mx-auto font-medium text-sm md:text-base">
-                The tenant <span className="text-on-surface font-semibold">{tenant.first_name} {tenant.last_name}</span> is successfully registered. A welcome email with the signed lease has been dispatched to <span className="text-on-surface font-semibold">{tenant.email}</span>.
+                There are <span className="text-on-surface font-semibold">{tenants.length}</span> active tenant(s) registered for this lease.
               </p>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto bg-surface border border-outline-variant/50 rounded-2xl p-4 md:p-6 text-left shadow-sm mt-6">
-              <div>
-                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block mb-1">Tenant Name</span>
-                <span className="text-sm md:text-base font-semibold text-on-surface">{tenant.first_name} {tenant.last_name}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block mb-1">Lease Start</span>
-                <span className="text-sm md:text-base font-semibold text-on-surface">{property.leaseStart ? new Date(property.leaseStart).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block mb-1">Rent Amount</span>
-                <span className="text-sm md:text-base font-semibold text-on-surface">${property.rentAmount}/{property.paymentFrequency === 'Weekly' ? 'wk' : property.paymentFrequency === 'Fortnightly' ? 'fn' : 'mo'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-wider block mb-1">Status</span>
-                <span className="text-sm md:text-base font-bold text-emerald-600 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div> Active</span>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 max-w-3xl mx-auto mt-8 text-left">
+              {tenants.map((t: any) => {
+                const isInvited = t.status === 'Invited';
+                
+                return (
+                <div key={t.id} className={`bg-white/30 backdrop-blur-2xl border ${isInvited ? 'border-amber-300/60 shadow-[0_12px_40px_rgba(245,158,11,0.08),inset_0_1px_1px_rgba(255,255,255,1)] hover:shadow-[0_24px_56px_rgba(245,158,11,0.15),inset_0_1px_1px_rgba(255,255,255,1)]' : 'border-white/80 shadow-[0_12px_40px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,1)] hover:shadow-[0_24px_56px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,1)]'} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group cursor-pointer hover:-translate-y-2 transition-all duration-500`}>
+                  {/* Internal Glare Effect */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${isInvited ? 'from-amber-100/40' : 'from-white/50'} via-transparent to-white/10 opacity-70 pointer-events-none`} />
+                  
+                  <div className="relative z-10 flex-1 flex flex-col">
+                    
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-sm bg-white/80 border border-white text-slate-800 font-black text-xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+                        {t.first_name?.[0]}{t.last_name?.[0]}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-1.5 text-[10px] font-black ${isInvited ? 'text-amber-800 bg-amber-400/20 border-amber-400/30' : 'text-emerald-800 bg-emerald-400/20 border-emerald-400/30'} backdrop-blur-md px-3 py-1.5 rounded-xl border shadow-sm uppercase tracking-widest`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${isInvited ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'} animate-pulse shrink-0`} />
+                          {isInvited ? 'Invited' : 'Confirmed'}
+                        </div>
+                        {(permissions?.can_manage_tenants || permissions?.is_owner) && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              isInvited ? handleCancelInvite(t.id) : handleRemoveTenant(t.id);
+                            }}
+                            className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                            title={isInvited ? "Cancel Invitation" : "Remove Tenant"}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-auto">
+                      <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2 font-display text-slate-900">
+                        {t.first_name} {t.last_name}
+                      </h3>
+                      <p className="text-sm font-medium leading-relaxed max-w-[90%] mb-6 text-slate-600 opacity-90 flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 shrink-0" /> {t.email || 'No email provided'}
+                      </p>
+                    </div>
+
+                    <div className="mt-auto pt-2">
+                      <div className={`bg-white/40 backdrop-blur-xl border ${isInvited ? 'border-amber-200/60' : 'border-white/80'} px-5 py-3 rounded-full flex items-center justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,1)] group-hover:bg-white/60 transition-colors duration-300`}>
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs font-black uppercase tracking-widest text-slate-600">Rent Share</span>
+                        </div>
+                        <span className="text-sm font-black text-slate-900">{isInvited ? 'Pending' : `${t.rent_share_percentage}%`}</span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+                );
+              })}
             </div>
 
-            <div className="pt-4 mt-6">
-              {/* Action buttons have been removed as lease management is handled in the dedicated section */}
+            <div className="flex justify-center mt-6">
+              <button 
+                onClick={() => {
+                  setInviteForm({
+                    firstName: '',
+                    lastName: '',
+                    email: '',
+                    rentAmount: property?.rentAmount || '',
+                    leaseStart: property?.leaseStart || ''
+                  });
+                  setIsInviteModalOpen(true);
+                }}
+                className="bg-white/40 backdrop-blur-xl border border-white/60 text-slate-800 hover:bg-white/60 transition-all duration-300 font-black text-sm px-6 py-3.5 rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 cursor-pointer inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Add Co-Tenant
+              </button>
             </div>
           </div>
         </div>
-      );
-    }
-
-    return null;
+    );
   };
 
   const activeItems = activeTab === 'tenant' ? bentoTenantItems : bentoManageItems;
@@ -636,7 +795,7 @@ export function PropertyDetails() {
 
           {/* Hero Cover Image */}
           <div 
-            className="w-full h-64 md:h-80 lg:h-96 rounded-[32px] overflow-hidden relative mb-[-40px] shadow-sm group cursor-pointer bg-surface-container"
+            className="w-full h-64 md:h-80 lg:h-96 rounded-[32px] overflow-hidden relative mb-[-40px] group cursor-pointer bg-white/40 backdrop-blur-xl border border-white/60"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
             onClick={() => images.length > 0 && setIsFullScreenMode(true)}
@@ -659,8 +818,6 @@ export function PropertyDetails() {
                 </div>
               )}
             </AnimatePresence>
-            
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none z-10"></div>
             
             {/* Image Indicators */}
             {images.length > 1 && (
@@ -687,7 +844,7 @@ export function PropertyDetails() {
               {permissions?.can_view_property && (
                 <button 
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg text-on-surface hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:-translate-y-2 md:group-hover:translate-y-0 duration-200"
+                  className="bg-white/80 backdrop-blur-xl px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-[0_8px_32px_rgba(0,0,0,0.1)] border border-white/50 text-slate-800 hover:bg-white transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:-translate-y-2 md:group-hover:translate-y-0 duration-200"
                 >
                   <Wrench className="w-4 h-4" /> Options
                 </button>
@@ -773,23 +930,38 @@ export function PropertyDetails() {
               </div>
             </div>
             
-            <motion.button 
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="w-full md:w-auto px-6 py-3.5 bg-on-surface text-surface rounded-full font-black text-xs uppercase tracking-widest shadow-md flex items-center justify-center gap-2"
-            >
-              Activate Plan <ArrowUpRight className="w-4 h-4" />
-            </motion.button>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              {permissions?.can_edit_lease || permissions?.can_manage_tenants || permissions?.is_owner ? (
+                <motion.button 
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    setEditingProperty(property);
+                    setShowEditPropertyModal(true);
+                  }}
+                  className="w-full md:w-auto px-5 py-3.5 bg-surface-container-high text-on-surface hover:bg-surface-container-highest rounded-full font-black text-xs uppercase tracking-widest shadow-sm border border-outline-variant/30 flex items-center justify-center gap-2"
+                >
+                  <Wrench className="w-4 h-4" /> Edit
+                </motion.button>
+              ) : null}
+              <motion.button 
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="w-full md:w-auto px-6 py-3.5 bg-on-surface text-surface rounded-full font-black text-xs uppercase tracking-widest shadow-md flex items-center justify-center gap-2"
+              >
+                Activate Plan <ArrowUpRight className="w-4 h-4" />
+              </motion.button>
+            </div>
           </motion.div>
 
           {/* iOS Segmented Control */}
           <div className="flex justify-center my-10">
-            <div className="bg-surface-container-high/60 backdrop-blur-md p-1.5 rounded-full flex shadow-inner border border-white/20 w-full max-w-[500px] relative">
+            <div className="bg-white/30 backdrop-blur-xl p-1.5 rounded-full flex shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white/60 w-full max-w-[500px] relative">
               {['tenant', 'manage'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`relative flex-1 py-3 px-2 text-center font-black text-[10px] md:text-xs uppercase tracking-widest z-10 transition-colors cursor-pointer ${activeTab === tab ? 'text-on-surface' : 'text-on-surface-variant/70 hover:text-on-surface'}`}
+                  className={`relative flex-1 py-3 px-2 text-center font-black text-[10px] md:text-xs uppercase tracking-widest z-10 transition-colors cursor-pointer ${activeTab === tab ? 'text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   <span className="relative z-20">
                     {tab === 'tenant' ? (property.tenantName ? 'Current Tenant' : 'Tenant') : 'Manage Prop'}
@@ -797,7 +969,7 @@ export function PropertyDetails() {
                   {activeTab === tab && (
                     <motion.div
                       layoutId="iosSegment"
-                      className="absolute inset-0 bg-surface rounded-full shadow-sm border border-black/5"
+                      className="absolute inset-0 bg-white/90 backdrop-blur-md rounded-full shadow-md border border-white/80"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                       style={{ zIndex: 10 }}
                     />
@@ -879,149 +1051,179 @@ export function PropertyDetails() {
       {createPortal(
         <AnimatePresence>
           {showEditPropertyModal && editingProperty && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowEditPropertyModal(false)} />
-              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-white rounded-[32px] w-full max-w-2xl shadow-2xl border border-outline-variant/50 overflow-hidden max-h-[90vh] flex flex-col">
-                <div className="px-6 py-5 border-b border-outline-variant/30 bg-surface-container-low flex justify-between items-center shrink-0">
-                  <h3 className="font-black text-lg text-on-surface flex items-center gap-2">
-                    <Building className="w-5 h-5 text-primary" /> Edit Property Details
-                  </h3>
-                  <button onClick={() => setShowEditPropertyModal(false)} className="text-on-surface-variant hover:text-on-surface"><X className="w-6 h-6" /></button>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md cursor-pointer" onClick={() => setShowEditPropertyModal(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', duration: 0.5 }} className="relative w-full max-w-2xl bg-[#f2f4f3] border border-outline-variant/40 rounded-[28px] shadow-2xl overflow-y-auto max-h-[90vh] z-10 p-6 sm:p-10 md:p-12">
+                
+                <button
+                  onClick={() => setShowEditPropertyModal(false)}
+                  className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+
+                <div className="w-full mb-6 text-center">
+                  <h3 className="text-[1.5rem] sm:text-[1.75rem] font-[900] tracking-[-0.5px] font-['Space_Grotesk'] mb-2">Edit Property</h3>
+                  <p className="text-sm text-on-surface-variant">Update address, details, and advertised rent.</p>
                 </div>
                 
-                <div className="p-6 overflow-y-auto">
+                <div className="w-full">
                   {editError && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-sm font-semibold flex gap-3 items-start">
+                    <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-[16px] text-sm font-bold flex gap-3 items-center shadow-sm">
                       <AlertTriangle className="w-5 h-5 shrink-0" />
                       <p>{editError}</p>
                     </div>
                   )}
 
-                  <form onSubmit={handleEditProperty} className="space-y-5">
-                    <div>
-                      <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Street Address</label>
-                      <input 
-                        type="text" 
+                  <form onSubmit={handleEditProperty}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+                      <TextField 
+                        label="Street Address" 
+                        name="address" 
                         required
+                        fullWidth
                         value={editingProperty.address}
                         onChange={(e) => setEditingProperty({...editingProperty, address: e.target.value})}
-                        className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
                       />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Suburb</label>
-                        <input 
-                          type="text" 
+                      
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap'} }}>
+                        <TextField 
+                          label="Suburb" 
+                          name="suburb" 
                           required
                           value={editingProperty.suburb}
                           onChange={(e) => setEditingProperty({...editingProperty, suburb: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                          sx={{ flex: 2 }}
                         />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">State</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={editingProperty.state}
-                          onChange={(e) => setEditingProperty({...editingProperty, state: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Postcode</label>
-                        <input 
-                          type="text" 
+                        <TextField 
+                          label="Postcode" 
+                          name="postcode" 
                           required
                           value={editingProperty.postcode}
                           onChange={(e) => setEditingProperty({...editingProperty, postcode: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                          sx={{ flex: 1 }}
                         />
-                      </div>
-                    </div>
+                      </Box>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Property Type</label>
-                        <select
-                          value={editingProperty.propertyType}
-                          onChange={(e) => setEditingProperty({...editingProperty, propertyType: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none appearance-none"
-                        >
-                          <option value="House">House</option>
-                          <option value="Apartment">Apartment</option>
-                          <option value="Townhouse">Townhouse</option>
-                          <option value="Villa">Villa</option>
-                          <option value="Duplex">Duplex</option>
-                          <option value="Commercial">Commercial</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Status</label>
-                        <select
-                          value={editingProperty.status}
-                          onChange={(e) => setEditingProperty({...editingProperty, status: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none appearance-none"
-                        >
-                          <option value="Active">Active</option>
-                          <option value="Inactive">Inactive</option>
-                          <option value="Maintenance">Maintenance</option>
-                        </select>
-                      </div>
-                    </div>
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap'} }}>
+                        <FormControl fullWidth>
+                          <InputLabel>State</InputLabel>
+                          <Select
+                            value={editingProperty.state}
+                            label="State"
+                            onChange={(e) => setEditingProperty({...editingProperty, state: e.target.value})}
+                          >
+                            <MenuItem value="NSW">New South Wales</MenuItem>
+                            <MenuItem value="VIC">Victoria</MenuItem>
+                            <MenuItem value="QLD">Queensland</MenuItem>
+                            <MenuItem value="WA">Western Australia</MenuItem>
+                            <MenuItem value="SA">South Australia</MenuItem>
+                            <MenuItem value="TAS">Tasmania</MenuItem>
+                            <MenuItem value="ACT">Australian Capital Territory</MenuItem>
+                            <MenuItem value="NT">Northern Territory</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bedrooms</label>
-                        <input 
-                          type="number" 
-                          min="0"
-                          value={editingProperty.bedrooms}
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                        <FormControl fullWidth>
+                          <InputLabel>Property Type</InputLabel>
+                          <Select
+                            value={editingProperty.propertyType || editingProperty.property_type || ''}
+                            label="Property Type"
+                            onChange={(e) => setEditingProperty({...editingProperty, propertyType: e.target.value})}
+                          >
+                            <MenuItem value="House">House</MenuItem>
+                            <MenuItem value="Apartment">Apartment</MenuItem>
+                            <MenuItem value="Townhouse">Townhouse</MenuItem>
+                            <MenuItem value="Villa">Villa</MenuItem>
+                            <MenuItem value="Duplex">Duplex</MenuItem>
+                            <MenuItem value="Commercial">Commercial</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <FormControl fullWidth>
+                          <InputLabel>Status</InputLabel>
+                          <Select
+                            value={editingProperty.status || 'Active'}
+                            label="Status"
+                            onChange={(e) => setEditingProperty({...editingProperty, status: e.target.value})}
+                          >
+                            <MenuItem value="Active">Active</MenuItem>
+                            <MenuItem value="Inactive">Inactive</MenuItem>
+                            <MenuItem value="Maintenance">Maintenance</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        <TextField 
+                          label="Beds" 
+                          type="number"
+                          value={editingProperty.bedrooms || 0}
                           onChange={(e) => setEditingProperty({...editingProperty, bedrooms: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                          fullWidth
+                          InputProps={{ inputProps: { min: 0 } }}
                         />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Bathrooms</label>
-                        <input 
-                          type="number" 
-                          min="0"
-                          step="0.5"
-                          value={editingProperty.bathrooms}
+                        <TextField 
+                          label="Baths" 
+                          type="number"
+                          value={editingProperty.bathrooms || 0}
                           onChange={(e) => setEditingProperty({...editingProperty, bathrooms: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                          fullWidth
+                          InputProps={{ inputProps: { min: 0, step: 0.5 } }}
                         />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Car Spaces</label>
-                        <input 
-                          type="number" 
-                          min="0"
-                          value={editingProperty.car_spaces}
+                        <TextField 
+                          label="Cars" 
+                          type="number"
+                          value={editingProperty.car_spaces || 0}
                           onChange={(e) => setEditingProperty({...editingProperty, car_spaces: e.target.value})}
-                          className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3 text-on-surface font-medium focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                          fullWidth
+                          InputProps={{ inputProps: { min: 0 } }}
                         />
-                      </div>
-                    </div>
+                      </Box>
 
-                    <div className="pt-4 flex gap-3">
-                      <button 
-                        type="button"
-                        onClick={() => setShowEditPropertyModal(false)}
-                        className="flex-1 bg-white border border-outline-variant/50 hover:bg-surface-container-low text-on-surface font-bold py-3.5 rounded-2xl transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="submit" 
-                        disabled={editing}
-                        className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
-                        {editing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Save Changes'}
-                      </button>
-                    </div>
+                      <TextField 
+                        label="Advertised Rent ($)" 
+                        type="number"
+                        value={editingProperty.rentAmount || editingProperty.rent_amount || ''}
+                        onChange={(e) => setEditingProperty({...editingProperty, rentAmount: e.target.value, rent_amount: e.target.value})}
+                        fullWidth
+                      />
+
+                      <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                        <Button 
+                          variant="outlined" 
+                          fullWidth 
+                          size="large"
+                          onClick={() => setShowEditPropertyModal(false)}
+                          sx={{ 
+                            borderRadius: '12px',
+                            color: 'text.primary',
+                            borderColor: 'divider',
+                            textTransform: 'none',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          variant="contained" 
+                          fullWidth 
+                          size="large"
+                          disabled={editing}
+                          sx={{ 
+                            borderRadius: '12px',
+                            bgcolor: '#1f2937', // matching standard dark button
+                            '&:hover': { bgcolor: '#111827' },
+                            textTransform: 'none',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {editing ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                      </Box>
+                    </Box>
                   </form>
                 </div>
               </motion.div>
@@ -1127,7 +1329,7 @@ export function PropertyDetails() {
                   transition={{ delay: 0.2 }}
                   className="text-2xl font-black text-white tracking-tight mb-2"
                 >
-                  Invitation Sent!
+                  Tenant Confirmed!
                 </motion.h3>
 
                 <motion.p 
@@ -1136,7 +1338,7 @@ export function PropertyDetails() {
                   transition={{ delay: 0.3 }}
                   className="text-slate-400 text-sm font-semibold mb-8 leading-relaxed"
                 >
-                  A secure setup link has been successfully dispatched to the tenant's email address. They can now complete their digital lease handshake.
+                  The tenant has been securely linked to this lease. A confirmation email has been dispatched to their email address.
                 </motion.p>
 
                 <motion.button
@@ -1274,7 +1476,7 @@ export function PropertyDetails() {
                   </button>
                 </div>
 
-                <form onSubmit={handleInviteSubmit} className="p-6 sm:p-8 space-y-6 bg-white rounded-b-[28px] overflow-y-auto custom-scrollbar">
+                <form className="p-6 sm:p-8 space-y-6 bg-white rounded-b-[28px] overflow-y-auto custom-scrollbar">
                   {inviteError && (
                     <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-[16px] text-xs font-bold flex items-center gap-2 shadow-sm">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -1369,7 +1571,6 @@ export function PropertyDetails() {
                   <div className="relative overflow-hidden group mt-4">
                     <div className="relative p-6 border-2 border-dashed border-primary/30 rounded-[20px] flex flex-col items-center justify-center text-center hover:border-primary/60 transition-colors bg-surface-container-lowest/50 hover:bg-primary/5 cursor-pointer">
                       <input
-                        required
                         type="file"
                         accept="application/pdf"
                         onChange={(e) => {
@@ -1393,9 +1594,9 @@ export function PropertyDetails() {
                       <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform pointer-events-none relative z-10">
                         <FileText className="w-6 h-6" />
                       </div>
-                      <h4 className="text-[13px] font-black text-on-surface mb-1 pointer-events-none relative z-10">Upload Signed Lease (Required)</h4>
+                      <h4 className="text-[13px] font-black text-on-surface mb-1 pointer-events-none relative z-10">Upload Signed Lease (Optional)</h4>
                       <p className="text-[11px] font-medium text-on-surface-variant mb-4 px-2 max-w-[90%] truncate pointer-events-none relative z-10">
-                        {leaseFile ? leaseFile.name : "Select a PDF file. The tenant will receive a Welcome Email with this attached."}
+                        {leaseFile ? leaseFile.name : "Select a PDF file. If provided, the tenant will receive it in their Welcome Email."}
                       </p>
                       
                       <div className="bg-primary text-white font-bold text-[11px] sm:text-xs uppercase tracking-widest px-6 py-2.5 rounded-full shadow-md group-hover:shadow-lg group-hover:bg-primary-fixed-dim transition-all flex items-center gap-2 pointer-events-none relative z-10">
@@ -1404,21 +1605,32 @@ export function PropertyDetails() {
                     </div>
                   </div>
 
-                  <div className="pt-4 flex gap-3 sm:gap-4">
+                  <div className="pt-6 mt-4 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setIsInviteModalOpen(false)}
-                      className="flex-[1] px-4 py-3.5 bg-surface-container border border-outline-variant/30 text-on-surface hover:bg-surface-container-high rounded-[16px] font-black text-[11px] sm:text-xs uppercase tracking-widest transition-all cursor-pointer text-center"
+                      className="w-full sm:w-auto px-6 py-3.5 bg-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-full font-bold text-sm transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
-                    <button
-                      type="submit"
-                      disabled={inviting || !leaseFile}
-                      className="flex-[2] px-4 py-3.5 bg-primary text-on-primary hover:bg-primary-fixed-dim hover:scale-[1.01] active:scale-[0.99] rounded-[16px] font-black text-[11px] sm:text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(34,51,59,0.25)] hover:shadow-[0_8px_16px_rgba(34,51,59,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
-                    >
-                      {inviting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Confirm Tenant'}
-                    </button>
+                    <div className="flex-1 w-full flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={(e) => handleInviteSubmit(e, 'direct')}
+                        disabled={invitingType !== null}
+                        className="flex-1 px-6 py-3.5 bg-surface border border-outline-variant/50 hover:bg-surface-container text-on-surface rounded-full font-bold text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50 flex justify-center items-center gap-2"
+                      >
+                        {invitingType === 'direct' ? <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div> : <>Add Directly</>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleInviteSubmit(e, 'invite')}
+                        disabled={invitingType !== null}
+                        className="flex-1 px-6 py-3.5 bg-primary text-on-primary hover:bg-primary/95 rounded-full font-bold text-sm transition-all shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50 flex justify-center items-center gap-2"
+                      >
+                        {invitingType === 'invite' ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <>Invite to Portal</>}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </motion.div>
