@@ -672,6 +672,7 @@ export function PropertyDetails() {
   ];
 
   const bentoManageItems = [
+    { title: 'Tenancy Setup', desc: 'Onboard a new tenant, finalize the digital lease agreement, and collect the initial bond payment.', icon: Users, action: 'Start Setup', colSpan: 'md:col-span-2 lg:col-span-3', bg: 'bg-slate-900 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] text-white', accent: 'text-white', iconBg: 'bg-white/10' },
     { title: 'Finance Report', desc: 'Generate EOFY tax-ready reports tracking all income and depreciable assets.', icon: BarChart3, action: 'View Report', colSpan: 'md:col-span-2 lg:col-span-2', bg: 'bg-primary/90 backdrop-blur-xl border border-primary/20 shadow-lg text-on-primary', accent: 'text-on-primary', iconBg: 'bg-white/20' },
     { title: 'Maintenance', desc: 'Track repair requests, approve quotes, and schedule tradies.', icon: Wrench, action: 'Manage', colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
     { title: 'Condition Report', desc: 'Digital entry, routine, and exit inspection photos and logs.', icon: Clock, chevron: true, colSpan: 'md:col-span-1 lg:col-span-1', bg: 'bg-white/60 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] text-slate-800', accent: 'text-primary', iconBg: 'bg-primary/10' },
