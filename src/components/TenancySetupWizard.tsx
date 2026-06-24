@@ -65,12 +65,20 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
     e.preventDefault();
     if (editingId) {
       setTenants(tenants.map(t => t.id === editingId ? { ...t, ...formData } : t));
+      setEditingId(null);
     } else {
       setTenants([...tenants, { id: Date.now().toString(), ...formData }]);
     }
-    setEditingId(null);
-    setIsAdding(false);
     setFormData({ firstName: '', lastName: '', email: '', phone: '' });
+    setIsAdding(false);
+  };
+
+  const isStepCompleted = (index: number) => {
+    if (index === 0) return tenants.length > 0;
+    if (index === 1) return leaseDetails.startDate !== '' && (leaseDetails.leaseType === 'Periodic' || leaseDetails.endDate !== '');
+    if (index === 2) return false; // Bond not implemented yet
+    if (index === 3) return false; // Lease agreement not implemented yet
+    return false;
   };
 
   const handleEdit = (t: TenantInput) => {
@@ -121,7 +129,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
           <div className="flex md:flex-col gap-2 overflow-x-auto hide-scrollbar pb-2 md:pb-0 relative">
             {steps.map((step, idx) => {
               const isActive = currentStep === idx;
-              const isPast = currentStep > idx;
+              const isCompleted = isStepCompleted(idx);
               return (
                 <div key={step.id} className="relative shrink-0 md:shrink-auto">
                   {isActive && (
@@ -138,13 +146,13 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
-                      isPast ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 
+                      isCompleted ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 
                       isActive ? 'bg-primary text-on-primary shadow-md shadow-primary/20' : 'bg-slate-200/50 text-slate-400'
                     }`}>
-                      {isPast ? <CheckCircle2 className="w-4.5 h-4.5" /> : <step.icon className="w-4 h-4" />}
+                      {isCompleted ? <CheckCircle2 className="w-4.5 h-4.5" /> : <step.icon className="w-4 h-4" />}
                     </div>
                     <span className={`font-bold text-sm transition-colors duration-300 ${
-                      isActive ? 'text-slate-900' : isPast ? 'text-slate-700' : 'text-slate-500'
+                      isActive ? 'text-slate-900' : isCompleted ? 'text-slate-700' : 'text-slate-500'
                     }`}>
                       {step.label}
                     </span>
@@ -371,7 +379,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
               )}
               
               {/* Placeholders for future steps */}
-              {currentStep > 1 && (
+              {currentStep > 1 && currentStep < 4 && (
                 <motion.div 
                   key={`step-${currentStep}`}
                   initial={{ opacity: 0, x: 20 }}
@@ -384,6 +392,103 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                   </div>
                   <h3 className="text-xl font-bold text-slate-500">Step {currentStep + 1}</h3>
                   <p className="mt-2 font-medium">This step is coming soon...</p>
+                </motion.div>
+              )}
+
+              {/* Invite Tenants Summary Step */}
+              {currentStep === 4 && (
+                <motion.div 
+                  key="step-4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="max-w-3xl mx-auto md:mx-0 pt-2 md:pt-4 w-full"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
+                      <Rocket className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight font-display">Invite tenants</h2>
+                  </div>
+
+                  <div className="bg-blue-50/80 border border-blue-100 p-6 rounded-2xl mb-8">
+                    <h3 className="text-blue-800 font-bold text-lg mb-2">Confirm your tenancy details.</h3>
+                    <p className="text-blue-600/80 text-sm">Please carefully review the tenancy details and confirm that they are correct. Once you have confirmed the details, you can invite your tenant and begin their onboarding.</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Tenants Section */}
+                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[24px] p-6 shadow-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="w-5 h-5 text-slate-700" />
+                        <h4 className="font-bold text-slate-800 text-lg">Tenants</h4>
+                        {isStepCompleted(0) ? (
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-2"><CheckCircle2 className="w-3.5 h-3.5" /></div>
+                        ) : (
+                          <div className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-2">Missing details</div>
+                        )}
+                      </div>
+                      
+                      {isStepCompleted(0) ? (
+                        <div className="space-y-3 mb-4">
+                          {tenants.map(t => (
+                            <p key={t.id} className="text-sm text-slate-600">{t.firstName} {t.lastName} - {t.phone}, {t.email}</p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 mb-4">No tenants have been added to this tenancy yet.</p>
+                      )}
+                      
+                      <button onClick={() => setCurrentStep(0)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 transition-colors">
+                        <Pencil className="w-3.5 h-3.5" /> Edit Tenant details
+                      </button>
+                    </div>
+
+                    {/* Start Date Section */}
+                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[24px] p-6 shadow-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <CalendarDays className="w-5 h-5 text-slate-700" />
+                        <h4 className="font-bold text-slate-800 text-lg">Start Date</h4>
+                        {isStepCompleted(1) ? (
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-2"><CheckCircle2 className="w-3.5 h-3.5" /></div>
+                        ) : (
+                          <div className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-2">Missing details</div>
+                        )}
+                      </div>
+                      
+                      {isStepCompleted(1) ? (
+                        <div className="space-y-1 mb-4 text-sm text-slate-600">
+                          <p><strong>Start Date:</strong> {leaseDetails.startDate}</p>
+                          <p><strong>Lease Type:</strong> {leaseDetails.leaseType}</p>
+                          {leaseDetails.leaseType === 'Fixed Term' && <p><strong>End Date:</strong> {leaseDetails.endDate}</p>}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 mb-4">No start date has been added to this tenancy yet.</p>
+                      )}
+                      
+                      <button onClick={() => setCurrentStep(1)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 transition-colors">
+                        <Pencil className="w-3.5 h-3.5" /> Edit Start Date
+                      </button>
+                    </div>
+
+                    {/* Bond Section */}
+                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[24px] p-6 shadow-sm">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Shield className="w-5 h-5 text-slate-700" />
+                        <h4 className="font-bold text-slate-800 text-lg">Bond</h4>
+                        {isStepCompleted(2) ? (
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-2"><CheckCircle2 className="w-3.5 h-3.5" /></div>
+                        ) : (
+                          <div className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-2">Missing details</div>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-500 mb-4">No bond has been added to this tenancy yet.</p>
+                      <button onClick={() => setCurrentStep(2)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 transition-colors">
+                        <Pencil className="w-3.5 h-3.5" /> Edit Bond
+                      </button>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
