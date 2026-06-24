@@ -169,15 +169,11 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                   transition={{ duration: 0.3 }}
                   className="max-w-2xl mx-auto md:mx-0 pt-4"
                 >
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-3 mb-10">
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
                       <Users className="w-6 h-6" />
                     </div>
                     <h2 className="text-3xl font-black text-slate-800 tracking-tight font-display">Tenant details</h2>
-                  </div>
-
-                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-fuchsia-500/10 border border-purple-500/20 text-purple-700 text-xs font-black tracking-wide uppercase mb-10 shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5" /> Adding tenant details...
                   </div>
 
                   <div className="space-y-4 mb-10">
