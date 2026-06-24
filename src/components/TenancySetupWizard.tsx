@@ -58,11 +58,11 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
     e.preventDefault();
     if (editingId) {
       setTenants(tenants.map(t => t.id === editingId ? { ...t, ...formData } : t));
-      setEditingId(null);
     } else {
       setTenants([...tenants, { id: Date.now().toString(), ...formData }]);
-      setIsAdding(false);
     }
+    setEditingId(null);
+    setIsAdding(false);
     setFormData({ firstName: '', lastName: '', email: '', phone: '' });
   };
 
