@@ -77,7 +77,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 md:p-8">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4 md:p-8">
       <motion.div 
         initial={{ opacity: 0, backdropFilter: 'blur(0px)' }} 
         animate={{ opacity: 1, backdropFilter: 'blur(16px)' }} 
@@ -86,12 +86,11 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
         onClick={onClose}
       />
       
-      <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 30 }} 
         animate={{ opacity: 1, scale: 1, y: 0 }} 
         exit={{ opacity: 0, scale: 0.95, y: 30 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-5xl bg-[#f8fafc]/90 backdrop-blur-3xl rounded-[32px] shadow-[0_8px_40px_rgba(0,0,0,0.12)] border border-white/60 overflow-hidden flex flex-col md:flex-row min-h-[650px] z-10"
+        className="relative w-full max-w-5xl bg-[#f8fafc]/90 backdrop-blur-3xl rounded-none sm:rounded-[32px] shadow-[0_8px_40px_rgba(0,0,0,0.12)] border border-white/60 overflow-hidden flex flex-col md:flex-row h-[100dvh] sm:h-auto sm:max-h-[90vh] md:min-h-[650px] z-10"
       >
         {/* Decorative background blob */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -100,7 +99,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
         </div>
 
         {/* Sidebar */}
-        <div className="w-full md:w-72 bg-white/40 border-r border-white/40 p-8 flex flex-col z-10 relative">
+        <div className="w-full md:w-72 bg-white/40 border-b md:border-b-0 md:border-r border-white/40 p-4 sm:p-6 md:p-8 flex flex-col z-10 relative shrink-0">
           <div className="flex items-center justify-between md:hidden mb-8">
             <h3 className="font-black text-xl text-slate-800 tracking-tight">Tenancy Setup</h3>
             <button onClick={onClose} className="p-2 bg-white/60 rounded-full hover:bg-white transition-colors"><X className="w-5 h-5" /></button>
@@ -111,23 +110,23 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
             <p className="text-sm text-slate-500 font-medium mt-2">Follow the steps to onboard your new tenant.</p>
           </div>
           
-          <div className="space-y-2 relative">
+          <div className="flex md:flex-col gap-2 overflow-x-auto hide-scrollbar pb-2 md:pb-0 relative">
             {steps.map((step, idx) => {
               const isActive = currentStep === idx;
               const isPast = currentStep > idx;
               return (
-                <div key={step.id} className="relative">
+                <div key={step.id} className="relative shrink-0 md:shrink-auto">
                   {isActive && (
                     <motion.div
                       layoutId="activeStep"
-                      className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-white/60"
+                      className="absolute inset-0 bg-white rounded-full md:rounded-2xl shadow-sm border border-white/60"
                       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                     />
                   )}
                   <button
                     onClick={() => setCurrentStep(idx)}
                     disabled={!isPast && !isActive} // Only allow clicking past steps
-                    className={`relative w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left ${
+                    className={`relative w-auto md:w-full flex items-center gap-2 md:gap-4 px-4 py-2 md:py-3.5 rounded-full md:rounded-2xl transition-all text-left ${
                       isActive ? 'z-10' : 'hover:bg-white/40'
                     } ${!isPast && !isActive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
@@ -158,7 +157,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex-1 p-8 md:p-12 overflow-y-auto">
+          <div className="flex-1 p-4 sm:p-8 md:p-12 overflow-y-auto pb-24 md:pb-12">
             <AnimatePresence mode="wait">
               {currentStep === 0 && (
                 <motion.div 
@@ -167,9 +166,9 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="max-w-2xl mx-auto md:mx-0 pt-4"
+                  className="max-w-2xl mx-auto md:mx-0 pt-2 md:pt-4"
                 >
-                  <div className="flex items-center gap-3 mb-10">
+                  <div className="flex items-center gap-3 mb-6 md:mb-10">
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
                       <Users className="w-6 h-6" />
                     </div>
@@ -186,16 +185,16 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0 }}
                           whileHover={{ y: -2, scale: 1.01 }}
-                          className="flex items-center justify-between p-5 rounded-2xl border border-white bg-white/60 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all group"
+                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 rounded-2xl border border-white bg-white/60 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all group gap-4 sm:gap-0"
                         >
                           <div>
-                            <h4 className="font-bold text-slate-800 text-base mb-1.5">{t.firstName} {t.lastName}</h4>
-                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 font-semibold">
-                              <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md"><Mail className="w-3.5 h-3.5" /> {t.email}</span>
-                              <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md"><Phone className="w-3.5 h-3.5" /> {t.phone}</span>
+                            <h4 className="font-bold text-slate-800 text-base mb-2 sm:mb-1.5">{t.firstName} {t.lastName}</h4>
+                            <div className="flex flex-col sm:flex-row flex-wrap sm:items-center gap-2 sm:gap-4 text-xs text-slate-500 font-semibold">
+                              <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md w-fit"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate max-w-[200px] sm:max-w-none">{t.email}</span></span>
+                              <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md w-fit"><Phone className="w-3.5 h-3.5 shrink-0" /> {t.phone}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:opacity-0 group-hover:opacity-100 transition-opacity mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100/50">
                             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleEdit(t)} className="p-2.5 text-slate-400 hover:text-primary hover:bg-white border border-transparent hover:border-slate-200 rounded-xl transition-all shadow-sm">
                               <Pencil className="w-4 h-4" />
                             </motion.button>
@@ -218,7 +217,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                         className="bg-white/80 backdrop-blur-xl border border-white rounded-[24px] p-8 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.04)] overflow-hidden"
                       >
                         <h4 className="font-black text-lg text-slate-800 mb-6">{editingId ? 'Edit Tenant' : 'Add New Tenant'}</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 mb-4 md:mb-5">
                           <div>
                             <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">First Name</label>
                             <input required type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400" placeholder="John" />
@@ -228,7 +227,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                             <input required type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400" placeholder="Doe" />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 mb-6 md:mb-8">
                           <div>
                             <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Email Address</label>
                             <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400" placeholder="john@example.com" />
@@ -282,13 +281,13 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
             </AnimatePresence>
           </div>
 
-          <div className="p-6 md:px-12 md:py-8 border-t border-slate-200/50 flex justify-between items-center bg-white/40 backdrop-blur-md rounded-br-[32px]">
+          <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 md:px-12 md:py-8 border-t border-slate-200/50 flex justify-between items-center bg-white/80 backdrop-blur-xl md:rounded-br-[32px] z-20">
             <div className="flex gap-2">
               {/* Add back button if needed in future */}
               {currentStep > 0 && (
                 <button 
                   onClick={() => setCurrentStep(prev => prev - 1)}
-                  className="px-6 py-3 border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 hover:bg-white shadow-sm transition-all"
+                  className="px-4 py-2.5 md:px-6 md:py-3 border border-slate-200 rounded-xl md:rounded-2xl text-sm font-bold text-slate-600 hover:bg-white shadow-sm transition-all"
                 >
                   Back
                 </button>
@@ -299,9 +298,9 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
               whileTap={{ scale: 0.98 }}
               onClick={() => setCurrentStep(prev => Math.min(steps.length - 1, prev + 1))}
               disabled={currentStep === 0 && tenants.length === 0}
-              className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="flex items-center gap-2 px-6 py-2.5 md:px-8 md:py-3.5 bg-slate-900 text-white rounded-xl md:rounded-2xl text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              Next Step <ChevronRight className="w-4.5 h-4.5" />
+              Next Step <ChevronRight className="w-4 h-4 md:w-4.5 md:h-4.5" />
             </motion.button>
           </div>
         </div>
