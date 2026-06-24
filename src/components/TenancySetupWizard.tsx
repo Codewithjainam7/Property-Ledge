@@ -45,6 +45,12 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
+  const [leaseDetails, setLeaseDetails] = useState({
+    startDate: '',
+    leaseType: 'Periodic',
+    endDate: ''
+  });
+  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -263,8 +269,84 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                 </motion.div>
               )}
               
+              {currentStep === 1 && (
+                <motion.div 
+                  key="step-1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="max-w-3xl mx-auto md:mx-0 pt-2 md:pt-4 w-full"
+                >
+                  <div className="flex items-center gap-3 mb-6 md:mb-10">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
+                      <CalendarDays className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight font-display">Start date</h2>
+                  </div>
+
+                  <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[24px] p-4 sm:p-6 md:p-8 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.04)] overflow-hidden w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Start Date<span className="text-red-500">*</span></label>
+                        <input 
+                          type="date" 
+                          value={leaseDetails.startDate} 
+                          onChange={e => setLeaseDetails({...leaseDetails, startDate: e.target.value})} 
+                          className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-700" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Lease type</label>
+                        <div className="relative">
+                          <select 
+                            value={leaseDetails.leaseType} 
+                            onChange={e => setLeaseDetails({...leaseDetails, leaseType: e.target.value})} 
+                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer text-slate-700"
+                          >
+                            <option value="Periodic">Periodic</option>
+                            <option value="Fixed Term">Fixed Term</option>
+                          </select>
+                          <ChevronRight className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {leaseDetails.leaseType === 'Fixed Term' && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }} 
+                          animate={{ height: 'auto', opacity: 1 }} 
+                          exit={{ height: 0, opacity: 0 }}
+                          className="mb-6 overflow-hidden"
+                        >
+                          <div className="w-full sm:w-[calc(50%-12px)]">
+                            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">End Date<span className="text-red-500">*</span></label>
+                            <input 
+                              type="date" 
+                              value={leaseDetails.endDate} 
+                              onChange={e => setLeaseDetails({...leaseDetails, endDate: e.target.value})} 
+                              className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-700" 
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="flex items-start gap-3 mt-6 p-4 rounded-xl bg-slate-50/50 border border-slate-100">
+                      <div className="w-5 h-5 rounded-full bg-slate-200/50 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-slate-500">i</span>
+                      </div>
+                      <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                        If you're not sure about the exact start or end date, you can put an approximate date and change it later before signing.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              
               {/* Placeholders for future steps */}
-              {currentStep > 0 && (
+              {currentStep > 1 && (
                 <motion.div 
                   key={`step-${currentStep}`}
                   initial={{ opacity: 0, x: 20 }}
@@ -298,7 +380,10 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setCurrentStep(prev => Math.min(steps.length - 1, prev + 1))}
-              disabled={currentStep === 0 && tenants.length === 0}
+              disabled={
+                (currentStep === 0 && tenants.length === 0) || 
+                (currentStep === 1 && (!leaseDetails.startDate || (leaseDetails.leaseType === 'Fixed Term' && !leaseDetails.endDate)))
+              }
               className="flex items-center gap-2 px-6 py-2.5 md:px-8 md:py-3.5 bg-slate-900 text-white rounded-xl md:rounded-2xl text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               Next Step <ChevronRight className="w-4 h-4 md:w-4.5 md:h-4.5" />
