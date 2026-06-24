@@ -150,7 +150,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col relative z-10">
+        <div className="flex-1 flex flex-col relative z-10 w-full overflow-hidden">
           <button 
             onClick={onClose}
             className="absolute top-6 right-6 p-2.5 text-slate-400 hover:bg-white hover:text-slate-700 hover:shadow-sm border border-transparent hover:border-slate-200 rounded-full transition-all hidden md:block z-20"
@@ -158,7 +158,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex-1 p-4 sm:p-8 md:p-12 overflow-y-auto pb-24 md:pb-12">
+          <div className="flex-1 p-4 sm:p-8 md:p-12 overflow-y-auto overflow-x-hidden pb-24 md:pb-12 w-full">
             <AnimatePresence mode="wait">
               {currentStep === 0 && (
                 <motion.div 
@@ -167,7 +167,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="max-w-2xl mx-auto md:mx-0 pt-2 md:pt-4"
+                  className="max-w-2xl mx-auto md:mx-0 pt-2 md:pt-4 w-full"
                 >
                   <div className="flex items-center gap-3 mb-6 md:mb-10">
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
@@ -186,12 +186,12 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0 }}
                           whileHover={{ y: -2, scale: 1.01 }}
-                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 rounded-2xl border border-white bg-white/60 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all group gap-4 sm:gap-0"
+                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 rounded-2xl border border-white bg-white/60 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all group gap-4 sm:gap-0 w-full overflow-hidden"
                         >
                           <div>
                             <h4 className="font-bold text-slate-800 text-base mb-2 sm:mb-1.5">{t.firstName} {t.lastName}</h4>
                             <div className="flex flex-col sm:flex-row flex-wrap sm:items-center gap-2 sm:gap-4 text-xs text-slate-500 font-semibold">
-                              <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md w-fit"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate max-w-[200px] sm:max-w-none">{t.email}</span></span>
+                              <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md w-fit max-w-full overflow-hidden"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none">{t.email}</span></span>
                               <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md w-fit"><Phone className="w-3.5 h-3.5 shrink-0" /> {t.phone}</span>
                             </div>
                           </div>
@@ -215,7 +215,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         onSubmit={handleSaveTenant} 
-                        className="bg-white/80 backdrop-blur-xl border border-white rounded-[24px] p-8 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.04)] overflow-hidden"
+                        className="bg-white/80 backdrop-blur-xl border border-white rounded-[24px] p-4 sm:p-6 md:p-8 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.04)] overflow-hidden w-full"
                       >
                         <h4 className="font-black text-lg text-slate-800 mb-6">{editingId ? 'Edit Tenant' : 'Add New Tenant'}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 mb-4 md:mb-5">
@@ -238,9 +238,9 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                             <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400" placeholder="+61 400 000 000" />
                           </div>
                         </div>
-                        <div className="flex gap-3 justify-end border-t border-slate-100 pt-6">
-                          <button type="button" onClick={() => { setIsAdding(false); setEditingId(null); setFormData({firstName:'', lastName:'', email:'', phone:''}); }} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
-                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="px-6 py-2.5 text-sm font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl shadow-md shadow-slate-900/10 transition-all">
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end border-t border-slate-100 pt-6">
+                          <button type="button" onClick={() => { setIsAdding(false); setEditingId(null); setFormData({firstName:'', lastName:'', email:'', phone:''}); }} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors w-full sm:w-auto">Cancel</button>
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="px-6 py-2.5 text-sm font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl shadow-md shadow-slate-900/10 transition-all w-full sm:w-auto">
                             {editingId ? 'Save Changes' : 'Add Tenant'}
                           </motion.button>
                         </div>
