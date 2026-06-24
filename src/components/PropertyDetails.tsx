@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { TextField, Box, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
 import { SkeletonDetails } from './Skeletons';
 import { useAuth } from '../contexts/AuthContext';
+import TenancySetupWizard from './TenancySetupWizard';
 
 export function PropertyDetails() {
   const { id } = useParams();
@@ -51,6 +52,7 @@ export function PropertyDetails() {
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [leaseFile, setLeaseFile] = useState<File | null>(null);
   const [leaseFileBase64, setLeaseFileBase64] = useState<string | null>(null);
+  const [isTenancySetupOpen, setIsTenancySetupOpen] = useState(false);
 
   useEffect(() => {
     const loadProperty = async () => {
@@ -1051,6 +1053,7 @@ export function PropertyDetails() {
                       variants={itemVariants}
                       whileHover={{ y: -4, scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
+                      onClick={() => item.title === 'Tenancy Setup' ? setIsTenancySetupOpen(true) : undefined}
                       className={`${item.colSpan} ${item.bg} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] cursor-pointer`}
                     >
                       <div className="relative z-10 flex-1 flex flex-col">
@@ -1101,6 +1104,12 @@ export function PropertyDetails() {
 
         </div>
       </div>
+
+      <TenancySetupWizard 
+        isOpen={isTenancySetupOpen} 
+        onClose={() => setIsTenancySetupOpen(false)} 
+        propertyId={id || ''} 
+      />
 
       {/* Edit Property Modal */}
       {createPortal(
