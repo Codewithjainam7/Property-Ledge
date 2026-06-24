@@ -44,6 +44,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
   const [tenants, setTenants] = useState<TenantInput[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isLeaseTypeOpen, setIsLeaseTypeOpen] = useState(false);
   
   const [leaseDetails, setLeaseDetails] = useState({
     startDate: '',
@@ -132,10 +133,9 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                   )}
                   <button
                     onClick={() => setCurrentStep(idx)}
-                    disabled={!isPast && !isActive} // Only allow clicking past steps
-                    className={`relative w-auto md:w-full flex items-center gap-2 md:gap-4 px-4 py-2 md:py-3.5 rounded-full md:rounded-2xl transition-all text-left ${
+                    className={`relative w-auto md:w-full flex items-center gap-2 md:gap-4 px-4 py-2 md:py-3.5 rounded-full md:rounded-2xl transition-all text-left cursor-pointer ${
                       isActive ? 'z-10' : 'hover:bg-white/40'
-                    } ${!isPast && !isActive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    }`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
                       isPast ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 
@@ -296,18 +296,43 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                           className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-700" 
                         />
                       </div>
-                      <div>
+                      <div className="relative z-20">
                         <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Lease type</label>
                         <div className="relative">
-                          <select 
-                            value={leaseDetails.leaseType} 
-                            onChange={e => setLeaseDetails({...leaseDetails, leaseType: e.target.value})} 
-                            className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer text-slate-700"
+                          <button 
+                            type="button"
+                            onClick={() => setIsLeaseTypeOpen(!isLeaseTypeOpen)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer text-slate-700"
                           >
-                            <option value="Periodic">Periodic</option>
-                            <option value="Fixed Term">Fixed Term</option>
-                          </select>
-                          <ChevronRight className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
+                            {leaseDetails.leaseType}
+                            <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${isLeaseTypeOpen ? '-rotate-90' : 'rotate-90'}`} />
+                          </button>
+                          
+                          <AnimatePresence>
+                            {isLeaseTypeOpen && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-slate-100 overflow-hidden z-30"
+                              >
+                                {['Periodic', 'Fixed Term'].map((type) => (
+                                  <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => {
+                                      setLeaseDetails({...leaseDetails, leaseType: type});
+                                      setIsLeaseTypeOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors hover:bg-slate-50 ${leaseDetails.leaseType === type ? 'text-primary bg-primary/5' : 'text-slate-600'}`}
+                                  >
+                                    {type}
+                                  </button>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </div>
                     </div>
@@ -380,11 +405,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setCurrentStep(prev => Math.min(steps.length - 1, prev + 1))}
-              disabled={
-                (currentStep === 0 && tenants.length === 0) || 
-                (currentStep === 1 && (!leaseDetails.startDate || (leaseDetails.leaseType === 'Fixed Term' && !leaseDetails.endDate)))
-              }
-              className="flex items-center gap-2 px-6 py-2.5 md:px-8 md:py-3.5 bg-slate-900 text-white rounded-xl md:rounded-2xl text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="flex items-center gap-2 px-6 py-2.5 md:px-8 md:py-3.5 bg-slate-900 text-white rounded-xl md:rounded-2xl text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all"
             >
               Next Step <ChevronRight className="w-4 h-4 md:w-4.5 md:h-4.5" />
             </motion.button>
