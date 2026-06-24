@@ -403,89 +403,100 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="max-w-3xl mx-auto md:mx-0 pt-2 md:pt-4 w-full"
+                  className="max-w-4xl mx-auto md:mx-0 pt-2 md:pt-4 w-full"
                 >
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-3 mb-6 md:mb-10">
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
                       <Rocket className="w-6 h-6" />
                     </div>
                     <h2 className="text-3xl font-black text-slate-800 tracking-tight font-display">Invite tenants</h2>
                   </div>
 
-                  <div className="bg-blue-50/80 border border-blue-100 p-6 rounded-2xl mb-8">
+                  <div className="bg-blue-50/80 border border-blue-100 p-6 sm:p-8 rounded-3xl mb-10 shadow-sm">
                     <h3 className="text-blue-800 font-bold text-lg mb-2">Confirm your tenancy details.</h3>
-                    <p className="text-blue-600/80 text-sm">Please carefully review the tenancy details and confirm that they are correct. Once you have confirmed the details, you can invite your tenant and begin their onboarding.</p>
+                    <p className="text-blue-600/90 text-sm leading-relaxed max-w-3xl">Please carefully review the tenancy details and confirm that they are correct. Once you have confirmed the details, you can invite your tenant and begin their onboarding.</p>
                   </div>
 
-                  <div className="space-y-6">
+                  <div className="space-y-8">
                     {/* Tenants Section */}
-                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[24px] p-6 shadow-sm">
-                      <div className="flex items-center gap-2 mb-4">
+                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[32px] p-6 sm:p-8 shadow-sm">
+                      <div className="flex items-center gap-2 mb-6">
                         <Users className="w-5 h-5 text-slate-700" />
-                        <h4 className="font-bold text-slate-800 text-lg">Tenants</h4>
+                        <h4 className="font-bold text-slate-800 text-xl">Tenants</h4>
                         {isStepCompleted(0) ? (
-                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-2"><CheckCircle2 className="w-3.5 h-3.5" /></div>
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-3"><CheckCircle2 className="w-3.5 h-3.5" /></div>
                         ) : (
-                          <div className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-2">Missing details</div>
+                          <div className="px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-3 uppercase tracking-wider">Missing details</div>
                         )}
                       </div>
                       
                       {isStepCompleted(0) ? (
-                        <div className="space-y-3 mb-4">
+                        <div className="space-y-4 mb-6">
                           {tenants.map(t => (
-                            <p key={t.id} className="text-sm text-slate-600">{t.firstName} {t.lastName} - {t.phone}, {t.email}</p>
+                            <p key={t.id} className="text-[15px] font-medium text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100">{t.firstName} {t.lastName} <span className="text-slate-400 mx-2">|</span> {t.phone} <span className="text-slate-400 mx-2">|</span> {t.email}</p>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-500 mb-4">No tenants have been added to this tenancy yet.</p>
+                        <p className="text-[15px] text-slate-500 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">No tenants have been added to this tenancy yet.</p>
                       )}
                       
-                      <button onClick={() => setCurrentStep(0)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 transition-colors">
-                        <Pencil className="w-3.5 h-3.5" /> Edit Tenant details
+                      <button onClick={() => setCurrentStep(0)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-2 transition-colors px-4 py-2 hover:bg-primary/5 rounded-lg -ml-4 w-fit">
+                        <Pencil className="w-4 h-4" /> Edit Tenant details
                       </button>
                     </div>
 
                     {/* Start Date Section */}
-                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[24px] p-6 shadow-sm">
-                      <div className="flex items-center gap-2 mb-4">
+                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[32px] p-6 sm:p-8 shadow-sm">
+                      <div className="flex items-center gap-2 mb-6">
                         <CalendarDays className="w-5 h-5 text-slate-700" />
-                        <h4 className="font-bold text-slate-800 text-lg">Start Date</h4>
+                        <h4 className="font-bold text-slate-800 text-xl">Start Date</h4>
                         {isStepCompleted(1) ? (
-                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-2"><CheckCircle2 className="w-3.5 h-3.5" /></div>
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-3"><CheckCircle2 className="w-3.5 h-3.5" /></div>
                         ) : (
-                          <div className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-2">Missing details</div>
+                          <div className="px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-3 uppercase tracking-wider">Missing details</div>
                         )}
                       </div>
                       
                       {isStepCompleted(1) ? (
-                        <div className="space-y-1 mb-4 text-sm text-slate-600">
-                          <p><strong>Start Date:</strong> {leaseDetails.startDate}</p>
-                          <p><strong>Lease Type:</strong> {leaseDetails.leaseType}</p>
-                          {leaseDetails.leaseType === 'Fixed Term' && <p><strong>End Date:</strong> {leaseDetails.endDate}</p>}
+                        <div className="flex flex-wrap gap-4 mb-6">
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex-1 min-w-[200px]">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</p>
+                            <p className="text-[15px] font-medium text-slate-700">{leaseDetails.startDate}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex-1 min-w-[200px]">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Lease Type</p>
+                            <p className="text-[15px] font-medium text-slate-700">{leaseDetails.leaseType}</p>
+                          </div>
+                          {leaseDetails.leaseType === 'Fixed Term' && (
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex-1 min-w-[200px]">
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</p>
+                              <p className="text-[15px] font-medium text-slate-700">{leaseDetails.endDate}</p>
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-500 mb-4">No start date has been added to this tenancy yet.</p>
+                        <p className="text-[15px] text-slate-500 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">No start date has been added to this tenancy yet.</p>
                       )}
                       
-                      <button onClick={() => setCurrentStep(1)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 transition-colors">
-                        <Pencil className="w-3.5 h-3.5" /> Edit Start Date
+                      <button onClick={() => setCurrentStep(1)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-2 transition-colors px-4 py-2 hover:bg-primary/5 rounded-lg -ml-4 w-fit">
+                        <Pencil className="w-4 h-4" /> Edit Start Date
                       </button>
                     </div>
 
                     {/* Bond Section */}
-                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[24px] p-6 shadow-sm">
-                      <div className="flex items-center gap-2 mb-4">
+                    <div className="bg-white/80 backdrop-blur-xl border border-slate-100 rounded-[32px] p-6 sm:p-8 shadow-sm">
+                      <div className="flex items-center gap-2 mb-6">
                         <Shield className="w-5 h-5 text-slate-700" />
-                        <h4 className="font-bold text-slate-800 text-lg">Bond</h4>
+                        <h4 className="font-bold text-slate-800 text-xl">Bond</h4>
                         {isStepCompleted(2) ? (
-                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-2"><CheckCircle2 className="w-3.5 h-3.5" /></div>
+                          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center ml-3"><CheckCircle2 className="w-3.5 h-3.5" /></div>
                         ) : (
-                          <div className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-2">Missing details</div>
+                          <div className="px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-3 uppercase tracking-wider">Missing details</div>
                         )}
                       </div>
-                      <p className="text-sm text-slate-500 mb-4">No bond has been added to this tenancy yet.</p>
-                      <button onClick={() => setCurrentStep(2)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 transition-colors">
-                        <Pencil className="w-3.5 h-3.5" /> Edit Bond
+                      <p className="text-[15px] text-slate-500 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">No bond has been added to this tenancy yet.</p>
+                      <button onClick={() => setCurrentStep(2)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-2 transition-colors px-4 py-2 hover:bg-primary/5 rounded-lg -ml-4 w-fit">
+                        <Pencil className="w-4 h-4" /> Edit Bond
                       </button>
                     </div>
                   </div>
