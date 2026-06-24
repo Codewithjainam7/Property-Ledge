@@ -115,6 +115,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+button, a, [role="button"], select, .cursor-pointer {
+  cursor: pointer !important;
+}
+
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
