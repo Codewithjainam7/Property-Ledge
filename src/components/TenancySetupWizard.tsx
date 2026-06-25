@@ -180,7 +180,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId, proper
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex-1 p-4 sm:p-8 md:p-12 overflow-y-auto overflow-x-hidden pb-24 md:pb-12 w-full">
+          <div className="flex-1 p-4 sm:p-8 md:p-12 overflow-y-auto overflow-x-hidden w-full">
             
             {/* Dynamic Tenancy Header */}
             <div className="mb-8 md:mb-12 border-b border-slate-200/60 pb-6 pr-12">
@@ -681,13 +681,13 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId, proper
             </AnimatePresence>
           </div>
 
-          <div className="absolute bottom-0 left-0 w-full p-4 md:p-6 md:px-12 md:py-8 border-t border-slate-200/50 flex justify-between items-center bg-white/80 backdrop-blur-xl md:rounded-br-[32px] z-20">
+          <div className="w-full p-4 md:p-6 md:px-12 md:py-8 border-t border-slate-200/50 flex justify-between items-center bg-[#f2f4f3] md:rounded-br-[32px] shrink-0 z-20">
             <div className="flex gap-2">
               {/* Add back button if needed in future */}
               {currentStep > 0 && (
                 <button 
                   onClick={() => setCurrentStep(prev => prev - 1)}
-                  className="px-4 py-2.5 md:px-6 md:py-3 border border-slate-200 rounded-xl md:rounded-2xl text-sm font-bold text-slate-600 hover:bg-white shadow-sm transition-all"
+                  className="px-4 py-2.5 md:px-6 md:py-3 border border-slate-200/80 bg-white/50 rounded-xl md:rounded-2xl text-sm font-bold text-slate-600 hover:bg-white shadow-sm transition-all"
                 >
                   Back
                 </button>
