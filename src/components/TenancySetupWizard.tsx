@@ -21,6 +21,7 @@ interface TenancySetupWizardProps {
   isOpen: boolean;
   onClose: () => void;
   propertyId: string;
+  propertyAddress?: string;
 }
 
 interface TenantInput {
@@ -39,7 +40,7 @@ const steps = [
   { id: 'invite_tenants', label: 'Invite tenants', icon: Rocket },
 ];
 
-export default function TenancySetupWizard({ isOpen, onClose, propertyId }: TenancySetupWizardProps) {
+export default function TenancySetupWizard({ isOpen, onClose, propertyId, propertyAddress }: TenancySetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [tenants, setTenants] = useState<TenantInput[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -50,6 +51,13 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
     startDate: '',
     leaseType: 'Periodic',
     endDate: ''
+  });
+  
+  const [bondDetails, setBondDetails] = useState({
+    amount: '',
+    isPaid: false,
+    dueDate: '',
+    collectViaPlatform: true
   });
   
   const [formData, setFormData] = useState({
@@ -76,7 +84,7 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
   const isStepCompleted = (index: number) => {
     if (index === 0) return tenants.length > 0;
     if (index === 1) return leaseDetails.startDate !== '' && (leaseDetails.leaseType === 'Periodic' || leaseDetails.endDate !== '');
-    if (index === 2) return false; // Bond not implemented yet
+    if (index === 2) return bondDetails.amount !== '' && (!bondDetails.isPaid ? bondDetails.dueDate !== '' : true);
     if (index === 3) return false; // Lease agreement not implemented yet
     return false;
   };
@@ -173,6 +181,31 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
           </button>
 
           <div className="flex-1 p-4 sm:p-8 md:p-12 overflow-y-auto overflow-x-hidden pb-24 md:pb-12 w-full">
+            
+            {/* Dynamic Tenancy Header */}
+            <div className="mb-8 md:mb-12 border-b border-slate-200/60 pb-6 pr-12">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+                <Rocket className="w-3.5 h-3.5" /> Tenancy Dashboard
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight font-display mb-4">
+                {tenants.length > 0 ? tenants.map(t => t.firstName).join(' and ') : 'New Tenancy'}
+              </h2>
+              
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200/80 rounded-lg shadow-sm text-sm font-medium text-slate-600">
+                  <span className="text-slate-400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+                  {propertyAddress || 'Address not available'}
+                </div>
+                
+                {tenants.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200/80 rounded-lg shadow-sm text-sm font-medium text-slate-600">
+                    <span className="text-slate-400"><Users className="w-3.5 h-3.5" /></span>
+                    {tenants.map(t => t.firstName).join(' and ')}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <AnimatePresence mode="wait">
               {currentStep === 0 && (
                 <motion.div 
@@ -378,8 +411,126 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                 </motion.div>
               )}
               
+              {/* Bond Step */}
+              {currentStep === 2 && (
+                <motion.div 
+                  key="step-2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="max-w-4xl mx-auto md:mx-0 pt-2 md:pt-4 w-full"
+                >
+                  <div className="flex items-center gap-3 mb-6 md:mb-10">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-sm">
+                      <Shield className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight font-display">Bond details</h2>
+                  </div>
+
+                  <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[32px] p-6 sm:p-8 mb-8 shadow-[0_8px_32px_rgba(0,0,0,0.04)] overflow-hidden w-full">
+                    
+                    <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 mb-8 flex gap-4 items-start">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                        <Rocket className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="text-[15px] text-slate-600 leading-relaxed font-medium">
+                          We recommend that you collect your bond <strong className="text-indigo-700">via our secure platform</strong> and then pay the bond to your local authority. This keeps everything in one place.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-8">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Property Bond Amount<span className="text-red-500">*</span></label>
+                        <div className="relative max-w-md">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">$</span>
+                          <input 
+                            type="number" 
+                            placeholder="1200.00"
+                            value={bondDetails.amount} 
+                            onChange={e => setBondDetails({...bondDetails, amount: e.target.value})} 
+                            className="w-full pl-8 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-lg font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-800 placeholder:text-slate-300" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Has this bond been paid?</label>
+                          <div className="flex bg-slate-50/50 p-1 rounded-2xl border border-slate-200 w-fit">
+                            <button 
+                              onClick={() => setBondDetails({...bondDetails, isPaid: true})}
+                              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${bondDetails.isPaid ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                              Yes
+                            </button>
+                            <button 
+                              onClick={() => setBondDetails({...bondDetails, isPaid: false})}
+                              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${!bondDetails.isPaid ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+
+                        <AnimatePresence mode="wait">
+                          {!bondDetails.isPaid && (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                            >
+                              <label className="block text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Due Date<span className="text-red-500">*</span></label>
+                              <input 
+                                type="date" 
+                                value={bondDetails.dueDate} 
+                                onChange={e => setBondDetails({...bondDetails, dueDate: e.target.value})} 
+                                className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-700 max-w-xs" 
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Collect via platform?</label>
+                        <div className="flex bg-slate-50/50 p-1 rounded-2xl border border-slate-200 w-fit">
+                          <button 
+                            onClick={() => setBondDetails({...bondDetails, collectViaPlatform: true})}
+                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${bondDetails.collectViaPlatform ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:text-slate-600'}`}
+                          >
+                            Yes
+                          </button>
+                          <button 
+                            onClick={() => setBondDetails({...bondDetails, collectViaPlatform: false})}
+                            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${!bondDetails.collectViaPlatform ? 'bg-white text-slate-800 shadow-sm border border-slate-200/60' : 'text-slate-400 hover:text-slate-600'}`}
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100">
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Attachments</label>
+                        <p className="text-xs text-slate-400 mb-4 font-medium">Bond attachments are for your own records and will not be shared with the tenant.</p>
+                        <div className="w-full border-2 border-dashed border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center bg-slate-50/30 hover:bg-slate-50/80 hover:border-primary/30 transition-all cursor-pointer group">
+                          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-primary/10 transition-all">
+                            <Rocket className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
+                          </div>
+                          <p className="text-sm font-bold text-slate-600"><span className="text-primary">Upload a file</span> or drag and drop</p>
+                          <p className="text-xs text-slate-400 mt-1 font-medium">PDF, JPG, PNG up to 10MB</p>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              
               {/* Placeholders for future steps */}
-              {currentStep > 1 && currentStep < 4 && (
+              {currentStep === 3 && (
                 <motion.div 
                   key={`step-${currentStep}`}
                   initial={{ opacity: 0, x: 20 }}
@@ -494,7 +645,32 @@ export default function TenancySetupWizard({ isOpen, onClose, propertyId }: Tena
                           <div className="px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold ml-3 uppercase tracking-wider">Missing details</div>
                         )}
                       </div>
-                      <p className="text-[15px] text-slate-500 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">No bond has been added to this tenancy yet.</p>
+
+                      {isStepCompleted(2) ? (
+                        <div className="flex flex-wrap gap-4 mb-6">
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex-1 min-w-[200px]">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Bond Amount</p>
+                            <p className="text-[15px] font-bold text-slate-800">${bondDetails.amount}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex-1 min-w-[200px]">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                            <div className="flex items-center gap-2">
+                              {bondDetails.isPaid ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700 text-xs font-bold">
+                                  <CheckCircle2 className="w-3 h-3" /> Paid
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 text-amber-700 text-xs font-bold">
+                                  Due: {bondDetails.dueDate}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[15px] text-slate-500 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">No bond has been added to this tenancy yet.</p>
+                      )}
+
                       <button onClick={() => setCurrentStep(2)} className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-2 transition-colors px-4 py-2 hover:bg-primary/5 rounded-lg -ml-4 w-fit">
                         <Pencil className="w-4 h-4" /> Edit Bond
                       </button>
