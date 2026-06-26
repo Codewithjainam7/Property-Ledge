@@ -4,7 +4,7 @@ import {
   Building, Users, FileText, Wrench, Calendar, Plus, ChevronDown, 
   ArrowUpRight, CheckCircle2, Home, X, Clock, MapPin, Search, 
   MessageSquare, Phone, Mail, AlertCircle, Shield, Sparkles, Send, 
-  ClipboardList, ArrowRight, UserCheck, Activity, Wallet
+  ClipboardList, ArrowRight, UserCheck, Activity, Wallet, Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';

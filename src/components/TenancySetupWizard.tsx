@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { generateVictoriaLeasePdf } from "../utils/leasePdfGenerator";
+import { supabase } from '../lib/supabase';
 
 interface TenancySetupWizardProps {
   isOpen: boolean;
@@ -58,6 +59,9 @@ export default function TenancySetupWizard({
   const [tenants, setTenants] = useState<TenantInput[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedTenantsToInvite, setSelectedTenantsToInvite] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLeaseTypeOpen, setIsLeaseTypeOpen] = useState(false);
   const [isSigningProviderOpen, setIsSigningProviderOpen] = useState(false);
   const [isConditionReportOpen, setIsConditionReportOpen] = useState(false);
@@ -102,10 +106,110 @@ export default function TenancySetupWizard({
       );
       setEditingId(null);
     } else {
-      setTenants([...tenants, { id: Date.now().toString(), ...formData }]);
+      const newId = Date.now().toString();
+      setTenants([...tenants, { id: newId, ...formData }]);
+      setSelectedTenantsToInvite((prev) => [...prev, newId]);
     }
     setFormData({ firstName: "", lastName: "", email: "", phone: "" });
     setIsAdding(false);
+  };
+
+  const toggleTenantInvite = (id: string) => {
+    setSelectedTenantsToInvite((prev) => 
+      prev.includes(id) ? prev.filter((tId) => tId !== id) : [...prev, id]
+    );
+  };
+
+  const handleSendInvites = async () => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      // 1. Fetch property to get the rent amount (fallback to bond/4 if missing)
+      const { data: propData } = await supabase
+        .from('properties')
+        .select('rent_amount')
+        .eq('id', propertyId)
+        .single();
+      
+      const rentAmount = propData?.rent_amount || (parseFloat(bondDetails.amount) / 4) || 0;
+
+      // 2. Create the Lease
+      const { data: newLease, error: leaseError } = await supabase
+        .from('leases')
+        .insert([{
+          property_id: propertyId,
+          start_date: leaseDetails.startDate,
+          end_date: leaseDetails.leaseType === 'Fixed Term' ? leaseDetails.endDate : null,
+          rent_amount: rentAmount,
+          payment_frequency: 'Monthly',
+          status: 'Active', // Setup wizard confirms it instantly, or 'Draft' if waiting for handshake. Assuming 'Active' or 'Draft'. Handshake requires 'Active' lease in some cases, but 'accept_lease' handles it. Let's use 'Draft' for security.
+          bond_amount: parseFloat(bondDetails.amount) || 0,
+        }])
+        .select()
+        .single();
+
+      if (leaseError) throw leaseError;
+
+      // 3. Create all Tenants
+      for (const t of tenants) {
+        const isSelectedForInvite = selectedTenantsToInvite.includes(t.id);
+        const inviteToken = isSelectedForInvite ? crypto.randomUUID() : null;
+        const passcode = isSelectedForInvite ? Math.floor(100000 + Math.random() * 900000).toString() : null;
+        
+        const { data: newTenant, error: tenantError } = await supabase
+          .from('tenants')
+          .insert([{
+            property_id: propertyId,
+            first_name: t.firstName,
+            last_name: t.lastName,
+            email: t.email,
+            phone: t.phone,
+            status: isSelectedForInvite ? 'Invited' : 'Pending',
+            invite_token: inviteToken,
+            access_level: { receives_emails: isSelectedForInvite, can_login: isSelectedForInvite }
+          }])
+          .select()
+          .single();
+
+        if (tenantError) throw tenantError;
+
+        // Link to lease_tenants
+        await supabase
+          .from('lease_tenants')
+          .insert([{
+            lease_id: newLease.id,
+            tenant_id: newTenant.id,
+            is_primary: true // first tenant could be primary, simplifying for now
+          }]);
+
+        // 4. Send Email if Selected
+        if (isSelectedForInvite) {
+          await supabase.functions.invoke('send-email', {
+            body: {
+              to: t.email,
+              templateType: 'tenant-invite',
+              data: {
+                tenantFirstName: t.firstName,
+                propertyName: propertyAddress,
+                inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
+                startDate: leaseDetails.startDate,
+                rentAmount: rentAmount,
+                bondAmount: bondDetails.amount || '0',
+                passcode: passcode
+              }
+            }
+          });
+        }
+      }
+
+      onClose();
+    } catch (err: any) {
+      console.error('Error setting up tenancy:', err);
+      setSubmitError(err.message || 'An error occurred during setup');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isStepCompleted = (index: number) => {
@@ -1175,9 +1279,17 @@ export default function TenancySetupWizard({
                             key={t.id}
                             className="flex justify-between items-center text-base p-4 bg-white border border-slate-100 rounded-lg shadow-sm"
                           >
-                            <span className="font-extrabold text-slate-900">
-                              {t.firstName} {t.lastName}
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedTenantsToInvite.includes(t.id)} 
+                                onChange={() => toggleTenantInvite(t.id)}
+                                className="w-5 h-5 text-primary border-slate-300 rounded focus:ring-primary cursor-pointer"
+                              />
+                              <span className="font-extrabold text-slate-900">
+                                {t.firstName} {t.lastName}
+                              </span>
+                            </div>
                             <span className="text-slate-600 font-semibold">
                               {t.email}
                             </span>
@@ -1343,16 +1455,25 @@ export default function TenancySetupWizard({
           </div>
 
           {currentStep === steps.length - 1 ? (
-            <button
-              disabled={
-                !isStepCompleted(0) ||
-                !isStepCompleted(1) ||
-                !isStepCompleted(2)
-              }
-              className="flex items-center gap-2 px-10 py-4 bg-slate-900 text-white rounded-lg text-base font-extrabold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_20px_rgba(0,0,0,0.15)]"
-            >
-              <Rocket className="w-5 h-5" /> Send Invites
-            </button>
+            <div className="flex items-center gap-4">
+              {submitError && <span className="text-red-500 text-sm font-bold">{submitError}</span>}
+              <button
+                onClick={handleSendInvites}
+                disabled={
+                  !isStepCompleted(0) ||
+                  !isStepCompleted(1) ||
+                  !isStepCompleted(2) ||
+                  isSubmitting
+                }
+                className="flex items-center gap-2 px-10 py-4 bg-slate-900 text-white rounded-lg text-base font-extrabold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_20px_rgba(0,0,0,0.15)]"
+              >
+                {isSubmitting ? (
+                  <>Processing...</>
+                ) : (
+                  <><Rocket className="w-5 h-5" /> Send Invites</>
+                )}
+              </button>
+            </div>
           ) : (
             <button
               onClick={() =>

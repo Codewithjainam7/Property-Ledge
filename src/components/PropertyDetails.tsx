@@ -117,6 +117,11 @@ export function PropertyDetails() {
       const propImages = mapped.images?.length > 0 ? mapped.images : (mapped.image ? [mapped.image] : []);
       setImages(propImages);
 
+      if (window.location.search.includes('edit=true') && (isOwner || teamData?.permissions?.can_edit_lease)) {
+        setEditingProperty(mapped);
+        setShowEditPropertyModal(true);
+      }
+
 
 
       // Fetch active lease details including tenant_signature
