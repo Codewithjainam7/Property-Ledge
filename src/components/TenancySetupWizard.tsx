@@ -1153,14 +1153,14 @@ export default function TenancySetupWizard({
                           onClick={() =>
                             setIsConditionReportOpen(!isConditionReportOpen)
                           }
-                          className={`w-full flex items-center justify-between px-4 py-3.5 bg-white border rounded-lg text-sm font-semibold outline-none transition-all shadow-sm ${isConditionReportOpen ? "border-primary ring-2 ring-primary/20" : "border-slate-200 hover:border-slate-300"} ${!leaseAgreementDetails.conditionReport ? "text-slate-400" : "text-slate-900"}`}
+                          className={`w-full flex items-center justify-between px-5 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold outline-none transition-all shadow-sm hover:border-slate-300 ${isConditionReportOpen ? "ring-2 ring-primary/20 border-primary" : ""} ${!leaseAgreementDetails.conditionReport ? "text-slate-400" : "text-slate-900"}`}
                         >
                           <span className="truncate text-left">
                             {leaseAgreementDetails.conditionReport ||
                               "Select an option"}
                           </span>
                           <ChevronDown
-                            className={`w-4 h-4 text-slate-500 transition-transform duration-200 shrink-0 ${isConditionReportOpen ? "rotate-180" : ""}`}
+                            className={`w-5 h-5 text-slate-400 transition-transform duration-200 shrink-0 ${isConditionReportOpen ? "rotate-180" : ""}`}
                           />
                         </button>
 
@@ -1171,7 +1171,7 @@ export default function TenancySetupWizard({
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: -8, scale: 0.98 }}
                               transition={{ duration: 0.15, ease: "easeOut" }}
-                              className="absolute top-[calc(100%+8px)] left-0 w-full bg-white rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.15)] border border-slate-200 z-[90] py-1.5 overflow-hidden"
+                              className="absolute top-[calc(100%+8px)] left-0 w-full bg-white rounded-2xl shadow-xl border border-slate-100 z-[90] p-2 overflow-hidden"
                             >
                               {[
                                 "The condition report has been provided",
@@ -1187,7 +1187,7 @@ export default function TenancySetupWizard({
                                     });
                                     setIsConditionReportOpen(false);
                                   }}
-                                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-bold transition-all hover:bg-slate-50 text-slate-700"
+                                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all hover:bg-slate-50 text-slate-700 text-left"
                                 >
                                   <span
                                     className={`truncate text-left ${leaseAgreementDetails.conditionReport === opt ? "text-primary" : ""}`}
