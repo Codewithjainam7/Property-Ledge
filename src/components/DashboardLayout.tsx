@@ -158,7 +158,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     organiseLinks = [
       { name: 'Portfolio Overview', icon: PieChart, to: '/dashboard', exact: true },
       { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
-      ...(!isStrata ? [{ name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false }] : []),
       ...(!isStrata ? [{ name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false }] : []),
     ];
     toolsLinks = [
@@ -170,7 +169,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       { name: 'Portfolio Overview', icon: PieChart, to: '/dashboard', exact: true },
       { name: 'Properties', icon: Building, to: '/dashboard/properties', exact: false },
       { name: 'Tenants', icon: Users, to: '/dashboard/tenants', exact: false },
-      { name: 'Leases', icon: FileText, to: '/dashboard/leases', exact: false },
     ];
 
     toolsLinks = [

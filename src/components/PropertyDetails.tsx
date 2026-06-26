@@ -1109,7 +1109,7 @@ export function PropertyDetails() {
         isOpen={isTenancySetupOpen} 
         onClose={() => setIsTenancySetupOpen(false)} 
         propertyId={id || ''} 
-        propertyAddress={property?.address}
+        propertyAddress={`${property?.address || ''}, ${property?.suburb || ''} ${property?.postcode || ''}`}
       />
 
       {/* Edit Property Modal */}
