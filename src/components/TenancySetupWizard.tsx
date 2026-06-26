@@ -260,7 +260,7 @@ export default function TenancySetupWizard({
         );
       return isDateValid && isRepairsValid && areAddressesValid;
     }
-    if (index === 4) return true; // Review step
+    if (index === 4) return false; // Review step
     return false; // Invite tenants step
   };
 
