@@ -17,6 +17,8 @@ import {
   ChevronRight,
   ChevronDown,
   Sparkles,
+  Check,
+  ClipboardCheck,
 } from "lucide-react";
 import { generateVictoriaLeasePdf } from "../utils/leasePdfGenerator";
 import { supabase } from '../lib/supabase';
@@ -41,6 +43,7 @@ const steps = [
   { id: "start_date", label: "Start date", icon: CalendarDays },
   { id: "bond", label: "Bond", icon: Shield },
   { id: "lease_agreement", label: "Lease agreement", icon: FileText },
+  { id: "review_confirm", label: "Review & Confirm", icon: ClipboardCheck },
   { id: "invite_tenants", label: "Invite tenants", icon: Rocket },
 ];
 
@@ -125,6 +128,11 @@ export default function TenancySetupWizard({
       setIsSubmitting(true);
       setSubmitError(null);
 
+      // Get current user for created_by
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) throw new Error("Could not authenticate user");
+      const userId = userData.user.id;
+
       // 1. Fetch property to get the rent amount (fallback to bond/4 if missing)
       const { data: propData } = await supabase
         .from('properties')
@@ -139,12 +147,22 @@ export default function TenancySetupWizard({
         .from('leases')
         .insert([{
           property_id: propertyId,
+          created_by: userId,
           start_date: leaseDetails.startDate,
           end_date: leaseDetails.leaseType === 'Fixed Term' ? leaseDetails.endDate : null,
           rent_amount: rentAmount,
           payment_frequency: 'Monthly',
           status: 'Active', // Setup wizard confirms it instantly, or 'Draft' if waiting for handshake. Assuming 'Active' or 'Draft'. Handshake requires 'Active' lease in some cases, but 'accept_lease' handles it. Let's use 'Draft' for security.
           bond_amount: parseFloat(bondDetails.amount) || 0,
+          bond_is_paid: bondDetails.isPaid,
+          bond_due_date: bondDetails.dueDate || null,
+          signing_provider: leaseAgreementDetails.signingProvider,
+          date_of_agreement: leaseAgreementDetails.dateOfAgreement || null,
+          renter_addresses: leaseAgreementDetails.renterAddresses,
+          urgent_repairs: leaseAgreementDetails.urgentRepairs,
+          owners_corporation: leaseAgreementDetails.ownersCorporation,
+          condition_report_status: leaseAgreementDetails.conditionReport,
+          additional_terms: leaseAgreementDetails.additionalTerms,
         }])
         .select()
         .single();
@@ -161,6 +179,7 @@ export default function TenancySetupWizard({
           .from('tenants')
           .insert([{
             property_id: propertyId,
+            owner_id: userId,
             first_name: t.firstName,
             last_name: t.lastName,
             email: t.email,
@@ -214,16 +233,18 @@ export default function TenancySetupWizard({
 
   const isStepCompleted = (index: number) => {
     if (index === 0) return tenants.length > 0;
-    if (index === 1)
+    if (index === 1) {
       return (
         leaseDetails.startDate !== "" &&
         (leaseDetails.leaseType === "Periodic" || leaseDetails.endDate !== "")
       );
-    if (index === 2)
+    }
+    if (index === 2) {
       return (
         bondDetails.amount !== "" &&
         (!bondDetails.isPaid ? bondDetails.dueDate !== "" : true)
       );
+    }
     if (index === 3) {
       const isDateValid = leaseAgreementDetails.dateOfAgreement !== "";
       const isRepairsValid =
@@ -239,7 +260,8 @@ export default function TenancySetupWizard({
         );
       return isDateValid && isRepairsValid && areAddressesValid;
     }
-    return false;
+    if (index === 4) return true; // Review step
+    return false; // Invite tenants step
   };
 
   const handleEdit = (t: TenantInput) => {
@@ -1308,12 +1330,6 @@ export default function TenancySetupWizard({
                             className="flex justify-between items-center text-base p-4 bg-white border border-slate-100 rounded-lg shadow-sm"
                           >
                             <div className="flex items-center gap-3">
-                              <input 
-                                type="checkbox" 
-                                checked={selectedTenantsToInvite.includes(t.id)} 
-                                onChange={() => toggleTenantInvite(t.id)}
-                                className="w-5 h-5 text-primary border-slate-300 rounded focus:ring-primary cursor-pointer"
-                              />
                               <span className="font-extrabold text-slate-900">
                                 {t.firstName} {t.lastName}
                               </span>
@@ -1466,6 +1482,64 @@ export default function TenancySetupWizard({
                 </div>
               </motion.div>
             )}
+
+            {currentStep === 5 && (
+              <motion.div
+                key="step-5"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+                className="max-w-3xl mx-auto w-full"
+              >
+                <div className="text-center mb-10">
+                  <h3 className="text-3xl font-black text-slate-900 mb-3 drop-shadow-sm">
+                    Invite Tenants
+                  </h3>
+                  <p className="text-slate-700 font-medium text-lg max-w-lg mx-auto">
+                    Select the tenants who should receive a secure email link to review and accept the lease agreement right now.
+                  </p>
+                </div>
+
+                <div className="max-w-xl mx-auto space-y-4">
+                  {tenants.map((t) => {
+                    const isSelected = selectedTenantsToInvite.includes(t.id);
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => toggleTenantInvite(t.id)}
+                        className={`flex justify-between items-center p-5 border-2 rounded-xl cursor-pointer transition-all shadow-sm ${
+                          isSelected 
+                            ? 'border-emerald-500 bg-emerald-50' 
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shadow-sm ${
+                            isSelected ? 'bg-emerald-500 text-white' : 'bg-white border-2 border-slate-300'
+                          }`}>
+                            {isSelected && <Check className="w-4 h-4 stroke-[3]" />}
+                          </div>
+                          <div>
+                            <div className="font-black text-slate-900 text-lg">
+                              {t.firstName} {t.lastName}
+                            </div>
+                            <div className="text-slate-500 font-bold text-sm">
+                              {t.email}
+                            </div>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div className="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm border border-emerald-200">
+                            <Mail className="w-3.5 h-3.5" /> Selected
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
@@ -1491,6 +1565,7 @@ export default function TenancySetupWizard({
                   !isStepCompleted(0) ||
                   !isStepCompleted(1) ||
                   !isStepCompleted(2) ||
+                  !isStepCompleted(3) ||
                   isSubmitting
                 }
                 className="flex items-center gap-2 px-10 py-4 bg-slate-900 text-white rounded-lg text-base font-extrabold hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_20px_rgba(0,0,0,0.15)]"
