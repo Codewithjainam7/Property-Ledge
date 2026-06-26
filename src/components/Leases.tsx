@@ -6,7 +6,7 @@ import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { LeaseGenerator } from './LeaseGenerator';type Lease = {
+type Lease = {
   id: string;
   property_id: string;
   start_date: string;
@@ -255,23 +255,7 @@ export function Leases() {
         </div>
       )}
 
-      {/* Lease Generator Modal */}
-      <AnimatePresence>
-        {showGeneratorModal && (
-          <LeaseGenerator 
-            properties={properties} 
-            initialLease={generatorLease}
-            onSave={() => {
-              sessionStorage.removeItem('cached_leases');
-              if (session?.user?.id) loadData(session.user.id);
-            }}
-            onClose={() => {
-              setShowGeneratorModal(false);
-              setGeneratorLease(null);
-            }} 
-          />
-        )}
-      </AnimatePresence>
+
 
       {/* ── DELETE CONFIRMATION MODAL ── */}
       {createPortal(

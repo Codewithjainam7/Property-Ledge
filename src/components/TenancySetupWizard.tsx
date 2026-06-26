@@ -750,22 +750,36 @@ export default function TenancySetupWizard({
                       <label className="block text-xs font-extrabold text-slate-600 mb-3 uppercase tracking-wider">
                         Payment Status
                       </label>
-                      <div className="flex bg-slate-100 p-1.5 rounded-lg w-fit border border-slate-200 shadow-inner">
+                      <div className="flex bg-slate-100 p-1.5 rounded-[20px] w-fit border border-slate-200 shadow-inner relative">
                         <button
                           onClick={() =>
                             setBondDetails({ ...bondDetails, isPaid: true })
                           }
-                          className={`px-6 py-3 rounded-lg text-sm font-extrabold transition-all ${bondDetails.isPaid ? "bg-white text-slate-900 shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100" : "text-slate-600 hover:text-slate-800"}`}
+                          className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${bondDetails.isPaid ? "text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
                         >
                           Paid
+                          {bondDetails.isPaid && (
+                            <motion.div
+                              layoutId="paymentStatusBg"
+                              className="absolute inset-0 bg-white rounded-[16px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100 z-[-1]"
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
+                          )}
                         </button>
                         <button
                           onClick={() =>
                             setBondDetails({ ...bondDetails, isPaid: false })
                           }
-                          className={`px-6 py-3 rounded-lg text-sm font-extrabold transition-all ${!bondDetails.isPaid ? "bg-white text-slate-900 shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100" : "text-slate-600 hover:text-slate-800"}`}
+                          className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${!bondDetails.isPaid ? "text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
                         >
                           Not Paid
+                          {!bondDetails.isPaid && (
+                            <motion.div
+                              layoutId="paymentStatusBg"
+                              className="absolute inset-0 bg-white rounded-[16px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100 z-[-1]"
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -801,7 +815,7 @@ export default function TenancySetupWizard({
                     <label className="block text-xs font-extrabold text-slate-600 mb-4 uppercase tracking-wider">
                       Collect bond via platform?
                     </label>
-                    <div className="flex bg-slate-100 p-1.5 rounded-lg w-fit border border-slate-200 shadow-inner">
+                    <div className="flex bg-slate-100 p-1.5 rounded-[20px] w-fit border border-slate-200 shadow-inner relative">
                       <button
                         onClick={() =>
                           setBondDetails({
@@ -809,9 +823,16 @@ export default function TenancySetupWizard({
                             collectViaPlatform: true,
                           })
                         }
-                        className={`px-6 py-3 rounded-lg text-sm font-extrabold transition-all ${bondDetails.collectViaPlatform ? "bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]" : "text-slate-600 hover:text-slate-800"}`}
+                        className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${bondDetails.collectViaPlatform ? "text-white" : "text-slate-500 hover:text-slate-700"}`}
                       >
                         Yes, collect via platform
+                        {bondDetails.collectViaPlatform && (
+                          <motion.div
+                            layoutId="collectPlatformBg"
+                            className="absolute inset-0 bg-emerald-500 rounded-[16px] shadow-[0_4px_12px_rgba(16,185,129,0.3)] z-[-1]"
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          />
+                        )}
                       </button>
                       <button
                         onClick={() =>
@@ -820,9 +841,16 @@ export default function TenancySetupWizard({
                             collectViaPlatform: false,
                           })
                         }
-                        className={`px-6 py-3 rounded-lg text-sm font-extrabold transition-all ${!bondDetails.collectViaPlatform ? "bg-white text-slate-900 shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100" : "text-slate-600 hover:text-slate-800"}`}
+                        className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${!bondDetails.collectViaPlatform ? "text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
                       >
                         No
+                        {!bondDetails.collectViaPlatform && (
+                          <motion.div
+                            layoutId="collectPlatformBg"
+                            className="absolute inset-0 bg-white rounded-[16px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100 z-[-1]"
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          />
+                        )}
                       </button>
                     </div>
                   </div>
