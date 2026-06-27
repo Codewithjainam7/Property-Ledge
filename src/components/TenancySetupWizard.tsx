@@ -833,49 +833,58 @@ export default function TenancySetupWizard({
                     </AnimatePresence>
                   </div>
 
-                  <div className="pt-8 border-t border-slate-200/50">
-                    <label className="block text-xs font-extrabold text-slate-600 mb-4 uppercase tracking-wider">
-                      Collect bond via platform?
-                    </label>
-                    <div className="flex bg-slate-100 p-1.5 rounded-[20px] w-fit border border-slate-200 shadow-inner relative">
-                      <button
-                        onClick={() =>
-                          setBondDetails({
-                            ...bondDetails,
-                            collectViaPlatform: true,
-                          })
-                        }
-                        className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${bondDetails.collectViaPlatform ? "text-white" : "text-slate-500 hover:text-slate-700"}`}
+                  <AnimatePresence>
+                    {!bondDetails.isPaid && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginTop: 32 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        className="overflow-hidden border-t border-slate-200/50 pt-8"
                       >
-                        Yes, collect via platform
-                        {bondDetails.collectViaPlatform && (
-                          <motion.div
-                            layoutId="collectPlatformBg"
-                            className="absolute inset-0 bg-emerald-500 rounded-[16px] shadow-[0_4px_12px_rgba(16,185,129,0.3)] z-[-1]"
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                          />
-                        )}
-                      </button>
-                      <button
-                        onClick={() =>
-                          setBondDetails({
-                            ...bondDetails,
-                            collectViaPlatform: false,
-                          })
-                        }
-                        className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${!bondDetails.collectViaPlatform ? "text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
-                      >
-                        No
-                        {!bondDetails.collectViaPlatform && (
-                          <motion.div
-                            layoutId="collectPlatformBg"
-                            className="absolute inset-0 bg-white rounded-[16px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100 z-[-1]"
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                          />
-                        )}
-                      </button>
-                    </div>
-                  </div>
+                        <label className="block text-xs font-extrabold text-slate-600 mb-4 uppercase tracking-wider">
+                          Collect bond via platform?
+                        </label>
+                        <div className="flex bg-slate-100 p-1.5 rounded-[20px] w-fit border border-slate-200 shadow-inner relative">
+                          <button
+                            onClick={() =>
+                              setBondDetails({
+                                ...bondDetails,
+                                collectViaPlatform: true,
+                              })
+                            }
+                            className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${bondDetails.collectViaPlatform ? "text-white" : "text-slate-500 hover:text-slate-700"}`}
+                          >
+                            Yes, collect via platform
+                            {bondDetails.collectViaPlatform && (
+                              <motion.div
+                                layoutId="collectPlatformBg"
+                                className="absolute inset-0 bg-emerald-500 rounded-[16px] shadow-[0_4px_12px_rgba(16,185,129,0.3)] z-[-1]"
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              />
+                            )}
+                          </button>
+                          <button
+                            onClick={() =>
+                              setBondDetails({
+                                ...bondDetails,
+                                collectViaPlatform: false,
+                              })
+                            }
+                            className={`relative z-10 px-6 py-2.5 rounded-[16px] text-sm font-extrabold transition-colors duration-300 ${!bondDetails.collectViaPlatform ? "text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
+                          >
+                            No
+                            {!bondDetails.collectViaPlatform && (
+                              <motion.div
+                                layoutId="collectPlatformBg"
+                                className="absolute inset-0 bg-white rounded-[16px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-slate-100 z-[-1]"
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              />
+                            )}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}
