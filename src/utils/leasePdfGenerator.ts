@@ -58,7 +58,8 @@ export const generateVictoriaLeasePdf = (
   tenants: TenantInput[],
   bondDetails: BondDetails,
   leaseDetails: LeaseDetails,
-  propertyAddress: string = ""
+  propertyAddress: string = "",
+  propertyId: string = ""
 ) => {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = 15; // current y position
@@ -137,6 +138,17 @@ export const generateVictoriaLeasePdf = (
     }
   };
 
+  // Calculate Lease ID
+  let leaseIdDisplay = "";
+  if (propertyId) {
+    let hash = 0;
+    for (let i = 0; i < propertyId.length; i++) {
+      hash = ((hash << 5) - hash) + propertyId.charCodeAt(i);
+      hash |= 0;
+    }
+    leaseIdDisplay = `L-${Math.abs(hash).toString().substring(0, 8).padEnd(6, '0')}`;
+  }
+
   // ═══════════════════════════════════════════
   // HEADER
   // ═══════════════════════════════════════════
@@ -144,6 +156,14 @@ export const generateVictoriaLeasePdf = (
   doc.setFontSize(18);
   setColor(BLACK);
   doc.text("Residential rental agreement", LEFT, y);
+  
+  if (leaseIdDisplay) {
+    doc.setFont("courier", "bold");
+    doc.setFontSize(10);
+    doc.text(`LEASE ID: ${leaseIdDisplay}`, RIGHT - 40, y);
+    doc.setFont("helvetica", "bold");
+  }
+
   y += 6;
 
   doc.setFontSize(12);

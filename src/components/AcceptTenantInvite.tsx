@@ -77,13 +77,10 @@ export function AcceptTenantInvite() {
         
         if (error || !data) {
           setPreviewError('Could not load invitation details. The link may have expired, or you have already accepted it.');
-        } else {
           setInvite(data);
           setFirstName(data.first_name || '');
           setLastName(data.last_name || '');
-          if (!data.passcode) {
-            setIsPasscodeVerified(true);
-          }
+          setIsPasscodeVerified(true);
         }
       } catch (err) {
         setPreviewError('Could not connect to the server. Please check your internet connection.');
@@ -347,46 +344,7 @@ export function AcceptTenantInvite() {
             )}
 
             {!isPasscodeVerified ? (
-              <motion.div
-                key="otp-step"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="w-full text-center"
-              >
-                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4 border border-blue-100 text-blue-500">
-                  <Lock className="w-8 h-8" />
-                </div>
-                <h3 className="font-bold text-[#0f172a] text-lg mb-2">Security Verification</h3>
-                <p className="text-[#64748b] text-[13px] font-medium mb-6 px-4">
-                  Please enter the 6-digit security passcode sent to your email to verify your identity.
-                </p>
-
-                {passcodeError && (
-                  <div className="mb-4 p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm font-bold flex gap-2 items-center justify-center">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <p>{passcodeError}</p>
-                  </div>
-                )}
-
-                <form onSubmit={handleVerifyPasscode}>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={passcodeInput}
-                    onChange={e => setPasscodeInput(e.target.value)}
-                    placeholder="Enter 6-digit code"
-                    className="w-full text-center tracking-[0.5em] font-bold bg-white border border-slate-200 rounded-xl px-4 py-4 text-[#0f172a] text-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 placeholder:tracking-normal placeholder:font-medium"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full bg-[#0a5cff] hover:bg-blue-700 text-white font-bold py-4 rounded-full transition-all flex items-center justify-center gap-2 text-[15px] mt-4 shadow-md shadow-blue-500/20"
-                  >
-                    Verify Passcode
-                  </button>
-                </form>
-              </motion.div>
+              <></>
             ) : (
               <AnimatePresence mode="wait">
                 {/* ─── CASE 1: Logged in, email matches ─── */}

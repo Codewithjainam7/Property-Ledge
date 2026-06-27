@@ -406,6 +406,7 @@ export function TenantLeaseDashboard() {
                     <thead>
                       <tr className="border-b border-slate-100 text-[10px] text-slate-400 font-black uppercase tracking-wider">
                         <th className="pb-3 pl-4">Invoice No.</th>
+                        <th className="pb-3">Lease ID</th>
                         <th className="pb-3">Issue Date</th>
                         <th className="pb-3">Due Date</th>
                         <th className="pb-3">Amount</th>
@@ -414,11 +415,22 @@ export function TenantLeaseDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {invoices.map((inv) => (
+                      {invoices.map((inv) => {
+                        // Generate deterministic Lease ID from invoice's lease_id or property_id
+                        let hash = 0;
+                        const idToHash = inv.lease_id || inv.property_id || inv.id;
+                        for (let i = 0; i < idToHash.length; i++) {
+                          hash = ((hash << 5) - hash) + idToHash.charCodeAt(i);
+                          hash |= 0;
+                        }
+                        const leaseIdDisplay = `L-${Math.abs(hash).toString().substring(0, 8).padEnd(6, '0')}`;
+                        
+                        return (
                         <tr key={inv.id} className="text-sm font-semibold text-slate-600 hover:bg-slate-50/50 transition-colors group">
                           <td className="py-4 pl-4 font-bold text-slate-900">
                             {inv.invoice_number || `INV-${inv.id.substring(0,6).toUpperCase()}`}
                           </td>
+                          <td className="py-4 text-slate-500 font-mono text-xs">{leaseIdDisplay}</td>
                           <td className="py-4">{formatDate(inv.issue_date)}</td>
                           <td className="py-4">{formatDate(inv.due_date)}</td>
                           <td className="py-4 font-bold text-slate-900">${Number(inv.total_amount).toFixed(2)}</td>
@@ -454,7 +466,8 @@ export function TenantLeaseDashboard() {
                             )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

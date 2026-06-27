@@ -253,8 +253,21 @@ export function TenantPortal() {
                                 <FileText className="w-5 h-5" />
                               </div>
                               <div>
-                                <div className="text-sm font-bold text-on-surface">Invoice {inv.invoice_number}</div>
-                                <div className="text-xs text-on-surface-variant">Due: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</div>
+                                <div className="text-sm font-bold text-on-surface">
+                                  Invoice {inv.invoice_number || `INV-${inv.id.substring(0,6).toUpperCase()}`}
+                                </div>
+                                <div className="text-[10px] text-on-surface-variant font-mono">
+                                  Lease ID: {(() => {
+                                    let hash = 0;
+                                    const idToHash = inv.lease_id || inv.property_id || inv.id;
+                                    for (let i = 0; i < idToHash.length; i++) {
+                                      hash = ((hash << 5) - hash) + idToHash.charCodeAt(i);
+                                      hash |= 0;
+                                    }
+                                    return `L-${Math.abs(hash).toString().substring(0, 8).padEnd(6, '0')}`;
+                                  })()}
+                                </div>
+                                <div className="text-xs text-on-surface-variant mt-0.5">Due: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</div>
                               </div>
                             </div>
                             <div className="text-right">

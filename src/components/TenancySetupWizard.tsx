@@ -177,8 +177,6 @@ export default function TenancySetupWizard({
       for (const t of tenants) {
         const isSelectedForInvite = selectedTenantsToInvite.includes(t.id);
         const inviteToken = isSelectedForInvite ? crypto.randomUUID() : null;
-        const passcode = isSelectedForInvite ? Math.floor(100000 + Math.random() * 900000).toString() : null;
-        
         const { data: newTenant, error: tenantError } = await supabase
           .from('tenants')
           .insert([{
@@ -220,8 +218,7 @@ export default function TenancySetupWizard({
                   inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
                   leaseStart: leaseDetails.startDate,
                   rentAmount: rentAmount,
-                  bondAmount: bondDetails.amount || '0',
-                  passcode: passcode
+                  bondAmount: bondDetails.amount || '0'
                 }
               }
             });
@@ -1280,7 +1277,8 @@ export default function TenancySetupWizard({
                           tenants,
                           bondDetails,
                           leaseDetails,
-                          propertyAddress
+                          property.address,
+                          property.id
                         );
                       }}
                       className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 shadow-sm text-slate-800 rounded-lg text-sm font-extrabold hover:bg-slate-50 hover:border-slate-300 transition-all"
@@ -1641,12 +1639,12 @@ export default function TenancySetupWizard({
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + i * 0.1 }}
                       key={i} 
-                      className="flex items-center gap-4 bg-white/60 backdrop-blur-md p-4 rounded-[20px] border border-white/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                      className="flex items-center gap-4 bg-white px-5 py-4 rounded-[20px] border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
                     >
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100/50">
-                        <User className="w-5 h-5 text-indigo-500" />
+                      <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
+                        <User className="w-5 h-5 text-emerald-500" />
                       </div>
-                      <span className="text-slate-800 font-bold text-lg tracking-tight">
+                      <span className="text-slate-800 font-extrabold text-lg tracking-tight">
                         {name}
                       </span>
                     </motion.div>

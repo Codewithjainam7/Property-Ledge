@@ -216,7 +216,6 @@ export function Tenants() {
 
       // Create tenant (Invited or Active)
       const inviteToken = method === 'invite' ? crypto.randomUUID() : null;
-      const passcode = method === 'invite' ? Math.floor(100000 + Math.random() * 900000).toString() : null;
       const status = method === 'invite' ? 'Invited' : 'Active';
 
       const { data: newTenant, error: tenantErr } = await supabase
@@ -230,7 +229,6 @@ export function Tenants() {
           user_id: !rpcError && existingUserId ? existingUserId : null,
           status: status,
           invite_token: inviteToken,
-          passcode: passcode,
           access_level: { receives_emails: true, can_login: method === 'invite' }
         })
         .select()
@@ -298,7 +296,6 @@ export function Tenants() {
                 tenantFirstName: inviteForm.firstName,
                 propertyAddress: `${property.address}, ${property.suburb}`,
                 inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
-                passcode: passcode,
                 startDate: inviteForm.leaseStart,
                 rentAmount: inviteForm.rentAmount || '0',
                 senderName: landlordEmail,

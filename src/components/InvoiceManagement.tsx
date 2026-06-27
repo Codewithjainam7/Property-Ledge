@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, FileText, Settings, CreditCard, ChevronRight, Calendar, Bell, ShieldCheck, Clock, CheckCircle2, AlertCircle, Trash2, BarChart2, Mail, MailOpen, Activity, Search, Filter } from 'lucide-react';
-import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox } from '@mui/material';
+import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox, Select, MenuItem, FormControl } from '@mui/material';
 
 import { InvoiceGenerator } from './InvoiceGenerator';
 import { InvoiceTemplateBuilder } from './InvoiceTemplateBuilder';
@@ -34,8 +34,8 @@ export function InvoiceManagement() {
 
     const managedPropertyIds = userContext?.teamPropertyIds || [];
 
-    let invsQuery = supabase.from('invoices').select('*, properties(address, tenant_name)').order('created_at', { ascending: false });
-    let propsQuery = supabase.from('properties').select('id, address, tenant_name, rent_amount, payment_frequency');
+    let invsQuery = supabase.from('invoices').select('*, properties(*)').order('created_at', { ascending: false });
+    let propsQuery = supabase.from('properties').select('*');
 
     if (managedPropertyIds.length > 0) {
       invsQuery = invsQuery.or(`user_id.eq.${userId},property_id.in.(${managedPropertyIds.join(',')})`);
@@ -64,8 +64,8 @@ export function InvoiceManagement() {
       // Map Supabase snake_case fields to what the UI expects
       setInvoices(inv.map(i => ({
         ...i,
-        tenantName: i.properties?.tenant_name || 'Unknown Tenant',
-        propertyName: i.properties?.address || 'Unknown Property',
+        tenantName: i.tenant_name || i.properties?.tenant_name || 'Unknown Tenant',
+        propertyName: i.property_address || i.properties?.address || 'Unknown Property',
         dueDate: i.due_date,
         totalAmount: i.total_amount,
         templateId: i.template_id,
@@ -150,19 +150,10 @@ export function InvoiceManagement() {
   };
 
   const tabs = [
-    { label: "Dashboard", icon: <BarChart2 className="w-4 h-4" /> },
     { label: "Invoices", icon: <FileText className="w-4 h-4" /> },
     { label: "Follow Up", icon: <AlertCircle className="w-4 h-4" /> },
     { label: "Automation", icon: <Calendar className="w-4 h-4" /> }
   ];
-
-  const stats = {
-    total: invoices.length,
-    sent: invoices.filter(i => i.status === 'Sent' || i.status === 'Viewed').length,
-    paid: invoices.filter(i => i.status === 'Paid' || i.status === 'Partially Paid').length,
-    overdue: invoices.filter(i => i.status === 'Overdue').length,
-    scheduled: invoices.filter(i => i.status === 'Draft').length
-  };
 
   const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
   const unopenedInvoices = invoices.filter(i => i.status === 'Sent');
@@ -226,46 +217,8 @@ export function InvoiceManagement() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* Tab 0: Dashboard (Epic 6.1) */}
+          {/* Tab 0: Invoices List */}
           {activeTab === 0 && (
-            <motion.div key="dashboard" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-                {[
-                  { label: "Total Invoices", value: stats.total, color: "bg-blue-50 text-blue-700 border-blue-200" },
-                  { label: "Sent", value: stats.sent, color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-                  { label: "Paid", value: stats.paid, color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-                  { label: "Overdue", value: stats.overdue, color: "bg-red-50 text-red-700 border-red-200" },
-                  { label: "Scheduled", value: stats.scheduled, color: "bg-amber-50 text-amber-700 border-amber-200" }
-                ].map((stat, i) => (
-                  <div key={i} className={`rounded-3xl p-6 border shadow-sm flex flex-col justify-center items-center text-center ${stat.color}`}>
-                    <Typography variant="h3" sx={{ fontWeight: 900, fontFamily: 'Space Grotesk', mb: 1 }}>{stat.value}</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>{stat.label}</Typography>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-white/60 backdrop-blur-3xl border border-white/80 rounded-[40px] p-8 md:p-10 shadow-[0_16px_40px_-12px_rgba(59,34,181,0.06)]">
-                <div className="flex items-center gap-4 mb-6">
-                  <Activity className="w-6 h-6 text-primary" />
-                  <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Space Grotesk' }}>Recent Activity</Typography>
-                </div>
-                {invoices.slice(0, 5).map((inv, idx) => (
-                  <div key={idx} className="flex justify-between items-center py-4 border-b border-gray-100 last:border-0">
-                    <div>
-                      <Typography sx={{ fontWeight: 800 }}>Invoice {inv.invoice_number} - {inv.tenantName}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>Due: {new Date(inv.dueDate).toLocaleDateString()}</Typography>
-                    </div>
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${inv.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : inv.status === 'Overdue' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
-                      {inv.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Tab 1: Invoices List */}
-          {activeTab === 1 && (
             <motion.div key="invoices" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
               {dataLoading ? (
                 <div className="space-y-4">
@@ -335,17 +288,78 @@ export function InvoiceManagement() {
                     <div className="flex items-center gap-2 text-sm font-bold bg-white/60 rounded-full px-4 py-2 border border-white">
                       <Filter className="w-4 h-4 text-primary" /> Filter by:
                     </div>
-                    <select className="bg-white/60 rounded-full px-4 py-2 text-sm font-bold outline-none border border-white cursor-pointer">
-                      <option value="all">All Properties</option>
-                      {properties.map(p => <option key={p.id} value={p.id}>{p.address}</option>)}
-                    </select>
-                    <select className="bg-white/60 rounded-full px-4 py-2 text-sm font-bold outline-none border border-white cursor-pointer">
-                      <option value="all">All Statuses</option>
-                      <option value="Draft">Draft</option>
-                      <option value="Sent">Sent</option>
-                      <option value="Overdue">Overdue</option>
-                      <option value="Paid">Paid</option>
-                    </select>
+                    <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200 }}>
+                      <Select
+                        defaultValue="all"
+                        displayEmpty
+                        sx={{
+                          bgcolor: 'rgba(255, 255, 255, 0.6)',
+                          borderRadius: '9999px',
+                          border: '1px solid white',
+                          boxShadow: 'none',
+                          '.MuiOutlinedInput-notchedOutline': { border: 0 },
+                          '&:hover .MuiOutlinedInput-notchedOutline': { border: 0 },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 0 },
+                          fontWeight: 700,
+                          fontSize: '0.875rem',
+                          color: '#1c1c28',
+                          py: 0.5,
+                          pl: 1
+                        }}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              borderRadius: '16px',
+                              boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
+                              mt: 1,
+                              border: '1px solid rgba(255,255,255,0.6)',
+                              backdropFilter: 'blur(16px)'
+                            }
+                          }
+                        }}
+                      >
+                        <MenuItem value="all" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>All Properties</MenuItem>
+                        {properties.map(p => <MenuItem key={p.id} value={p.id} sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.address}</MenuItem>)}
+                      </Select>
+                    </FormControl>
+
+                    <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200 }}>
+                      <Select
+                        defaultValue="all"
+                        displayEmpty
+                        sx={{
+                          bgcolor: 'rgba(255, 255, 255, 0.6)',
+                          borderRadius: '9999px',
+                          border: '1px solid white',
+                          boxShadow: 'none',
+                          '.MuiOutlinedInput-notchedOutline': { border: 0 },
+                          '&:hover .MuiOutlinedInput-notchedOutline': { border: 0 },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 0 },
+                          fontWeight: 700,
+                          fontSize: '0.875rem',
+                          color: '#1c1c28',
+                          py: 0.5,
+                          pl: 1
+                        }}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              borderRadius: '16px',
+                              boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
+                              mt: 1,
+                              border: '1px solid rgba(255,255,255,0.6)',
+                              backdropFilter: 'blur(16px)'
+                            }
+                          }
+                        }}
+                      >
+                        <MenuItem value="all" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>All Statuses</MenuItem>
+                        <MenuItem value="Draft" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Draft</MenuItem>
+                        <MenuItem value="Sent" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Sent</MenuItem>
+                        <MenuItem value="Overdue" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Overdue</MenuItem>
+                        <MenuItem value="Paid" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Paid</MenuItem>
+                      </Select>
+                    </FormControl>
                   </div>
 
                   <div className="grid gap-4">
@@ -421,8 +435,8 @@ export function InvoiceManagement() {
             </motion.div>
           )}
 
-          {/* Tab 2: Follow Up Dashboard (Epic 6.2) */}
-          {activeTab === 2 && (
+          {/* Tab 1: Follow Up Dashboard (Epic 6.2) */}
+          {activeTab === 1 && (
             <motion.div key="followup" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
@@ -491,8 +505,8 @@ export function InvoiceManagement() {
               </div>
             </motion.div>
           )}
-          {/* Tab 3: Automation */}
-          {activeTab === 3 && (
+          {/* Tab 2: Automation */}
+          {activeTab === 2 && (
             <motion.div key="automation" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.3 }}>
                <div className="bg-white/60 backdrop-blur-3xl border border-white/80 rounded-[40px] p-8 md:p-10 shadow-[0_16px_40px_-12px_rgba(59,34,181,0.06)] relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
@@ -585,7 +599,7 @@ export function InvoiceManagement() {
       </div>
 
       <AnimatePresence>
-        {showGenerator && <InvoiceGenerator properties={properties} onClose={() => { setShowGenerator(false); setSelectedInvoice(null); loadData(); }} />}
+        {showGenerator && <InvoiceGenerator properties={properties} initialData={selectedInvoice} onClose={() => { setShowGenerator(false); setSelectedInvoice(null); loadData(); }} />}
         {showTemplateBuilder && <InvoiceTemplateBuilder onClose={() => setShowTemplateBuilder(false)} />}
       </AnimatePresence>
 

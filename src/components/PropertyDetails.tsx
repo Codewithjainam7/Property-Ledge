@@ -35,6 +35,12 @@ export function PropertyDetails() {
   const [editError, setEditError] = useState('');
   const [editing, setEditing] = useState(false);
 
+  // Edit Tenant State
+  const [showEditTenantModal, setShowEditTenantModal] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<any>(null);
+  const [tenantEditError, setTenantEditError] = useState('');
+  const [editingTenantLoading, setEditingTenantLoading] = useState(false);
+
   // Tenant Invitation State
   const [loadingData, setLoadingData] = useState(true);
   const [tenants, setTenants] = useState<any[]>([]);
@@ -636,28 +642,67 @@ export function PropertyDetails() {
     setEditing(true);
 
     try {
-      const { error } = await supabase.from('properties').update({
-        address: editingProperty.address,
-        suburb: editingProperty.suburb,
-        postcode: editingProperty.postcode,
-        state: editingProperty.state,
-        property_type: editingProperty.propertyType,
-        bedrooms: parseInt(editingProperty.bedrooms) || 0,
-        bathrooms: parseFloat(editingProperty.bathrooms) || 0,
-        car_spaces: parseInt(editingProperty.car_spaces) || 0,
-        rent_amount: parseFloat(editingProperty.rentAmount || editingProperty.rent_amount) || 0,
-        status: editingProperty.status
-      }).eq('id', id);
+      const { error } = await supabase
+        .from('properties')
+        .update({
+          address: editingProperty.address,
+          suburb: editingProperty.suburb,
+          postcode: editingProperty.postcode,
+          state: editingProperty.state,
+          property_type: editingProperty.propertyType,
+          bedrooms: parseInt(editingProperty.bedrooms) || 0,
+          bathrooms: parseInt(editingProperty.bathrooms) || 0,
+          car_spaces: parseInt(editingProperty.car_spaces) || 0,
+          rent_amount: parseFloat(editingProperty.rentAmount) || 0,
+          payment_frequency: editingProperty.paymentFrequency,
+          lease_duration: parseInt(editingProperty.leaseDuration) || 12,
+        })
+        .eq('id', id);
 
       if (error) throw error;
-
-      setProperty(prev => ({ ...prev, ...editingProperty }));
+      
+      setProperty({
+        ...property,
+        ...editingProperty,
+        rentAmount: editingProperty.rentAmount,
+        propertyType: editingProperty.propertyType,
+        paymentFrequency: editingProperty.paymentFrequency,
+      });
       setShowEditPropertyModal(false);
     } catch (err: any) {
-      console.error("Edit property error:", err);
-      setEditError(err.message || "Failed to update property details.");
+      console.error('Error updating property:', err);
+      setEditError(err.message || 'Failed to update property details.');
     } finally {
       setEditing(false);
+    }
+  };
+
+  const handleEditTenantSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTenant) return;
+    setTenantEditError('');
+    setEditingTenantLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('tenants')
+        .update({
+          first_name: editingTenant.first_name,
+          last_name: editingTenant.last_name,
+          email: editingTenant.email,
+          phone: editingTenant.phone,
+        })
+        .eq('id', editingTenant.id);
+
+      if (error) throw error;
+      
+      setShowEditTenantModal(false);
+      loadProperty(); // Refresh to show new tenant details
+    } catch (err: any) {
+      console.error('Error updating tenant:', err);
+      setTenantEditError(err.message || 'Failed to update tenant details.');
+    } finally {
+      setEditingTenantLoading(false);
     }
   };
 
@@ -761,16 +806,29 @@ export function PropertyDetails() {
                           {isInvited ? 'Invited' : 'Confirmed'}
                         </div>
                         {(permissions?.can_manage_tenants || permissions?.is_owner) && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              isInvited ? handleCancelInvite(t.id) : handleRemoveTenant(t.id);
-                            }}
-                            className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 transition-colors cursor-pointer"
-                            title={isInvited ? "Cancel Invitation" : "Remove Tenant"}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTenant(t);
+                                setShowEditTenantModal(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-slate-500/10 text-slate-600 hover:bg-slate-500/20 transition-colors cursor-pointer"
+                              title="Edit Tenant"
+                            >
+                              <Wrench className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                isInvited ? handleCancelInvite(t.id) : handleRemoveTenant(t.id);
+                              }}
+                              className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                              title={isInvited ? "Cancel Invitation" : "Remove Tenant"}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1715,6 +1773,110 @@ export function PropertyDetails() {
                     </div>
                   </div>
                 </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Edit Tenant Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {showEditTenantModal && editingTenant && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md cursor-pointer" onClick={() => setShowEditTenantModal(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', duration: 0.5 }} className="relative w-full max-w-lg bg-[#f2f4f3] border border-outline-variant/40 rounded-[28px] shadow-2xl overflow-y-auto max-h-[90vh] z-10 p-6 sm:p-10">
+                
+                <button
+                  onClick={() => setShowEditTenantModal(false)}
+                  className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+
+                <div className="w-full mb-6 text-center">
+                  <h3 className="text-[1.5rem] sm:text-[1.75rem] font-[900] tracking-[-0.5px] font-['Space_Grotesk'] mb-2">Edit Tenant</h3>
+                  <p className="text-sm text-on-surface-variant">Update tenant contact details.</p>
+                </div>
+                
+                <div className="w-full">
+                  {tenantEditError && (
+                    <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-[16px] text-sm font-bold flex gap-3 items-center shadow-sm">
+                      <AlertTriangle className="w-5 h-5 shrink-0" />
+                      <p>{tenantEditError}</p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleEditTenantSubmit}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap'} }}>
+                        <TextField 
+                          label="First Name" 
+                          name="firstName" 
+                          required
+                          fullWidth
+                          value={editingTenant.first_name || ''}
+                          onChange={(e) => setEditingTenant({...editingTenant, first_name: e.target.value})}
+                        />
+                        <TextField 
+                          label="Last Name" 
+                          name="lastName" 
+                          required
+                          fullWidth
+                          value={editingTenant.last_name || ''}
+                          onChange={(e) => setEditingTenant({...editingTenant, last_name: e.target.value})}
+                        />
+                      </Box>
+                      
+                      <TextField 
+                        label="Email Address" 
+                        name="email" 
+                        type="email"
+                        required
+                        fullWidth
+                        value={editingTenant.email || ''}
+                        onChange={(e) => setEditingTenant({...editingTenant, email: e.target.value})}
+                      />
+                      
+                      <TextField 
+                        label="Phone Number" 
+                        name="phone"
+                        fullWidth
+                        value={editingTenant.phone || ''}
+                        onChange={(e) => setEditingTenant({...editingTenant, phone: e.target.value})}
+                      />
+                      
+                      <div className="mt-4 pt-6 border-t border-outline-variant/30 flex gap-3 justify-end">
+                        <Button 
+                          variant="outlined" 
+                          color="inherit" 
+                          onClick={() => setShowEditTenantModal(false)}
+                          disabled={editingTenantLoading}
+                          sx={{ borderRadius: '999px', textTransform: 'none', fontWeight: 800, px: 4 }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          variant="contained"
+                          disabled={editingTenantLoading}
+                          sx={{ 
+                            borderRadius: '999px', 
+                            textTransform: 'none', 
+                            fontWeight: 800, 
+                            px: 4,
+                            bgcolor: 'var(--color-primary)',
+                            '&:hover': { bgcolor: 'var(--color-primary)' },
+                            boxShadow: 'none'
+                          }}
+                        >
+                          {editingTenantLoading ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                      </div>
+                    </Box>
+                  </form>
+                </div>
               </motion.div>
             </div>
           )}

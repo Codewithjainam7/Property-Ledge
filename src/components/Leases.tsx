@@ -6,6 +6,9 @@ import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { LeaseManagerModal } from './LeaseManagerModal';
+import { generateVictoriaLeasePdf } from '../utils/leasePdfGenerator';
+
 type Lease = {
   id: string;
   property_id: string;
@@ -18,9 +21,15 @@ type Lease = {
   properties?: {
     address: string;
     suburb: string;
-    tenant_name: string;
     owner_id: string;
   };
+  lease_tenants?: {
+    tenants: {
+      first_name: string;
+      last_name: string;
+      email: string;
+    }
+  }[];
 };
 
 export function Leases() {
@@ -28,11 +37,10 @@ export function Leases() {
   const [leases, setLeases] = useState<Lease[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showLeaseModal, setShowLeaseModal] = useState(false);
   const [showGeneratorModal, setShowGeneratorModal] = useState(false);
   const [canEditPropertyIds, setCanEditPropertyIds] = useState<string[]>([]);
-  
-  // Generator State (for Edit / Download)
-  const [generatorLease, setGeneratorLease] = useState<Lease | null>(null);
+  const [initialLeaseData, setInitialLeaseData] = useState<any>(null);
 
   // Delete Lease State
   const [deletingLeaseId, setDeletingLeaseId] = useState<string | null>(null);
@@ -66,7 +74,7 @@ export function Leases() {
       setCanEditPropertyIds(editLeasePropertyIds);
       
       // Load properties for dropdown
-      let propsQuery = supabase.from('properties').select('id, address, tenant_name, tenant_email, lease_start, lease_duration, suburb, rent_amount');
+      let propsQuery = supabase.from('properties').select('id, address, suburb, rent_amount, owner_id');
       if (createLeasePropertyIds.length > 0) {
         propsQuery = propsQuery.or(`owner_id.eq.${userId},id.in.(${createLeasePropertyIds.join(',')})`);
       } else {
@@ -79,7 +87,13 @@ export function Leases() {
         sessionStorage.setItem('cached_properties', JSON.stringify(propsData));
       }
       
-      const query = supabase.from('leases').select('*, properties!inner(address, suburb, tenant_name, owner_id)').order('created_at', { ascending: false });
+      const query = supabase.from('leases').select(`
+        *,
+        properties!inner(address, suburb, owner_id),
+        lease_tenants (
+          tenants (first_name, last_name, email)
+        )
+      `).order('created_at', { ascending: false });
       
       const { data: leaseData, error: leaseError } = await query;
 
@@ -105,6 +119,14 @@ export function Leases() {
   };
 
   const handleDeleteLease = async (leaseId: string) => {
+    // Check if lease has active tenants
+    const leaseToDelete = leases.find(l => l.id === leaseId);
+    if (leaseToDelete && leaseToDelete.lease_tenants && leaseToDelete.lease_tenants.length > 0) {
+      alert('Cannot delete lease with attached tenants. Please remove the tenants or end the lease first.');
+      setDeletingLeaseId(null);
+      return;
+    }
+
     setIsDeleting(true);
     try {
       const { error } = await supabase.from('leases').delete().eq('id', leaseId);
@@ -118,6 +140,65 @@ export function Leases() {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleUpdateStatus = async (leaseId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase.from('leases').update({ status: newStatus }).eq('id', leaseId);
+      if (error) throw error;
+      sessionStorage.removeItem('cached_leases');
+      if (session?.user?.id) loadData(session.user.id);
+    } catch (err: any) {
+      console.error('Update status error:', err);
+      alert('Failed to update status');
+    }
+  };
+
+  const handleConvertToPeriodic = async (leaseId: string) => {
+    try {
+      const { error } = await supabase.from('leases').update({ end_date: null, status: 'Active' }).eq('id', leaseId);
+      if (error) throw error;
+      sessionStorage.removeItem('cached_leases');
+      if (session?.user?.id) loadData(session.user.id);
+    } catch (err: any) {
+      console.error('Convert periodic error:', err);
+      alert('Failed to convert to periodic');
+    }
+  };
+
+  const handleRenewLease = (lease: Lease) => {
+    setInitialLeaseData({
+      propertyId: lease.property_id,
+      startDate: lease.end_date ? new Date(new Date(lease.end_date).getTime() + 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      endDate: '',
+      isPeriodic: false,
+      rentAmount: lease.rent_amount,
+      paymentFrequency: lease.payment_frequency,
+      bondAmount: lease.bond_amount,
+      tenants: lease.lease_tenants?.map((lt: any) => ({
+        firstName: lt.tenants?.first_name || '',
+        lastName: lt.tenants?.last_name || '',
+        email: lt.tenants?.email || ''
+      })).filter((t: any) => t.firstName) || []
+    });
+    setShowLeaseModal(true);
+  };
+  const getLeaseTimeRemaining = (endDate: string | null, status: string) => {
+    if (status === 'Expired') return 'Expired';
+    if (!endDate) return 'Periodic (Month-to-Month)';
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return `Expired ${Math.abs(diffDays)} days ago`;
+    if (diffDays === 0) return 'Expires today';
+    if (diffDays < 30) return `Expires in ${diffDays} days`;
+    
+    const diffMonths = Math.floor(diffDays / 30);
+    const remainingDays = diffDays % 30;
+    if (diffMonths === 1) return `Expires in 1 month${remainingDays > 0 ? `, ${remainingDays} days` : ''}`;
+    return `Expires in ${diffMonths} months`;
   };
 
   const getStatusColor = (status: string) => {
@@ -144,7 +225,7 @@ export function Leases() {
         </div>
         {properties.length > 0 && (
           <button 
-            onClick={() => { setGeneratorLease(null); setShowGeneratorModal(true); }}
+            onClick={() => setShowLeaseModal(true)}
             className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
           >
             <Plus className="w-5 h-5" />
@@ -166,7 +247,7 @@ export function Leases() {
               <p className="text-on-surface-variant max-w-sm mb-6">You don't have any leases recorded yet. Create one manually or wait for a tenant to sign a rental application.</p>
               {properties.length > 0 && (
                 <button 
-                  onClick={() => { setGeneratorLease(null); setShowGeneratorModal(true); }}
+                  onClick={() => setShowLeaseModal(true)}
                   className="bg-primary text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors"
                 >
                   Create First Lease
@@ -202,16 +283,32 @@ export function Leases() {
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-slate-400" />
-                            <span className="font-medium text-on-surface">{lease.properties?.tenant_name || 'No Tenant Linked'}</span>
+                          <div className="flex flex-col gap-1">
+                            {lease.lease_tenants && lease.lease_tenants.length > 0 ? (
+                              lease.lease_tenants.map((lt: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <User className="w-3.5 h-3.5 text-slate-400" />
+                                  <span className="font-medium text-sm text-on-surface">{lt.tenants?.first_name} {lt.tenants?.last_name}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <User className="w-3.5 h-3.5 text-slate-300" />
+                                <span className="text-sm text-slate-400 italic">No Tenants</span>
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Calendar className="w-4 h-4 text-slate-400" />
-                            {new Date(lease.start_date).toLocaleDateString()} <ArrowRight className="w-3 h-3 text-slate-300 mx-1" /> 
-                            {lease.end_date ? new Date(lease.end_date).toLocaleDateString() : 'Periodic'}
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <Calendar className="w-4 h-4 text-slate-400" />
+                              {new Date(lease.start_date).toLocaleDateString()} <ArrowRight className="w-3 h-3 text-slate-300 mx-1" /> 
+                              {lease.end_date ? new Date(lease.end_date).toLocaleDateString() : 'Periodic'}
+                            </div>
+                            <div className={`text-[11px] font-bold ${lease.status === 'Expired' || (lease.end_date && new Date(lease.end_date) < new Date()) ? 'text-red-500' : 'text-primary'}`}>
+                              {getLeaseTimeRemaining(lease.end_date, lease.status)}
+                            </div>
                           </div>
                         </td>
                         <td className="p-4">
@@ -227,12 +324,66 @@ export function Leases() {
                         </td>
                         <td className="p-4 pr-6 text-right">
                           <div className="flex items-center justify-end gap-2 flex-wrap">
+                            {/* Status Toggles & Actions */}
+                            {lease.status === 'Active' && (
+                              <>
+                                <button onClick={() => handleUpdateStatus(lease.id, 'Expired')} className="text-xs px-2 py-1.5 font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200">
+                                  Set Expired
+                                </button>
+                                {lease.end_date && (
+                                  <button onClick={() => handleConvertToPeriodic(lease.id)} className="text-xs px-2 py-1.5 font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200">
+                                    Make Periodic
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            {(lease.status === 'Expired' || lease.status === 'Active') && (
+                              <button onClick={() => handleRenewLease(lease)} className="text-xs px-2 py-1.5 font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200">
+                                Renew Lease
+                              </button>
+                            )}
+                            {lease.status === 'Expired' && (
+                              <button onClick={() => handleUpdateStatus(lease.id, 'Active')} className="text-xs px-2 py-1.5 font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200">
+                                Set Active
+                              </button>
+                            )}
+
+                            <div className="w-[1px] h-4 bg-outline-variant/30 mx-1"></div>
+
                             {/* Download PDF / Edit */}
                             <button 
-                              onClick={() => { setGeneratorLease(lease); setShowGeneratorModal(true); }}
+                              onClick={() => {
+                                const dummyAgreementDetails = {
+                                  signingProvider: `${session?.user?.email || 'Landlord'} - ${session?.user?.email || ''}, `,
+                                  dateOfAgreement: new Date().toISOString(),
+                                  renterAddresses: {},
+                                  urgentRepairs: { contactName: "Agent/Landlord", phone: "000", email: session?.user?.email || "" },
+                                  ownersCorporation: false,
+                                  conditionReport: "To be provided",
+                                  additionalTerms: "Standard Residential Tenancies Act terms apply"
+                                };
+                                const formattedTenants = lease.lease_tenants?.map(lt => ({
+                                  id: lt.tenants.email,
+                                  firstName: lt.tenants.first_name,
+                                  lastName: lt.tenants.last_name,
+                                  email: lt.tenants.email,
+                                  phone: ""
+                                })) || [];
+                                const bondDetails = { amount: String(lease.bond_amount || lease.rent_amount * 4 || 0), isPaid: false, dueDate: lease.start_date, collectViaPlatform: false };
+                                const leaseDetails = {
+                                  startDate: lease.start_date,
+                                  endDate: lease.end_date,
+                                  rentAmount: String(lease.rent_amount),
+                                  rentFrequency: lease.payment_frequency,
+                                  leaseType: lease.end_date ? "Fixed term" : "Periodic"
+                                };
+                                const fullAddress = lease.properties ? `${lease.properties.address}, ${lease.properties.suburb}` : "";
+
+                                generateVictoriaLeasePdf(dummyAgreementDetails, formattedTenants, bondDetails, leaseDetails, fullAddress, lease.property_id);
+                              }}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-primary/20 hover:bg-primary/5 text-primary font-semibold text-xs rounded-lg transition-colors"
                             >
-                              <FileText className="w-3.5 h-3.5" /> Download / Edit
+                              <FileText className="w-3.5 h-3.5" /> PDF
                             </button>
                             {/* Delete Lease */}
                             {(lease.properties?.owner_id === session?.user?.id || canEditPropertyIds.includes(lease.property_id)) && (
@@ -255,7 +406,30 @@ export function Leases() {
         </div>
       )}
 
-
+      {/* ── CREATE LEASE MODAL ── */}
+      <LeaseManagerModal
+        isOpen={showLeaseModal}
+        onClose={() => {
+          setShowLeaseModal(false);
+          setInitialLeaseData(null);
+        }}
+        properties={
+          initialLeaseData
+            ? properties // allow current property for renewal
+            : properties.filter(p => {
+                const propertyLeases = leases.filter(l => l.property_id === p.id && l.status === 'Active');
+                if (propertyLeases.length === 0) return true;
+                const activeLease = propertyLeases[0];
+                if (!activeLease.end_date) return false; // periodic, no end date
+                const daysRemaining = Math.ceil((new Date(activeLease.end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                return daysRemaining <= 5;
+              })
+        }
+        initialData={initialLeaseData}
+        onLeaseCreated={() => {
+          if (session?.user?.id) loadData(session.user.id);
+        }}
+      />
 
       {/* ── DELETE CONFIRMATION MODAL ── */}
       {createPortal(
