@@ -24,7 +24,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserContext = async (userId: string) => {
     fetchedUserIdRef.current = userId;
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      if (userError || !authUser) throw new Error("User not found or session invalid");
+      
       const userEmail = authUser?.email;
 
       // Parallel fetches: properties owned, team memberships
@@ -69,14 +71,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (e) {
       console.error("Error fetching user context:", e);
-      // Safe fallback — treat as a landlord/owner so they can access the dashboard
-      setUserContext({
-        isLandlordOrTeam: true,
-        isTenant: false,
-        isOwner: true,
-        isTeamMember: false,
-        teamPropertyIds: [],
-      });
+      // If fetching the user fails, their session might be invalid or deleted in the DB.
+      // We must clear the session to prevent unauthorized access.
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setUserContext(null);
+      fetchedUserIdRef.current = null;
     }
   };
 

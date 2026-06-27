@@ -271,16 +271,6 @@ export function Properties() {
                         <Home className="w-8 h-8 text-on-surface-variant/40" />
                       </div>
                     )}
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/dashboard/property/${property.id}?edit=true`);
-                      }}
-                      className="absolute top-4 right-14 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-105 shadow-sm cursor-pointer z-10"
-                      title="Edit Property"
-                    >
-                      <Edit2 className="w-4 h-4 text-primary" />
-                    </div>
                     <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
                       <ArrowUpRight className="w-4 h-4 text-on-surface" />
                     </div>

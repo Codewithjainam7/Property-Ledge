@@ -19,6 +19,7 @@ import {
   Sparkles,
   Check,
   ClipboardCheck,
+  User,
 } from "lucide-react";
 import { generateVictoriaLeasePdf } from "../utils/leasePdfGenerator";
 import { supabase } from '../lib/supabase';
@@ -99,6 +100,8 @@ export default function TenancySetupWizard({
     phone: "",
   });
 
+  const [successPopup, setSuccessPopup] = useState<{ show: boolean; invitedNames: string[] }>({ show: false, invitedNames: [] });
+
   if (!isOpen) return null;
 
   const handleSaveTenant = (e: React.FormEvent) => {
@@ -170,6 +173,7 @@ export default function TenancySetupWizard({
       if (leaseError) throw leaseError;
 
       // 3. Create all Tenants
+      let invitedNames: string[] = [];
       for (const t of tenants) {
         const isSelectedForInvite = selectedTenantsToInvite.includes(t.id);
         const inviteToken = isSelectedForInvite ? crypto.randomUUID() : null;
@@ -204,25 +208,31 @@ export default function TenancySetupWizard({
 
         // 4. Send Email if Selected
         if (isSelectedForInvite) {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              to: t.email,
-              templateType: 'tenant-invite',
-              data: {
-                tenantFirstName: t.firstName,
-                propertyName: propertyAddress,
-                inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
-                startDate: leaseDetails.startDate,
-                rentAmount: rentAmount,
-                bondAmount: bondDetails.amount || '0',
-                passcode: passcode
+          try {
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: t.email,
+                subject: `Invitation to Lease: ${propertyAddress}`,
+                templateType: 'tenant-invite',
+                variables: {
+                  firstName: t.firstName,
+                  propertyAddress: propertyAddress,
+                  inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
+                  leaseStart: leaseDetails.startDate,
+                  rentAmount: rentAmount,
+                  bondAmount: bondDetails.amount || '0',
+                  passcode: passcode
+                }
               }
-            }
-          });
+            });
+          } catch (emailErr) {
+            console.error("Failed to send email to", t.email, emailErr);
+          }
+          invitedNames.push(`${t.firstName} ${t.lastName}`);
         }
       }
 
-      onClose();
+      setSuccessPopup({ show: true, invitedNames });
     } catch (err: any) {
       console.error('Error setting up tenancy:', err);
       setSubmitError(err.message || 'An error occurred during setup');
@@ -1598,6 +1608,70 @@ export default function TenancySetupWizard({
           )}
         </div>
       </motion.div>
+
+      {/* Success Popup Modal */}
+      <AnimatePresence>
+        {successPopup.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white/90 backdrop-blur-3xl border border-white/50 rounded-[36px] shadow-[0_24px_60px_-12px_rgba(0,0,0,0.2)] p-8 max-w-md w-full relative overflow-hidden"
+            >
+              {/* Subtle top glare effect */}
+              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/60 to-transparent pointer-events-none rounded-t-[36px]" />
+
+              <div className="relative z-10">
+                <div className="mx-auto w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-[24px] shadow-[0_8px_24px_rgba(16,185,129,0.3)] flex items-center justify-center mb-6 rotate-3">
+                  <CheckCircle2 className="w-10 h-10 text-white drop-shadow-md" />
+                </div>
+                <h3 className="text-[28px] font-black text-center text-slate-900 mb-2 tracking-tight">
+                  Invites Sent
+                </h3>
+                <p className="text-center text-slate-500 font-medium text-base mb-8 px-4 leading-relaxed">
+                  We've successfully set up the tenancy and emailed the invitations to your tenants.
+                </p>
+                
+                <div className="space-y-3 mb-10">
+                  {successPopup.invitedNames.map((name, i) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.1 }}
+                      key={i} 
+                      className="flex items-center gap-4 bg-white/60 backdrop-blur-md p-4 rounded-[20px] border border-white/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100/50">
+                        <User className="w-5 h-5 text-indigo-500" />
+                      </div>
+                      <span className="text-slate-800 font-bold text-lg tracking-tight">
+                        {name}
+                      </span>
+                    </motion.div>
+                  ))}
+                  {successPopup.invitedNames.length === 0 && (
+                    <div className="text-center text-slate-400 font-medium italic p-4 bg-white/40 rounded-[20px] border border-white/50">
+                      No invites were sent.
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setSuccessPopup({ show: false, invitedNames: [] });
+                    onClose();
+                  }}
+                  className="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-[20px] font-bold text-lg shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all active:scale-[0.98]"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

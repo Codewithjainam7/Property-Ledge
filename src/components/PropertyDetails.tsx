@@ -124,23 +124,20 @@ export function PropertyDetails() {
 
 
 
-      // Fetch active lease details including tenant_signature
-      const { data: leaseData } = await supabase
-        .from('leases')
-        .select('*')
-        .eq('property_id', id)
-        .eq('status', 'Active')
-        .maybeSingle();
-        
+      // Fetch active lease, tenants, and team members in parallel for faster loading
+      const [leaseRes, tenantsRes, teamMembersRes] = await Promise.all([
+        supabase.from('leases').select('*').eq('property_id', id).eq('status', 'Active').maybeSingle(),
+        supabase.from('tenants').select('*').eq('property_id', id),
+        supabase.from('property_team').select('id, user_id, role, status, permissions').eq('property_id', id)
+      ]);
+
+      const leaseData = leaseRes.data;
+      const directTenants = tenantsRes.data;
+      const teamMembers = teamMembersRes.data;
+
       if (leaseData) {
         setActiveLease(leaseData);
       }
-
-      // Primary: fetch all tenants directly from the `tenants` table by property_id
-      const { data: directTenants } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('property_id', id);
 
       if (directTenants && directTenants.length > 0) {
         // Got tenants directly — use them. Also try to enrich with rent share from lease_tenants if available.

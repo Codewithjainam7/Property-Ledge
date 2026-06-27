@@ -5,7 +5,7 @@ import { Building, ClipboardList, Users, UserCircle2, ArrowRight } from 'lucide-
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 export function CompleteProfile() {
-  const { user, userContext, loading: authLoading } = useAuth();
+  const { user, userContext, loading: authLoading, refreshContext } = useAuth();
   const [role, setRole] = useState('');
   const [mobile, setMobile] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +50,8 @@ export function CompleteProfile() {
     } else {
       // Force refresh the user session from Supabase to ensure the new metadata is loaded
       await supabase.auth.refreshSession();
+      // Force AuthContext to refetch user context since the role has changed
+      await refreshContext();
       navigate('/dashboard');
     }
   };
