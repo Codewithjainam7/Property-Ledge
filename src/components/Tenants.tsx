@@ -420,6 +420,75 @@ export function Tenants() {
             </button>
           </div>
 
+          {/* Action & Stat Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Setup Tenancy Action Card */}
+            <div 
+              onClick={() => setIsInviteModalOpen(true)}
+              className="bg-primary hover:bg-primary/95 text-on-primary rounded-[24px] p-6 shadow-md hover:shadow-lg transition-all cursor-pointer group flex flex-col justify-between"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <ArrowUpRight className="w-5 h-5 text-white/70 group-hover:text-white group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black mb-1">Setup Tenancy</h3>
+                <p className="text-sm text-white/80 font-medium">Add a new tenant and configure their lease details.</p>
+              </div>
+            </div>
+
+            {/* Total Active Tenants */}
+            <div className="bg-surface-container-lowest backdrop-blur-xl border border-outline-variant/50 rounded-[24px] p-6 shadow-sm flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-2xl flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Active Tenants</p>
+                <h3 className="text-3xl font-black text-on-surface">
+                  {tenants.filter(t => t.lease_tenants?.some(lt => lt.leases?.status === 'Active') || t.status === 'Active').length}
+                </h3>
+              </div>
+            </div>
+
+            {/* Pending Invitations */}
+            <div className="bg-surface-container-lowest backdrop-blur-xl border border-outline-variant/50 rounded-[24px] p-6 shadow-sm flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-2xl flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Pending Invites</p>
+                <h3 className="text-3xl font-black text-on-surface">
+                  {tenants.filter(t => t.status === 'Invited' || t.status === 'Pending').length}
+                </h3>
+              </div>
+            </div>
+
+            {/* Arrears */}
+            <div className="bg-surface-container-lowest backdrop-blur-xl border border-outline-variant/50 rounded-[24px] p-6 shadow-sm flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 bg-rose-500/10 rounded-2xl flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-rose-600" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">In Arrears</p>
+                <h3 className="text-3xl font-black text-rose-600">
+                  {tenants.filter(t => {
+                    const activeLease = t.lease_tenants?.find(lt => lt.leases?.status === 'Active')?.leases;
+                    const resolvedPropertyId = activeLease?.property_id || t.property_id;
+                    return getPaymentStatus(resolvedPropertyId).label === 'Arrears';
+                  }).length}
+                </h3>
+              </div>
+            </div>
+          </div>
+
           {/* Search and Filters panel */}
           <div className="flex flex-col sm:flex-row gap-4 p-4 bg-surface-container-lowest backdrop-blur-xl rounded-[24px] border border-outline-variant/50 shadow-sm">
             <div className="relative flex-1">

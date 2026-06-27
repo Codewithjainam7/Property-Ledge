@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, User, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X, CheckCircle2, Send, Mail, Phone, Briefcase, DollarSign, AlertTriangle, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MapPin, Building, Home, FileText, Wallet, Clock, Wrench, BarChart3, HelpCircle, XCircle, ClipboardList, Users, User, ArrowUpRight, Trash2, Plus, Image as ImageIcon, Maximize2, X, CheckCircle2, Send, Mail, Phone, Briefcase, DollarSign, AlertTriangle, Sparkles, IdCard, UserCheck, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
@@ -765,11 +765,14 @@ export function PropertyDetails() {
     }
 
     return (
+      <>
         <div className="col-span-full bg-white/20 backdrop-blur-3xl border border-white/60 rounded-[32px] p-8 md:p-12 text-center shadow-[0_8px_32px_rgba(0,0,0,0.05)] relative overflow-hidden">
           {/* Intense Liquid Glass Background Blobs */}
           <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-300/30 blur-[80px] pointer-events-none z-0" />
           <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-teal-300/20 blur-[80px] pointer-events-none z-0" />
           <div className="relative z-10 space-y-6">
+
+
             <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl flex items-center justify-center mx-auto shadow-inner text-emerald-600">
               <CheckCircle2 className="w-10 h-10" />
             </div>
@@ -858,25 +861,46 @@ export function PropertyDetails() {
               })}
             </div>
 
-            <div className="flex justify-center mt-6">
-              <button 
-                onClick={() => {
-                  setInviteForm({
-                    firstName: '',
-                    lastName: '',
-                    email: '',
-                    rentAmount: property?.rentAmount || '',
-                    leaseStart: property?.leaseStart || ''
-                  });
-                  setIsInviteModalOpen(true);
-                }}
-                className="bg-white/40 backdrop-blur-xl border border-white/60 text-slate-800 hover:bg-white/60 transition-all duration-300 font-black text-sm px-6 py-3.5 rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 cursor-pointer inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Add Co-Tenant
-              </button>
-            </div>
           </div>
         </div>
+
+        {bentoManageItems.map((item, index) => (
+          <motion.div
+            key={item.title}
+            variants={itemVariants}
+            whileHover={{ y: -4, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => item.title === 'Tenancy Setup' ? setIsTenancySetupOpen(true) : undefined}
+            className={`${item.colSpan} ${item.bg} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] cursor-pointer`}
+          >
+            <div className="relative z-10 flex-1 flex flex-col">
+              <div className="flex justify-between items-start mb-6">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-sm ${item.accent} ${item.iconBg}`}>
+                  <item.icon className="w-6 h-6" />
+                </div>
+                {item.chevron && (
+                  <div className="w-8 h-8 rounded-full bg-surface/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ArrowUpRight className="w-4 h-4 text-on-surface-variant" />
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-auto">
+                <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2 font-display">{item.title}</h3>
+                <p className="text-sm font-medium leading-relaxed max-w-[90%] mb-6 opacity-80">{item.desc}</p>
+              </div>
+
+              {item.action && (
+                <div className="mt-auto pt-2">
+                  <button className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm hover:bg-white/20 transition-colors flex items-center gap-2 group-hover:shadow-md">
+                    {item.action} <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </>
     );
   };
 

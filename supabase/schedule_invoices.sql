@@ -7,11 +7,11 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 -- Note: Replace 'https://YOUR_PROJECT_REF.supabase.co' with your actual Supabase project URL
 -- Note: Replace 'YOUR_ANON_KEY' with your actual Supabase anon key
 
--- Schedule the job to run every minute (FOR TESTING ONLY)
+-- Schedule the job to run every night at midnight (Production)
 -- Syntax: cron.schedule('job_name', 'cron_schedule', 'query')
 SELECT cron.schedule(
   'generate-monthly-invoices',
-  '* * * * *', -- Every minute
+  '0 0 * * *', -- Every day at 00:00
   $$
     SELECT net.http_post(
         url:='https://qajdlvlwigjrdcnxejts.supabase.co/functions/v1/generate-invoices',
