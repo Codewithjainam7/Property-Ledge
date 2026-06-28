@@ -732,35 +732,44 @@ export function PropertyDetails() {
   const renderTenantTab = () => {
     if (tenants.length === 0) {
       return (
-        <div className="col-span-full bg-slate-900 border border-white/10 rounded-[32px] p-8 md:p-12 text-center shadow-2xl relative overflow-hidden text-white">
-          <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px] pointer-events-none z-0" />
-          <div className="relative z-10 space-y-6">
-            <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center mx-auto shadow-inner text-slate-300">
-              <Users className="w-10 h-10 animate-pulse" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-black text-white tracking-tight">Property is Vacant</h3>
-              <p className="text-slate-400 max-w-md mx-auto font-medium text-sm md:text-base">
-                Confirm tenant details to register them to this property and upload their lease agreement.
-              </p>
-            </div>
-            <button 
-              onClick={() => {
-                setInviteForm({
-                  firstName: '',
-                  lastName: '',
-                  email: '',
-                  rentAmount: property?.rentAmount || '',
-                  leaseStart: property?.leaseStart || ''
-                });
-                setIsInviteModalOpen(true);
-              }}
-              className="bg-white text-slate-950 hover:bg-slate-200 transition-all font-bold text-sm px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center gap-2"
+        <>
+          {bentoTenantItems.map((item: any, index: number) => (
+            <motion.div
+              key={item.title}
+              variants={itemVariants}
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => item.title === 'Tenancy Setup' ? setIsTenancySetupOpen(true) : undefined}
+              className={`${item.colSpan} ${item.bg} rounded-[32px] p-6 md:p-8 flex flex-col min-h-[220px] relative overflow-hidden group shadow-[0_8px_30px_rgba(0,0,0,0.08)] cursor-pointer`}
             >
-              <Send className="w-4 h-4" /> Confirm Tenant for this Property
-            </button>
-          </div>
-        </div>
+              <div className="relative z-10 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-6">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-md shadow-sm ${item.accent} ${item.iconBg}`}>
+                    <item.icon className="w-6 h-6" />
+                  </div>
+                  {item.chevron && (
+                    <div className="w-8 h-8 rounded-full bg-surface/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ArrowUpRight className="w-4 h-4 text-on-surface-variant" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-auto">
+                  <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2 font-display">{item.title}</h3>
+                  <p className="text-sm font-medium leading-relaxed max-w-[90%] mb-6 opacity-80">{item.desc}</p>
+                </div>
+
+                {item.action && (
+                  <div className="mt-auto pt-2">
+                    <button className="bg-white/10 backdrop-blur-md text-inherit px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest shadow-sm hover:bg-white/20 transition-colors flex items-center gap-2 group-hover:shadow-md">
+                      {item.action} <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </>
       );
     }
 
