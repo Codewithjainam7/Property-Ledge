@@ -265,18 +265,20 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
           const { error } = await supabase.from('invoices').update(invoicePayload).eq('id', initialData.id);
           invError = error;
         } else {
-          // Insert new invoice
-          const { error } = await supabase.from('invoices').insert({
+          // Insert new invoice and return the ID
+          const { data: newInvoice, error } = await supabase.from('invoices').insert({
             ...invoicePayload,
             status: 'Draft'
-          });
+          }).select().single();
+          
           invError = error;
           
-          if (!error && state.propertyId) {
+          if (!error && newInvoice && state.propertyId) {
             // Auto-sync with Phase 4 Ledger (only for new invoices)
             await supabase.from('payments').insert({
                property_id: state.propertyId,
                lease_id: activeLeaseId,
+               invoice_id: newInvoice.id,
                amount_due: total,
                due_date: state.dueDate || new Date().toISOString().split('T')[0],
                status: 'Pending',
