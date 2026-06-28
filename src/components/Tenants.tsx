@@ -411,13 +411,6 @@ export function Tenants() {
               </h1>
               <p className="text-on-surface-variant mt-2 font-medium">Read-only directory of current and pending residents linked to your properties.</p>
             </div>
-            
-            <button
-              onClick={() => setIsInviteModalOpen(true)}
-              className="bg-primary text-on-primary hover:bg-primary/90 transition-all font-bold text-sm px-6 py-3.5 rounded-full shadow-md flex items-center gap-2 cursor-pointer shrink-0"
-            >
-              <Users className="w-4 h-4" /> Add Tenant
-            </button>
           </div>
 
           {/* Action & Stat Cards */}

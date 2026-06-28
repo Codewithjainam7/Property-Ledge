@@ -649,7 +649,9 @@ export function PropertyDetails() {
           suburb: editingProperty.suburb,
           postcode: editingProperty.postcode,
           state: editingProperty.state,
+          category: editingProperty.category || 'Residential',
           property_type: editingProperty.propertyType,
+          property_size: parseInt(editingProperty.property_size) || null,
           bedrooms: parseInt(editingProperty.bedrooms) || 0,
           bathrooms: parseInt(editingProperty.bathrooms) || 0,
           car_spaces: parseInt(editingProperty.car_spaces) || 0,
@@ -1283,6 +1285,35 @@ export function PropertyDetails() {
                         </FormControl>
                       </Box>
 
+                      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                        <Button
+                          variant={(!editingProperty.category || editingProperty.category === 'Residential') ? 'contained' : 'outlined'}
+                          onClick={() => setEditingProperty({...editingProperty, category: 'Residential', propertyType: 'House'})}
+                          fullWidth
+                          sx={{ 
+                            borderRadius: '12px', 
+                            textTransform: 'none', 
+                            fontWeight: 'bold',
+                            ...( (!editingProperty.category || editingProperty.category === 'Residential') && { bgcolor: '#1f2937', color: 'white', '&:hover': { bgcolor: '#111827' } } )
+                          }}
+                        >
+                          Residential
+                        </Button>
+                        <Button
+                          variant={editingProperty.category === 'Commercial' ? 'contained' : 'outlined'}
+                          onClick={() => setEditingProperty({...editingProperty, category: 'Commercial', propertyType: 'Office', bedrooms: 0, bathrooms: 0})}
+                          fullWidth
+                          sx={{ 
+                            borderRadius: '12px', 
+                            textTransform: 'none', 
+                            fontWeight: 'bold',
+                            ...( editingProperty.category === 'Commercial' && { bgcolor: '#1f2937', color: 'white', '&:hover': { bgcolor: '#111827' } } )
+                          }}
+                        >
+                          Commercial
+                        </Button>
+                      </Box>
+
                       <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                         <FormControl fullWidth>
                           <InputLabel>Property Type</InputLabel>
@@ -1291,12 +1322,25 @@ export function PropertyDetails() {
                             label="Property Type"
                             onChange={(e) => setEditingProperty({...editingProperty, propertyType: e.target.value})}
                           >
-                            <MenuItem value="House">House</MenuItem>
-                            <MenuItem value="Apartment">Apartment</MenuItem>
-                            <MenuItem value="Townhouse">Townhouse</MenuItem>
-                            <MenuItem value="Villa">Villa</MenuItem>
-                            <MenuItem value="Duplex">Duplex</MenuItem>
-                            <MenuItem value="Commercial">Commercial</MenuItem>
+                            {editingProperty.category === 'Commercial' ? (
+                              [
+                                <MenuItem key="Office" value="Office">Office</MenuItem>,
+                                <MenuItem key="Retail" value="Retail">Retail</MenuItem>,
+                                <MenuItem key="Warehouse" value="Warehouse">Warehouse</MenuItem>,
+                                <MenuItem key="Industrial" value="Industrial">Industrial</MenuItem>,
+                                <MenuItem key="Medical" value="Medical">Medical</MenuItem>,
+                                <MenuItem key="Showroom" value="Showroom">Showroom</MenuItem>,
+                                <MenuItem key="Other" value="Other">Other</MenuItem>
+                              ]
+                            ) : (
+                              [
+                                <MenuItem key="House" value="House">House</MenuItem>,
+                                <MenuItem key="Apartment" value="Apartment">Apartment</MenuItem>,
+                                <MenuItem key="Townhouse" value="Townhouse">Townhouse</MenuItem>,
+                                <MenuItem key="Villa" value="Villa">Villa</MenuItem>,
+                                <MenuItem key="Duplex" value="Duplex">Duplex</MenuItem>
+                              ]
+                            )}
                           </Select>
                         </FormControl>
                         <FormControl fullWidth>
@@ -1313,32 +1357,53 @@ export function PropertyDetails() {
                         </FormControl>
                       </Box>
 
-                      <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField 
-                          label="Beds" 
-                          type="number"
-                          value={editingProperty.bedrooms || 0}
-                          onChange={(e) => setEditingProperty({...editingProperty, bedrooms: e.target.value})}
-                          fullWidth
-                          InputProps={{ inputProps: { min: 0 } }}
-                        />
-                        <TextField 
-                          label="Baths" 
-                          type="number"
-                          value={editingProperty.bathrooms || 0}
-                          onChange={(e) => setEditingProperty({...editingProperty, bathrooms: e.target.value})}
-                          fullWidth
-                          InputProps={{ inputProps: { min: 0, step: 0.5 } }}
-                        />
-                        <TextField 
-                          label="Cars" 
-                          type="number"
-                          value={editingProperty.car_spaces || 0}
-                          onChange={(e) => setEditingProperty({...editingProperty, car_spaces: e.target.value})}
-                          fullWidth
-                          InputProps={{ inputProps: { min: 0 } }}
-                        />
-                      </Box>
+                      {editingProperty.category === 'Commercial' ? (
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                          <TextField 
+                            label="Property Size (sqm)" 
+                            type="number"
+                            value={editingProperty.property_size || ''}
+                            onChange={(e) => setEditingProperty({...editingProperty, property_size: e.target.value})}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                          />
+                          <TextField 
+                            label="Car Spaces" 
+                            type="number"
+                            value={editingProperty.car_spaces || 0}
+                            onChange={(e) => setEditingProperty({...editingProperty, car_spaces: e.target.value})}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                          />
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                          <TextField 
+                            label="Beds" 
+                            type="number"
+                            value={editingProperty.bedrooms || 0}
+                            onChange={(e) => setEditingProperty({...editingProperty, bedrooms: e.target.value})}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                          />
+                          <TextField 
+                            label="Baths" 
+                            type="number"
+                            value={editingProperty.bathrooms || 0}
+                            onChange={(e) => setEditingProperty({...editingProperty, bathrooms: e.target.value})}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0, step: 0.5 } }}
+                          />
+                          <TextField 
+                            label="Cars" 
+                            type="number"
+                            value={editingProperty.car_spaces || 0}
+                            onChange={(e) => setEditingProperty({...editingProperty, car_spaces: e.target.value})}
+                            fullWidth
+                            InputProps={{ inputProps: { min: 0 } }}
+                          />
+                        </Box>
+                      )}
 
                       <TextField 
                         label="Advertised Rent ($)" 
