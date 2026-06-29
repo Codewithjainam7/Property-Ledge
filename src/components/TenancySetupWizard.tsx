@@ -72,8 +72,10 @@ export default function TenancySetupWizard({
 
   const [leaseDetails, setLeaseDetails] = useState({
     startDate: "",
-    leaseType: "Periodic",
     endDate: "",
+    rentAmount: "",
+    paymentFrequency: "Weekly",
+    leaseType: "Fixed Term",
   });
 
   const [bondDetails, setBondDetails] = useState({
