@@ -44,6 +44,8 @@ export function Team() {
   
   // Invite Form State
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteFirstName, setInviteFirstName] = useState('');
+  const [inviteLastName, setInviteLastName] = useState('');
   const [inviteRole, setInviteRole] = useState('Agent');
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
@@ -93,6 +95,14 @@ export function Team() {
         
       if (pendingErr) console.error("Error fetching pending invites:", pendingErr);
 
+      // 4. Fetch Tenants
+      const { data: tenantsData, error: tenantsErr } = await supabase
+        .from('tenants')
+        .select('*')
+        .in('property_id', propIds);
+        
+      if (tenantsErr) console.error("Error fetching tenants:", tenantsErr);
+
       // Combine into unified format
       const combined: TeamMemberRow[] = [];
       
@@ -123,6 +133,28 @@ export function Team() {
         });
       });
 
+      (tenantsData || []).forEach(tenant => {
+        combined.push({
+          id: tenant.id,
+          isPending: tenant.status === 'Invited' || tenant.status === 'Pending',
+          property_id: tenant.property_id,
+          role: 'Tenant',
+          email: tenant.email,
+          first_name: tenant.first_name,
+          last_name: tenant.last_name,
+          status: tenant.status === 'Active' ? 'Active' : 'Pending',
+          permissions: {
+            can_view_property: false,
+            can_view_lease: true,
+            can_create_lease: false,
+            can_edit_lease: false,
+            can_manage_tenants: false,
+            can_renew_lease: false,
+            can_terminate_lease: false
+          }
+        });
+      });
+
       setTeamMembers(combined);
     } catch (err) {
       console.error("Error loading team data:", err);
@@ -147,74 +179,123 @@ export function Team() {
       const selectedProp = properties.find(p => p.id === selectedPropertyId);
       const landlordEmail = session?.user?.email || '';
       
-      // 1. Insert into team_invitations table
-      const { data: inviteData, error: insertError } = await supabase
-        .from('team_invitations')
-        .insert({
-          property_id: selectedPropertyId,
-          invited_by: session?.user?.id,
-          email: inviteEmail.trim(),
-          role: inviteRole,
-          permissions: {
-            can_view_property: true,
-            can_view_lease: inviteRole !== 'Strata',
-            can_create_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
-            can_edit_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
-            can_manage_tenants: inviteRole === 'Manager' || inviteRole === 'Agent',
-            can_renew_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
-            can_terminate_lease: inviteRole === 'Manager' || inviteRole === 'Agent'
-          }
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        if (insertError.code === '23505') {
-          setInviteError("There is already a pending invitation for this email.");
-        } else {
-          setInviteError(insertError.message);
-        }
-        setInviting(false);
-        return;
-      }
-
-      // 2. Send email via edge function
       let emailFailed = false;
-      if (selectedProp && inviteData) {
-        try {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              to: inviteEmail,
-              subject: `Invitation to join the property team at ${selectedProp.address}`,
-              templateType: 'team-invite',
-              variables: {
-                propertyAddress: `${selectedProp.address}, ${selectedProp.suburb}`,
-                inviteUrl: `${window.location.origin}/accept-invite?token=${inviteData.token}`,
-                role: inviteRole,
-                landlordEmail: landlordEmail
+      
+      if (inviteRole === 'Tenant') {
+        const inviteToken = crypto.randomUUID();
+        const { data: tenantData, error: insertError } = await supabase
+          .from('tenants')
+          .insert([{
+            property_id: selectedPropertyId,
+            owner_id: session?.user?.id,
+            email: inviteEmail.trim(),
+            first_name: inviteFirstName.trim() || 'Invited',
+            last_name: inviteLastName.trim(),
+            status: 'Invited',
+            invite_token: inviteToken,
+            access_level: { receives_emails: true, can_login: true }
+          }])
+          .select()
+          .single();
+
+        if (insertError) {
+          setInviteError(insertError.message);
+          setInviting(false);
+          return;
+        }
+
+        if (selectedProp) {
+          try {
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: inviteEmail,
+                subject: `Invitation to join ${selectedProp.address} as a Tenant`,
+                templateType: 'tenant-invite',
+                variables: {
+                  firstName: inviteFirstName.trim() || 'Tenant',
+                  propertyAddress: `${selectedProp.address}, ${selectedProp.suburb}`,
+                  inviteUrl: `${window.location.origin}/accept-tenant-invite?token=${inviteToken}`,
+                  // Omit lease specifics since the lease doesn't exist yet
+                  leaseStart: 'TBD',
+                  rentAmount: 'TBD',
+                  bondAmount: 'TBD'
+                }
               }
+            });
+          } catch (emailErr: any) {
+            console.error("Email Edge Function call failed:", emailErr);
+            emailFailed = true;
+            setInviteError(`Tenant created, but email failed: ${emailErr?.message || 'Unknown error'}`);
+          }
+        }
+      } else {
+        // 1. Insert into team_invitations table
+        const { data: inviteData, error: insertError } = await supabase
+          .from('team_invitations')
+          .insert({
+            property_id: selectedPropertyId,
+            invited_by: session?.user?.id,
+            email: inviteEmail.trim(),
+            role: inviteRole,
+            permissions: {
+              can_view_property: true,
+              can_view_lease: inviteRole !== 'Strata',
+              can_create_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
+              can_edit_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
+              can_manage_tenants: inviteRole === 'Manager' || inviteRole === 'Agent',
+              can_renew_lease: inviteRole === 'Manager' || inviteRole === 'Agent',
+              can_terminate_lease: inviteRole === 'Manager' || inviteRole === 'Agent'
             }
-          });
-        } catch (emailErr: any) {
-          console.error("Email Edge Function call failed:", emailErr);
-          emailFailed = true;
-          setInviteError(`Invite created, but email failed: ${emailErr?.message || 'Unknown error'}`);
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          if (insertError.code === '23505') {
+            setInviteError("There is already a pending invitation for this email.");
+          } else {
+            setInviteError(insertError.message);
+          }
+          setInviting(false);
+          return;
+        }
+
+        // 2. Send email via edge function
+        if (selectedProp && inviteData) {
+          try {
+            await supabase.functions.invoke('send-email', {
+              body: {
+                to: inviteEmail,
+                subject: `Invitation to join the property team at ${selectedProp.address}`,
+                templateType: 'team-invite',
+                variables: {
+                  propertyAddress: `${selectedProp.address}, ${selectedProp.suburb}`,
+                  inviteUrl: `${window.location.origin}/accept-invite?token=${inviteData.token}`,
+                  role: inviteRole,
+                  landlordEmail: landlordEmail
+                }
+              }
+            });
+          } catch (emailErr: any) {
+            console.error("Email Edge Function call failed:", emailErr);
+            emailFailed = true;
+            setInviteError(`Invite created, but email failed: ${emailErr?.message || 'Unknown error'}`);
+          }
         }
       }
 
       if (!emailFailed) {
-        setInviteSuccess("Invitation sent! They will appear as 'Pending' until they accept.");
+        setInviteSuccess(`Successfully invited ${inviteEmail}`);
+        setTimeout(() => {
+          setShowInviteModal(false);
+          setInviteEmail('');
+          setInviteFirstName('');
+          setInviteLastName('');
+          setInviteRole('Agent');
+          setInviteSuccess('');
+          loadData(session?.user?.id || '');
+        }, 2000);
       }
-
-      setInviteEmail('');
-      if (session?.user.id) loadData(session.user.id);
-      
-      setTimeout(() => {
-        setShowInviteModal(false);
-        setInviteSuccess('');
-        setInviteError('');
-      }, 3500);
-
     } catch (err: any) {
       console.error("Invite error:", err);
       setInviteError(err.message || "An error occurred.");
@@ -352,20 +433,22 @@ export function Team() {
                   Agent:   { color: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200' },
                   Strata:  { color: 'text-violet-700',  bg: 'bg-violet-50',  border: 'border-violet-200' },
                   Manager: { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+                  Tenant:  { color: 'text-orange-700',  bg: 'bg-orange-50',  border: 'border-orange-200' },
                 };
                 const rc = roleConfig[member.role] || { color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200' };
 
                 const displayRoles: Record<string, string> = {
                   Agent: 'Real Estate Agent',
                   Strata: 'Strata Manager',
-                  Manager: 'Property Manager'
+                  Manager: 'Property Manager',
+                  Tenant: 'Tenant'
                 };
 
                 const permDefs = [
-                  { key: 'can_view_lease',     label: 'View Leases',     blocked: false },
-                  { key: 'can_create_lease',   label: 'Create Leases',   blocked: member.role === 'Strata' },
-                  { key: 'can_edit_lease',     label: 'Edit Leases',     blocked: member.role === 'Strata' },
-                  { key: 'can_manage_tenants', label: 'Manage Tenants',  blocked: member.role === 'Strata' },
+                  { key: 'can_view_lease',     label: 'View Leases',     blocked: member.role === 'Tenant' },
+                  { key: 'can_create_lease',   label: 'Create Leases',   blocked: member.role === 'Strata' || member.role === 'Tenant' },
+                  { key: 'can_edit_lease',     label: 'Edit Leases',     blocked: member.role === 'Strata' || member.role === 'Tenant' },
+                  { key: 'can_manage_tenants', label: 'Manage Tenants',  blocked: member.role === 'Strata' || member.role === 'Tenant' },
                 ];
 
                 return (
@@ -397,44 +480,52 @@ export function Team() {
 
                       {/* Custom Role Selector Dropdown */}
                       <div className="relative shrink-0">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === member.id ? null : member.id); }}
-                          className={`flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border transition-all ${rc.color} ${rc.bg} ${rc.border} hover:opacity-80`}
-                        >
-                          {displayRoles[member.role] || member.role}
-                          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openDropdownId === member.id ? 'rotate-180' : ''}`} />
-                        </button>
-                        
-                        <AnimatePresence>
-                          {openDropdownId === member.id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpenDropdownId(null); }} />
-                              <motion.div
-                                initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                                transition={{ duration: 0.15 }}
-                                className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-44 bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-1.5 z-50 overflow-hidden"
-                              >
-                                {['Manager', 'Strata', 'Agent'].map((r) => {
-                                  const rConf = roleConfig[r] || rc;
-                                  return (
-                                    <button
-                                      key={r}
-                                      onClick={() => {
-                                        changeRole(member, r);
-                                        setOpenDropdownId(null);
-                                      }}
-                                      className={`w-full text-left px-4 py-2.5 text-[11px] font-black uppercase tracking-wider transition-colors hover:bg-slate-50 ${member.role === r ? rConf.color + ' bg-slate-50/50' : 'text-slate-500'}`}
-                                    >
-                                      {displayRoles[r] || r}
-                                    </button>
-                                  );
-                                })}
-                              </motion.div>
-                            </>
-                          )}
-                        </AnimatePresence>
+                        {member.role === 'Tenant' ? (
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${rc.color} ${rc.bg} ${rc.border}`}>
+                            {displayRoles[member.role] || member.role}
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === member.id ? null : member.id); }}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${rc.color} ${rc.bg} ${rc.border} hover:opacity-80`}
+                            >
+                              {displayRoles[member.role] || member.role}
+                              <ChevronDown className={`w-4 h-4 transition-transform ${openDropdownId === member.id ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            <AnimatePresence>
+                              {openDropdownId === member.id && (
+                                <>
+                                  <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpenDropdownId(null); }} />
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-2 z-50 overflow-hidden"
+                                  >
+                                    {['Manager', 'Strata', 'Agent'].map((r) => {
+                                      const rConf = roleConfig[r] || rc;
+                                      return (
+                                        <button
+                                          key={r}
+                                          onClick={() => {
+                                            changeRole(member, r);
+                                            setOpenDropdownId(null);
+                                          }}
+                                          className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-slate-50 ${member.role === r ? rConf.color + ' bg-slate-50/50' : 'text-slate-700'}`}
+                                        >
+                                          {displayRoles[r] || r}
+                                        </button>
+                                      );
+                                    })}
+                                  </motion.div>
+                                </>
+                              )}
+                            </AnimatePresence>
+                          </>
+                        )}
                       </div>
 
                       {/* Actions */}
@@ -451,30 +542,32 @@ export function Team() {
                     </div>
 
                     {/* Bottom row: permissions */}
-                    <div className={`flex items-center gap-3 flex-wrap px-6 py-3 bg-surface-container-lowest border-t border-outline-variant/20 rounded-b-2xl ${member.isPending ? 'opacity-40 pointer-events-none' : ''}`}>
-                      <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mr-1">Permissions</span>
-                      {permDefs.map(({ key, label, blocked }) => {
-                        const checked = (member.permissions as any)?.[key] || false;
-                        return (
-                          <button
-                            key={key}
-                            disabled={blocked}
-                            onClick={() => !blocked && togglePermission(member, key, checked)}
-                            title={blocked ? `${member.role}s cannot have this permission` : (checked ? `Revoke: ${label}` : `Grant: ${label}`)}
-                            className={`flex items-center gap-2 px-1 py-1 transition-all ${
-                              blocked ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:opacity-80 cursor-pointer'
-                            }`}
-                          >
-                            <div className="relative inline-flex items-center pointer-events-none">
-                              <div className={`w-8 h-4.5 rounded-full transition-colors duration-300 ease-in-out relative ${checked ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-                                <div className={`absolute top-[2px] left-[2px] w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${checked ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                    {member.role !== 'Tenant' && (
+                      <div className={`flex items-center gap-3 flex-wrap px-6 py-3 bg-surface-container-lowest border-t border-outline-variant/20 rounded-b-2xl ${member.isPending ? 'opacity-40 pointer-events-none' : ''}`}>
+                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mr-1">Permissions</span>
+                        {permDefs.map(({ key, label, blocked }) => {
+                          const checked = (member.permissions as any)?.[key] || false;
+                          return (
+                            <button
+                              key={key}
+                              disabled={blocked}
+                              onClick={() => !blocked && togglePermission(member, key, checked)}
+                              title={blocked ? `${member.role}s cannot have this permission` : (checked ? `Revoke: ${label}` : `Grant: ${label}`)}
+                              className={`flex items-center gap-2 px-1 py-1 transition-all ${
+                                blocked ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:opacity-80 cursor-pointer'
+                              }`}
+                            >
+                              <div className="relative inline-flex items-center pointer-events-none">
+                                <div className={`w-8 h-4.5 rounded-full transition-colors duration-300 ease-in-out relative ${checked ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                                  <div className={`absolute top-[2px] left-[2px] w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${checked ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                                </div>
                               </div>
-                            </div>
-                            <span className={`text-xs font-bold ${checked ? 'text-slate-800' : 'text-slate-500'}`}>{label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                              <span className={`text-xs font-bold ${checked ? 'text-slate-800' : 'text-slate-500'}`}>{label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -578,14 +671,49 @@ export function Team() {
                       </div>
                     </div>
 
+                    <AnimatePresence>
+                      {inviteRole === 'Tenant' && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-hidden p-1 -m-1"
+                        >
+                          <div>
+                            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">First Name</label>
+                            <input 
+                              type="text" 
+                              required={inviteRole === 'Tenant'}
+                              value={inviteFirstName}
+                              onChange={(e) => setInviteFirstName(e.target.value)}
+                              placeholder="John"
+                              className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-bold focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Last Name</label>
+                            <input 
+                              type="text" 
+                              required={inviteRole === 'Tenant'}
+                              value={inviteLastName}
+                              onChange={(e) => setInviteLastName(e.target.value)}
+                              placeholder="Doe"
+                              className="w-full bg-surface-container-low border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-bold focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <div>
                       <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Assign Role</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {['Agent', 'Strata', 'Manager'].map(role => {
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {['Agent', 'Strata', 'Manager', 'Tenant'].map(role => {
                           const displayRoles: Record<string, string> = {
                             Agent: 'Real Estate Agent',
                             Strata: 'Strata Manager',
-                            Manager: 'Property Manager'
+                            Manager: 'Property Manager',
+                            Tenant: 'Tenant'
                           };
                           return (
                             <label key={role} className={`cursor-pointer border rounded-2xl p-3 text-center transition-all ${inviteRole === role ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-outline-variant/50 hover:border-outline-variant/80 text-on-surface-variant font-medium'}`}>
