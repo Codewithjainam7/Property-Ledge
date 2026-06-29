@@ -532,8 +532,6 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                     <h1 className="text-5xl font-bold text-[#0a1432] tracking-tight">INVOICE</h1>
                     <div className="bg-[#f8fafc] rounded-xl p-5 w-64">
                       <div className="flex justify-between mb-3 text-xs"><span className="text-[#646e82]">Invoice Date</span><span className="font-semibold text-[#0a1432]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</span></div>
-                      <div className="flex justify-between mb-3 text-xs"><span className="text-[#646e82]">Invoice Number</span><span className="font-semibold text-[#0a1432]">{state.invoiceNumber}</span></div>
-                      <div className="flex justify-between mb-3 text-xs"><span className="text-[#646e82]">Lease ID</span><span className="font-semibold text-[#0a1432] font-mono">{leaseIdDisplay}</span></div>
                       <div className="flex justify-between mb-4 text-xs"><span className="text-[#646e82]">Due Date</span><span className="font-semibold text-[#0a1432]">{new Date(state.dueDate).toLocaleDateString('en-GB')}</span></div>
                       <div className="border-t border-[#e2e8f0] pt-4"><span className="text-xs font-bold text-[#0a1432] block mb-1">Amount Due (AUD)</span><span className="text-3xl font-bold text-[#2962ff]">${formatCurrency(total)}</span></div>
                     </div>
@@ -572,7 +570,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                   <div className="absolute top-[-60px] bottom-[-60px] left-[-60px] w-4 bg-blue-500 z-10" />
                   <div className="bg-[#22333b] text-white p-12 -mx-[60px] -mt-[60px] mb-12 flex justify-between items-start pl-[60px]">
                     <div><h1 className="text-3xl font-black tracking-tight">{state.landlordName}</h1><p className="text-xs text-[#b4c8d2] mt-1 tracking-widest">PROPERTY MANAGEMENT</p></div>
-                    <div className="text-right pr-[60px]"><h2 className="text-4xl font-black">INVOICE</h2><p className="text-xs text-[#b4c8d2] mt-2">No. {state.invoiceNumber}</p><p className="text-xs text-[#b4c8d2] mt-1 font-mono">Lease ID: {leaseIdDisplay}</p></div>
+                    <div className="text-right pr-[60px]"><h2 className="text-4xl font-black">INVOICE</h2></div>
                   </div>
                   <div className="grid grid-cols-3 gap-8 mb-12 pl-4">
                     <div><h3 className="text-[10px] font-bold text-[#647482] uppercase tracking-widest mb-3">From</h3><p className="font-bold text-sm text-[#162129] mb-1">{state.landlordName}</p><p className="text-xs text-[#647482] whitespace-pre-line">{state.landlordAddress}</p></div>
@@ -601,7 +599,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
 
               {state.templateStyle === 'minimalist' && (
                 <div className="font-sans text-black h-full flex flex-col">
-                  <div className="flex justify-between items-end mb-16"><h1 className="text-4xl tracking-widest">INVOICE</h1><div className="text-right text-sm text-gray-500"><p className="text-black mb-1">No: {state.invoiceNumber}</p><p className="text-black mb-1 font-mono text-xs">Lease ID: {leaseIdDisplay}</p><p>Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div></div>
+                  <div className="flex justify-between items-end mb-16"><h1 className="text-4xl tracking-widest">INVOICE</h1><div className="text-right text-sm text-gray-500"><p>Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div></div>
                   <div className="mb-8"><p className="font-semibold text-sm mb-1">{state.landlordName}</p><p className="text-xs text-gray-500 whitespace-pre-line">{state.landlordAddress}</p></div>
                   <div className="border-t border-black pt-8 mb-16"><p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Bill To</p><p className="font-semibold text-sm mb-1">{state.tenantName}</p><p className="text-xs text-gray-500 whitespace-pre-line">{state.tenantAddress}</p></div>
                   
@@ -626,7 +624,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                 <div className="font-sans text-[#0f172a] h-full flex flex-col">
                   <div className="bg-[#0f172a] -mx-[60px] -mt-[60px] px-[60px] py-12 mb-10 text-white flex justify-between items-center">
                     <h1 className="text-4xl font-bold">INVOICE</h1>
-                    <div className="text-right"><p className="text-lg opacity-80 mb-1">#{state.invoiceNumber}</p><p className="text-sm opacity-80 mb-1 font-mono">Lease ID: {leaseIdDisplay}</p><p className="text-sm opacity-60">Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div>
+                    <div className="text-right"><p className="text-sm opacity-60">Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div>
                   </div>
                   <div className="grid grid-cols-2 gap-10 mb-12">
                     <div><h3 className="font-bold text-lg mb-2">{state.landlordName}</h3><p className="text-sm text-gray-500 whitespace-pre-line">{state.landlordAddress}</p></div>
@@ -656,7 +654,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                   <div className="absolute bottom-[-100px] left-[-100px] w-64 h-64 bg-[#fb923c] rounded-full opacity-[0.05]" />
                   <div className="relative z-10 flex-1 flex flex-col">
                     <h1 className="text-7xl font-black mb-2 tracking-tighter">INVOICE.</h1>
-                    <p className="text-2xl font-bold text-[#f97316] mb-12">#{state.invoiceNumber} <span className="text-lg text-gray-400 font-mono font-medium ml-4">Lease ID: {leaseIdDisplay}</span></p>
+
                     <div className="grid grid-cols-2 gap-10 mb-16">
                       <div><p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Invoice To</p><p className="font-bold text-2xl mb-2">{state.tenantName}</p><p className="text-sm text-gray-600 whitespace-pre-line">{state.tenantAddress}</p></div>
                       <div className="text-right"><p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">From</p><p className="font-bold text-xl mb-2">{state.landlordName}</p><p className="text-sm text-gray-600 whitespace-pre-line">{state.landlordAddress}</p><p className="text-sm font-bold text-[#f97316] mt-4">Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div>
@@ -685,8 +683,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                 <div className="font-serif text-[#2d2d2d] h-full flex flex-col">
                   <h1 className="text-5xl text-center mb-6 tracking-[0.2em]">INVOICE</h1>
                   <div className="w-24 h-px bg-[#c0a060] mx-auto mb-8" />
-                  <p className="text-center text-sm text-gray-500 mb-2">No. {state.invoiceNumber}</p>
-                  <p className="text-center text-sm text-gray-400 font-mono mb-2">Lease ID: {leaseIdDisplay}</p>
+
                   <p className="text-center text-sm font-bold text-[#c0a060] mb-16">Due Date: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
                   
                   <div className="grid grid-cols-2 gap-10 mb-16 text-center">
@@ -732,8 +729,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                     </div>
                     <div className="text-right">
                       <h2 className="text-3xl font-normal text-[#1a73e8] tracking-tight mb-2">INVOICE</h2>
-                      <p className="text-sm font-mono text-[#5f6368] bg-[#f8f9fa] inline-block px-3 py-1 rounded-md">ID: {state.invoiceNumber}</p>
-                      <p className="text-xs font-mono text-[#5f6368] mt-2 block">Lease ID: {leaseIdDisplay}</p>
+
                     </div>
                   </div>
 
@@ -796,8 +792,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                   <div className="flex justify-between items-end border-b-4 border-black pb-6 mb-10">
                     <h1 className="text-6xl font-black uppercase tracking-tighter">Invoice</h1>
                     <div className="text-right font-bold text-sm">
-                      <p>NO. {state.invoiceNumber}</p>
-                      <p className="font-mono mt-1 text-xs text-gray-500">LEASE ID: {leaseIdDisplay}</p>
+
                       <p className="mt-1">DUE: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
                     </div>
                   </div>
@@ -867,7 +862,6 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                           <h1 className="text-5xl font-bold text-[#0a1432] tracking-tight">INVOICE</h1>
                           <div className="bg-[#f8fafc] rounded-xl p-5 w-64">
                             <div className="flex justify-between mb-3 text-xs"><span className="text-[#646e82]">Invoice Date</span><span className="font-semibold text-[#0a1432]">{new Date(state.issueDate).toLocaleDateString('en-GB')}</span></div>
-                            <div className="flex justify-between mb-3 text-xs"><span className="text-[#646e82]">Invoice Number</span><span className="font-semibold text-[#0a1432]">{state.invoiceNumber}</span></div>
                             <div className="flex justify-between mb-4 text-xs"><span className="text-[#646e82]">Due Date</span><span className="font-semibold text-[#0a1432]">{new Date(state.dueDate).toLocaleDateString('en-GB')}</span></div>
                             <div className="border-t border-[#e2e8f0] pt-4"><span className="text-xs font-bold text-[#0a1432] block mb-1">Amount Due (AUD)</span><span className="text-3xl font-bold text-[#2962ff]">${formatCurrency(total)}</span></div>
                           </div>
@@ -906,7 +900,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                         <div className="absolute top-[-60px] bottom-[-60px] left-[-60px] w-4 bg-blue-500 z-10" />
                         <div className="bg-[#22333b] text-white p-12 -mx-[60px] -mt-[60px] mb-12 flex justify-between items-start pl-[60px]">
                           <div><h1 className="text-3xl font-black tracking-tight">{state.landlordName}</h1><p className="text-xs text-[#b4c8d2] mt-1 tracking-widest">PROPERTY MANAGEMENT</p></div>
-                          <div className="text-right pr-[60px]"><h2 className="text-4xl font-black">INVOICE</h2><p className="text-xs text-[#b4c8d2] mt-2">No. {state.invoiceNumber}</p></div>
+                          <div className="text-right pr-[60px]"><h2 className="text-4xl font-black">INVOICE</h2></div>
                         </div>
                         <div className="grid grid-cols-3 gap-8 mb-12 pl-4">
                           <div><h3 className="text-[10px] font-bold text-[#647482] uppercase tracking-widest mb-3">From</h3><p className="font-bold text-sm text-[#162129] mb-1">{state.landlordName}</p><p className="text-xs text-[#647482] whitespace-pre-line">{state.landlordAddress}</p></div>
@@ -935,7 +929,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
 
                     {state.templateStyle === 'minimalist' && (
                       <div className="font-sans text-black h-full flex flex-col">
-                        <div className="flex justify-between items-end mb-16"><h1 className="text-4xl tracking-widest">INVOICE</h1><div className="text-right text-sm text-gray-500"><p className="text-black mb-1">No: {state.invoiceNumber}</p><p>Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div></div>
+                        <div className="flex justify-between items-end mb-16"><h1 className="text-4xl tracking-widest">INVOICE</h1><div className="text-right text-sm text-gray-500"><p>Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div></div>
                         <div className="mb-8"><p className="font-semibold text-sm mb-1">{state.landlordName}</p><p className="text-xs text-gray-500 whitespace-pre-line">{state.landlordAddress}</p></div>
                         <div className="border-t border-black pt-8 mb-16"><p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Bill To</p><p className="font-semibold text-sm mb-1">{state.tenantName}</p><p className="text-xs text-gray-500 whitespace-pre-line">{state.tenantAddress}</p></div>
                         
@@ -960,7 +954,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                       <div className="font-sans text-[#0f172a] h-full flex flex-col">
                         <div className="bg-[#0f172a] -mx-[60px] -mt-[60px] px-[60px] py-12 mb-10 text-white flex justify-between items-center">
                           <h1 className="text-4xl font-bold">INVOICE</h1>
-                          <div className="text-right"><p className="text-lg opacity-80 mb-1">#{state.invoiceNumber}</p><p className="text-sm opacity-60">Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div>
+                          <div className="text-right"><p className="text-sm opacity-60">Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div>
                         </div>
                         <div className="grid grid-cols-2 gap-10 mb-12">
                           <div><h3 className="font-bold text-lg mb-2">{state.landlordName}</h3><p className="text-sm text-gray-500 whitespace-pre-line">{state.landlordAddress}</p></div>
@@ -990,7 +984,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                         <div className="absolute bottom-[-100px] left-[-100px] w-64 h-64 bg-[#fb923c] rounded-full opacity-[0.05]" />
                         <div className="relative z-10 flex-1 flex flex-col">
                           <h1 className="text-7xl font-black mb-2 tracking-tighter">INVOICE.</h1>
-                          <p className="text-2xl font-bold text-[#f97316] mb-12">#{state.invoiceNumber}</p>
+
                           <div className="grid grid-cols-2 gap-10 mb-16">
                             <div><p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Invoice To</p><p className="font-bold text-2xl mb-2">{state.tenantName}</p><p className="text-sm text-gray-600 whitespace-pre-line">{state.tenantAddress}</p></div>
                             <div className="text-right"><p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">From</p><p className="font-bold text-xl mb-2">{state.landlordName}</p><p className="text-sm text-gray-600 whitespace-pre-line">{state.landlordAddress}</p><p className="text-sm font-bold text-[#f97316] mt-4">Due: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p></div>
@@ -1019,7 +1013,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                       <div className="font-serif text-[#2d2d2d] h-full flex flex-col">
                         <h1 className="text-5xl text-center mb-6 tracking-[0.2em]">INVOICE</h1>
                         <div className="w-24 h-px bg-[#c0a060] mx-auto mb-8" />
-                        <p className="text-center text-sm text-gray-500 mb-2">No. {state.invoiceNumber}</p>
+
                         <p className="text-center text-sm font-bold text-[#c0a060] mb-16">Due Date: {new Date(state.dueDate).toLocaleDateString('en-GB')}</p>
                         
                         <div className="grid grid-cols-2 gap-10 mb-16 text-center">
@@ -1065,7 +1059,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                           </div>
                           <div className="text-right">
                             <h2 className="text-3xl font-normal text-[#1a73e8] tracking-tight mb-2">INVOICE</h2>
-                            <p className="text-sm font-mono text-[#5f6368] bg-[#f8f9fa] inline-block px-3 py-1 rounded-md">ID: {state.invoiceNumber}</p>
+
                           </div>
                         </div>
 
@@ -1128,7 +1122,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                         <div className="border-4 border-black p-8 mb-8 mt-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex justify-between items-start">
                           <div>
                             <h1 className="text-5xl font-black uppercase tracking-tighter leading-none mb-2">INVOICE</h1>
-                            <p className="text-xl font-bold bg-yellow-300 inline-block px-2">#{state.invoiceNumber}</p>
+
                           </div>
                           <div className="text-right border-l-4 border-black pl-8">
                             <p className="font-bold uppercase text-sm mb-1">Issue Date: {new Date(state.issueDate).toLocaleDateString('en-GB')}</p>
