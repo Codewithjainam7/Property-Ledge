@@ -123,7 +123,7 @@ export function PropertyDetails() {
       const propImages = mapped.images?.length > 0 ? mapped.images : (mapped.image ? [mapped.image] : []);
       setImages(propImages);
 
-      if (window.location.search.includes('edit=true') && (isOwner || teamData?.permissions?.can_edit_lease)) {
+      if (window.location.search.includes('edit=true') && data.owner_id === userId) {
         setEditingProperty(mapped);
         setShowEditPropertyModal(true);
       }
@@ -513,7 +513,8 @@ export function PropertyDetails() {
       setShowInviteSuccessModal(true);
       
       // Instead of setting a single tenant, we just reload the property to get fresh lease_tenants
-      loadProperty();
+      const { data: newTenants } = await supabase.from('tenants').select('*').eq('property_id', id);
+      if (newTenants) setTenants(newTenants);
       setProperty(prev => ({
         ...prev,
         tenantName: `${inviteForm.firstName} ${inviteForm.lastName}`,
@@ -540,7 +541,7 @@ export function PropertyDetails() {
     }
   };
 
-  const handleResendInvite = async () => {
+  const handleResendInvite = async (tenant: any) => {
     if (tenants.length === 0) return;
     try {
       const userRes = await supabase.auth.getUser();
@@ -699,7 +700,8 @@ export function PropertyDetails() {
       if (error) throw error;
       
       setShowEditTenantModal(false);
-      loadProperty(); // Refresh to show new tenant details
+      const { data: newTenants } = await supabase.from('tenants').select('*').eq('property_id', id);
+      if (newTenants) setTenants(newTenants); // Refresh to show new tenant details
     } catch (err: any) {
       console.error('Error updating tenant:', err);
       setTenantEditError(err.message || 'Failed to update tenant details.');
@@ -1365,7 +1367,7 @@ export function PropertyDetails() {
                             value={editingProperty.property_size || ''}
                             onChange={(e) => setEditingProperty({...editingProperty, property_size: e.target.value})}
                             fullWidth
-                            InputProps={{ inputProps: { min: 0 } }}
+                            slotProps={{ htmlInput: { min: 0 } }}
                           />
                           <TextField 
                             label="Car Spaces" 
@@ -1373,7 +1375,7 @@ export function PropertyDetails() {
                             value={editingProperty.car_spaces || 0}
                             onChange={(e) => setEditingProperty({...editingProperty, car_spaces: e.target.value})}
                             fullWidth
-                            InputProps={{ inputProps: { min: 0 } }}
+                            slotProps={{ htmlInput: { min: 0 } }}
                           />
                         </Box>
                       ) : (
@@ -1384,7 +1386,7 @@ export function PropertyDetails() {
                             value={editingProperty.bedrooms || 0}
                             onChange={(e) => setEditingProperty({...editingProperty, bedrooms: e.target.value})}
                             fullWidth
-                            InputProps={{ inputProps: { min: 0 } }}
+                            slotProps={{ htmlInput: { min: 0 } }}
                           />
                           <TextField 
                             label="Baths" 
@@ -1392,7 +1394,7 @@ export function PropertyDetails() {
                             value={editingProperty.bathrooms || 0}
                             onChange={(e) => setEditingProperty({...editingProperty, bathrooms: e.target.value})}
                             fullWidth
-                            InputProps={{ inputProps: { min: 0, step: 0.5 } }}
+                            slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
                           />
                           <TextField 
                             label="Cars" 
@@ -1400,7 +1402,7 @@ export function PropertyDetails() {
                             value={editingProperty.car_spaces || 0}
                             onChange={(e) => setEditingProperty({...editingProperty, car_spaces: e.target.value})}
                             fullWidth
-                            InputProps={{ inputProps: { min: 0 } }}
+                            slotProps={{ htmlInput: { min: 0 } }}
                           />
                         </Box>
                       )}

@@ -267,7 +267,7 @@ export default function TenancySetupWizard({
                 {tenants.map((t) => (
                     <Box key={t.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderRadius: 2, border: '1px solid #ededf1', bgcolor: '#f9f9f9' }}>
                         <Box>
-                            <Typography variant="subtitle1" fontWeight="bold">{t.firstName} {t.lastName}</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t.firstName} {t.lastName}</Typography>
                             <Typography variant="body2" color="text.secondary">{t.email} {t.phone ? `| ${t.phone}` : ''}</Typography>
                         </Box>
                         <Box>
@@ -353,22 +353,22 @@ export default function TenancySetupWizard({
                             <MenuItem value="Fixed Term">Fixed Term</MenuItem>
                         </Select>
                     </FormControl>
-                    <TextField 
-                        label="Start Date *" 
-                        type="date"
-                        value={leaseDetails.startDate}
-                        onChange={(e) => setLeaseDetails({ ...leaseDetails, startDate: e.target.value })}
-                        InputLabelProps={{ shrink: true }}
-                    />
+                        <TextField 
+                            label="Start Date *" 
+                            type="date"
+                            value={leaseDetails.startDate}
+                            onChange={(e) => setLeaseDetails({ ...leaseDetails, startDate: e.target.value })}
+                            slotProps={{ inputLabel: { shrink: true } }}
+                        />
                 </Box>
                 {leaseDetails.leaseType === "Fixed Term" && (
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                         <TextField 
                             label="End Date *" 
                             type="date"
+                            slotProps={{ inputLabel: { shrink: true } }}
                             value={leaseDetails.endDate}
                             onChange={(e) => setLeaseDetails({ ...leaseDetails, endDate: e.target.value })}
-                            InputLabelProps={{ shrink: true }}
                         />
                     </Box>
                 )}
@@ -396,9 +396,9 @@ export default function TenancySetupWizard({
                         <TextField 
                             label="Due Date *" 
                             type="date"
+                            slotProps={{ inputLabel: { shrink: true } }}
                             value={bondDetails.dueDate}
                             onChange={(e) => setBondDetails({ ...bondDetails, dueDate: e.target.value })}
-                            InputLabelProps={{ shrink: true }}
                             sx={{ flex: 1 }}
                         />
                     </Box>
@@ -455,7 +455,7 @@ export default function TenancySetupWizard({
             width: '100%',
             maxWidth: 840,
             bgcolor: 'background.paper',
-            borderRadius: { xs: 3, sm: 4, md: 5 },
+            borderRadius: '28px',
             boxShadow: 24,
             p: 0,
             outline: 'none',

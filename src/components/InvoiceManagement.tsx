@@ -307,13 +307,15 @@ export function InvoiceManagement() {
                           pl: 1
                         }}
                         MenuProps={{
-                          PaperProps: {
-                            sx: {
-                              borderRadius: '16px',
-                              boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
-                              mt: 1,
-                              border: '1px solid rgba(255,255,255,0.6)',
-                              backdropFilter: 'blur(16px)'
+                          slotProps: {
+                            paper: {
+                              sx: {
+                                borderRadius: '16px',
+                                boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
+                                mt: 1,
+                                border: '1px solid rgba(255,255,255,0.6)',
+                                backdropFilter: 'blur(16px)'
+                              }
                             }
                           }
                         }}
@@ -342,13 +344,15 @@ export function InvoiceManagement() {
                           pl: 1
                         }}
                         MenuProps={{
-                          PaperProps: {
-                            sx: {
-                              borderRadius: '16px',
-                              boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
-                              mt: 1,
-                              border: '1px solid rgba(255,255,255,0.6)',
-                              backdropFilter: 'blur(16px)'
+                          slotProps: {
+                            paper: {
+                              sx: {
+                                borderRadius: '16px',
+                                boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
+                                mt: 1,
+                                border: '1px solid rgba(255,255,255,0.6)',
+                                backdropFilter: 'blur(16px)'
+                              }
                             }
                           }
                         }}

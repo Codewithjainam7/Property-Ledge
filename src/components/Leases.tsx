@@ -255,152 +255,150 @@ export function Leases() {
               )}
             </div>
           ) : (
-            <div className="bg-white border border-outline-variant/50 rounded-2xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-surface-container-low border-b border-outline-variant/50 text-xs uppercase tracking-wider font-bold text-on-surface-variant">
-                      <th className="p-4 pl-6">Property</th>
-                      <th className="p-4">Tenant</th>
-                      <th className="p-4">Term</th>
-                      <th className="p-4">Rent</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 pr-6 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {leases.map(lease => (
-                      <tr key={lease.id} className="hover:bg-surface-container-low/80 transition-colors group">
-                        <td className="p-4 pl-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
-                              <Building className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-on-surface">{lease.properties?.address || 'Unknown Property'}</div>
-                              <div className="text-xs text-on-surface-variant">{lease.properties?.suburb}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex flex-col gap-1">
-                            {lease.lease_tenants && lease.lease_tenants.length > 0 ? (
-                              lease.lease_tenants.map((lt: any, idx: number) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <User className="w-3.5 h-3.5 text-slate-400" />
-                                  <span className="font-medium text-sm text-on-surface">{lt.tenants?.first_name} {lt.tenants?.last_name}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <User className="w-3.5 h-3.5 text-slate-300" />
-                                <span className="text-sm text-slate-400 italic">No Tenants</span>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <Calendar className="w-4 h-4 text-slate-400" />
-                              {new Date(lease.start_date).toLocaleDateString()} <ArrowRight className="w-3 h-3 text-slate-300 mx-1" /> 
-                              {lease.end_date ? new Date(lease.end_date).toLocaleDateString() : 'Periodic'}
-                            </div>
-                            <div className={`text-[11px] font-bold ${lease.status === 'Expired' || (lease.end_date && new Date(lease.end_date) < new Date()) ? 'text-red-500' : 'text-primary'}`}>
-                              {getLeaseTimeRemaining(lease.end_date, lease.status)}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-1 font-bold text-on-surface">
-                            <DollarSign className="w-4 h-4 text-emerald-500" />
-                            {Number(lease.rent_amount).toLocaleString('en-AU')} <span className="text-xs font-medium text-slate-400 font-normal">/ {lease.payment_frequency?.toLowerCase().replace('ly', '') || 'week'}</span>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-md text-[11px] font-black uppercase tracking-wider border ${getStatusColor(lease.status)}`}>
-                            {lease.status}
-                          </span>
-                        </td>
-                        <td className="p-4 pr-6 text-right">
-                          <div className="flex items-center justify-end gap-2 flex-wrap">
-                            {/* Status Toggles & Actions */}
-                            {lease.status === 'Active' && (
-                              <>
-                                <button onClick={() => handleUpdateStatus(lease.id, 'Expired')} className="text-xs px-2 py-1.5 font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200">
-                                  Set Expired
-                                </button>
-                                {lease.end_date && (
-                                  <button onClick={() => handleConvertToPeriodic(lease.id)} className="text-xs px-2 py-1.5 font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200">
-                                    Make Periodic
-                                  </button>
-                                )}
-                              </>
-                            )}
-                            {(lease.status === 'Expired' || lease.status === 'Active') && (
-                              <button onClick={() => handleRenewLease(lease)} className="text-xs px-2 py-1.5 font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200">
-                                Renew Lease
-                              </button>
-                            )}
-                            {lease.status === 'Expired' && (
-                              <button onClick={() => handleUpdateStatus(lease.id, 'Active')} className="text-xs px-2 py-1.5 font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200">
-                                Set Active
-                              </button>
-                            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {leases.map(lease => (
+                <div key={lease.id} className="bg-white border border-outline-variant/30 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col gap-4">
+                  {/* Header: Property & Status */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+                        <Building className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-on-surface line-clamp-1">{lease.properties?.address || 'Unknown Property'}</div>
+                        <div className="text-xs text-on-surface-variant">{lease.properties?.suburb}</div>
+                      </div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-md text-[11px] font-black uppercase tracking-wider border shrink-0 ${getStatusColor(lease.status)}`}>
+                      {lease.status}
+                    </span>
+                  </div>
 
-                            <div className="w-[1px] h-4 bg-outline-variant/30 mx-1"></div>
+                  <div className="h-[1px] w-full bg-outline-variant/30"></div>
 
-                            {/* Download PDF / Edit */}
-                            <button 
-                              onClick={() => {
-                                const dummyAgreementDetails = {
-                                  signingProvider: `${session?.user?.email || 'Landlord'} - ${session?.user?.email || ''}, `,
-                                  dateOfAgreement: new Date().toISOString(),
-                                  renterAddresses: {},
-                                  urgentRepairs: { contactName: "Agent/Landlord", phone: "000", email: session?.user?.email || "" },
-                                  ownersCorporation: false,
-                                  conditionReport: "To be provided",
-                                  additionalTerms: "Standard Residential Tenancies Act terms apply"
-                                };
-                                const formattedTenants = lease.lease_tenants?.map(lt => ({
-                                  id: lt.tenants.email,
-                                  firstName: lt.tenants.first_name,
-                                  lastName: lt.tenants.last_name,
-                                  email: lt.tenants.email,
-                                  phone: ""
-                                })) || [];
-                                const bondDetails = { amount: String(lease.bond_amount || lease.rent_amount * 4 || 0), isPaid: false, dueDate: lease.start_date, collectViaPlatform: false };
-                                const leaseDetails = {
-                                  startDate: lease.start_date,
-                                  endDate: lease.end_date,
-                                  rentAmount: String(lease.rent_amount),
-                                  rentFrequency: lease.payment_frequency,
-                                  leaseType: lease.end_date ? "Fixed term" : "Periodic"
-                                };
-                                const fullAddress = lease.properties ? `${lease.properties.address}, ${lease.properties.suburb}` : "";
-
-                                generateVictoriaLeasePdf(dummyAgreementDetails, formattedTenants, bondDetails, leaseDetails, fullAddress, lease.property_id);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-primary/20 hover:bg-primary/5 text-primary font-semibold text-xs rounded-lg transition-colors"
-                            >
-                              <FileText className="w-3.5 h-3.5" /> PDF
-                            </button>
-                            {/* Delete Lease */}
-                            {(lease.properties?.owner_id === session?.user?.id || canEditPropertyIds.includes(lease.property_id)) && (
-                              <button 
-                                onClick={() => setDeletingLeaseId(lease.id)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 hover:bg-red-50 text-red-500 font-semibold text-xs rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                  {/* Body: Tenants, Term, Financials */}
+                  <div className="flex flex-col gap-4 flex-grow">
+                    {/* Tenants */}
+                    <div>
+                      <div className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Tenants</div>
+                      <div className="flex flex-col gap-1.5">
+                        {lease.lease_tenants && lease.lease_tenants.length > 0 ? (
+                          lease.lease_tenants.map((lt: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <User className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="font-medium text-sm text-on-surface">{lt.tenants?.first_name} {lt.tenants?.last_name}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-slate-300" />
+                            <span className="text-sm text-slate-400 italic">No Tenants</span>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Term */}
+                    <div>
+                      <div className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Lease Term</div>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="truncate">{new Date(lease.start_date).toLocaleDateString()} <ArrowRight className="w-3 h-3 text-slate-300 mx-1 inline" /> {lease.end_date ? new Date(lease.end_date).toLocaleDateString() : 'Periodic'}</span>
+                        </div>
+                        <div className={`text-[11px] font-bold ${lease.status === 'Expired' || (lease.end_date && new Date(lease.end_date) < new Date()) ? 'text-red-500' : 'text-primary'}`}>
+                          {getLeaseTimeRemaining(lease.end_date, lease.status)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financials */}
+                    <div>
+                      <div className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Rent Amount</div>
+                      <div className="flex items-center gap-1 font-bold text-on-surface text-lg">
+                        <DollarSign className="w-5 h-5 text-emerald-500" />
+                        {Number(lease.rent_amount).toLocaleString('en-AU')} <span className="text-sm font-medium text-slate-400 font-normal">/ {lease.payment_frequency?.toLowerCase().replace('ly', '') || 'week'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-[1px] w-full bg-outline-variant/30 mt-auto"></div>
+
+                  {/* Footer: Actions */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {lease.status === 'Active' && (
+                      <>
+                        <button onClick={() => handleUpdateStatus(lease.id, 'Expired')} className="text-xs px-2.5 py-1.5 font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200">
+                          Set Expired
+                        </button>
+                        {lease.end_date && (
+                          <button onClick={() => handleConvertToPeriodic(lease.id)} className="text-xs px-2.5 py-1.5 font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200">
+                            Make Periodic
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {(lease.status === 'Expired' || lease.status === 'Active') && (
+                      <button onClick={() => handleRenewLease(lease)} className="text-xs px-2.5 py-1.5 font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200">
+                        Renew
+                      </button>
+                    )}
+                    {lease.status === 'Expired' && (
+                      <button onClick={() => handleUpdateStatus(lease.id, 'Active')} className="text-xs px-2.5 py-1.5 font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200">
+                        Set Active
+                      </button>
+                    )}
+                    
+                    <div className="flex-grow"></div>
+                    
+                    <button 
+                      onClick={() => {
+                        const dummyAgreementDetails = {
+                          signingProvider: `${session?.user?.email || 'Landlord'} - ${session?.user?.email || ''}, `,
+                          dateOfAgreement: new Date().toISOString(),
+                          renterAddresses: {},
+                          urgentRepairs: { contactName: "Agent/Landlord", phone: "000", email: session?.user?.email || "" },
+                          ownersCorporation: false,
+                          conditionReport: "To be provided",
+                          additionalTerms: "Standard Residential Tenancies Act terms apply"
+                        };
+                        const formattedTenants = lease.lease_tenants?.map(lt => ({
+                          id: lt.tenants.email,
+                          firstName: lt.tenants.first_name,
+                          lastName: lt.tenants.last_name,
+                          email: lt.tenants.email,
+                          phone: ""
+                        })) || [];
+                        const bondDetails = { amount: String(lease.bond_amount || lease.rent_amount * 4 || 0), isPaid: false, dueDate: lease.start_date, collectViaPlatform: false };
+                        const leaseDetails = {
+                          startDate: lease.start_date,
+                          endDate: lease.end_date,
+                          rentAmount: String(lease.rent_amount),
+                          rentFrequency: lease.payment_frequency,
+                          leaseType: lease.end_date ? "Fixed term" : "Periodic"
+                        };
+                        const fullAddress = lease.properties ? `${lease.properties.address}, ${lease.properties.suburb}` : "";
+
+                        generateVictoriaLeasePdf(dummyAgreementDetails, formattedTenants, bondDetails, leaseDetails, fullAddress, lease.property_id);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-primary/20 hover:bg-primary/5 text-primary font-semibold text-xs rounded-lg transition-colors"
+                      title="Download PDF"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> PDF
+                    </button>
+                    
+                    {(lease.properties?.owner_id === session?.user?.id || canEditPropertyIds.includes(lease.property_id)) && (
+                      <button 
+                        onClick={() => setDeletingLeaseId(lease.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 hover:bg-red-50 text-red-500 font-semibold text-xs rounded-lg transition-colors"
+                        title="Delete Lease"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
