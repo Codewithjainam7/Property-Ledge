@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from './DashboardLayout';
+import TenancySetupWizard, { wizardTheme } from './TenancySetupWizard';
+import { ThemeProvider, CssBaseline, Modal, Box, Typography, IconButton, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 
@@ -62,6 +64,7 @@ export function Tenants() {
   const [leaseFile, setLeaseFile] = useState<File | null>(null);
   const [leaseFileBase64, setLeaseFileBase64] = useState<string | null>(null);
   const [isPropertyDropdownOpen, setIsPropertyDropdownOpen] = useState(false);
+  const [selectedPropertyForSetup, setSelectedPropertyForSetup] = useState<Property | null>(null);
   
   const [inviteForm, setInviteForm] = useState({
     propertyId: '',
@@ -633,233 +636,101 @@ export function Tenants() {
         </div>
       </div>
 
-      {/* Invite Tenant Modal */}
-      {createPortal(
-        <AnimatePresence>
-          {isInviteModalOpen && (
-            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
-                onClick={() => setIsInviteModalOpen(false)}
-              />
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-lg bg-transparent shadow-[0_24px_48px_-12px_rgba(34,51,59,0.2)] flex flex-col z-10 rounded-[28px]"
-              >
-                <div className="bg-primary px-6 sm:px-8 py-6 rounded-t-[28px] flex items-center justify-between shrink-0 border-b border-primary-fixed-dim/20">
-                  <div className="text-on-primary">
-                    <h3 className="text-xl sm:text-2xl font-black tracking-tight mb-1">Add Tenant</h3>
-                    <p className="text-on-primary/80 text-xs sm:text-sm font-medium">Add a tenant and link them to a property.</p>
-                  </div>
-                  <button 
+      {/* Invite Tenant Property Selection Modal */}
+      <ThemeProvider theme={wizardTheme}>
+        <CssBaseline />
+        <Modal 
+          open={isInviteModalOpen && !selectedPropertyForSetup} 
+          onClose={() => setIsInviteModalOpen(false)}
+          closeAfterTransition
+        >
+          <Box sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              maxWidth: 500,
+              bgcolor: 'background.paper',
+              borderRadius: '28px',
+              boxShadow: 24,
+              p: 0,
+              outline: 'none',
+              display: 'flex',
+              flexDirection: 'column'
+          }}>
+            <Box sx={{ p: { xs: 3, md: 5 }, position: 'relative' }}>
+                <IconButton 
                     onClick={() => setIsInviteModalOpen(false)} 
-                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors cursor-pointer shrink-0"
+                    sx={{ position: 'absolute', top: 16, right: 16 }}
+                >
+                    <X />
+                </IconButton>
+                
+                <Box sx={{ textAlign: 'center', mb: 4, pt: 1 }}>
+                    <Typography variant="h4" component="h1" gutterBottom sx={{ letterSpacing: '-0.5px', fontWeight: '900', fontFamily: 'Space Grotesk', fontSize: { xs: '1.75rem', sm: '2rem' } }}>
+                        Select Property
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                        Choose a property to setup tenancy.
+                    </Typography>
+                </Box>
+
+                <FormControl fullWidth sx={{ mb: 4 }}>
+                  <InputLabel id="property-select-label">Target Property</InputLabel>
+                  <Select
+                    labelId="property-select-label"
+                    value={inviteForm.propertyId}
+                    label="Target Property"
+                    onChange={(e) => setInviteForm({ ...inviteForm, propertyId: e.target.value as string })}
+                    sx={{ borderRadius: '16px' }}
                   >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+                    {properties.map(p => (
+                      <MenuItem key={p.id} value={p.id}>{p.address}, {p.suburb}</MenuItem>
+                    ))}
+                    {properties.length === 0 && (
+                      <MenuItem disabled value="">No properties available</MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
 
-                <form className="p-6 sm:p-8 space-y-6 bg-white rounded-b-[28px] overflow-y-auto custom-scrollbar">
-                  {inviteError && (
-                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-[16px] text-xs font-bold flex items-center gap-2 shadow-sm">
-                      <AlertTriangle className="w-4 h-4 shrink-0" />
-                      {inviteError}
-                    </div>
-                  )}
+                <Button 
+                  variant="contained" 
+                  fullWidth 
+                  disabled={!inviteForm.propertyId}
+                  onClick={() => {
+                    const p = properties.find(prop => prop.id === inviteForm.propertyId);
+                    if (p) {
+                       setSelectedPropertyForSetup(p);
+                       setIsInviteModalOpen(false);
+                    }
+                  }}
+                  sx={{ 
+                    py: 2, 
+                    borderRadius: '16px', 
+                    fontSize: '0.875rem', 
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px'
+                  }}
+                >
+                  Proceed to Tenancy Setup
+                </Button>
+            </Box>
+          </Box>
+        </Modal>
+      </ThemeProvider>
 
-                  {inviteSuccess && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-[16px] text-xs font-bold flex items-center gap-2 shadow-sm">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      {inviteSuccess}
-                    </div>
-                  )}
-
-                  <div className="relative">
-                    <div
-                      onClick={() => setIsPropertyDropdownOpen(!isPropertyDropdownOpen)}
-                      className={`peer w-full bg-transparent border-2 ${isPropertyDropdownOpen ? 'border-primary' : 'border-outline-variant/40 hover:border-outline-variant/80'} rounded-[16px] px-4 py-3.5 text-sm text-on-surface transition-all font-semibold cursor-pointer flex justify-between items-center`}
-                    >
-                      <span>
-                        {inviteForm.propertyId 
-                          ? (() => {
-                              const p = properties.find(prop => prop.id === inviteForm.propertyId);
-                              return p ? `${p.address}, ${p.suburb}` : 'Select a Property...';
-                            })()
-                          : <span className="text-on-surface-variant/70">Select a Property...</span>
-                        }
-                      </span>
-                      <ChevronDown className={`w-4 h-4 text-on-surface-variant transition-transform ${isPropertyDropdownOpen ? 'rotate-180' : ''}`} />
-                    </div>
-                    <label className={`absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold transition-all pointer-events-none ${isPropertyDropdownOpen ? 'text-primary' : 'text-on-surface-variant'}`}>Target Property</label>
-                    
-                    <AnimatePresence>
-                      {isPropertyDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setIsPropertyDropdownOpen(false)} />
-                          <motion.div
-                            initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200 py-2 z-50 max-h-60 overflow-y-auto custom-scrollbar"
-                          >
-                            {properties.map(p => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => {
-                                  setInviteForm({ ...inviteForm, propertyId: p.id, rentAmount: p.rent_amount ? p.rent_amount.toString() : '', leaseStart: p.lease_start || '' });
-                                  setIsPropertyDropdownOpen(false);
-                                }}
-                                className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors hover:bg-primary/5 ${inviteForm.propertyId === p.id ? 'bg-primary/10 text-primary' : 'text-on-surface'}`}
-                              >
-                                {p.address}, <span className="opacity-70 font-medium">{p.suburb}</span>
-                              </button>
-                            ))}
-                            {properties.length === 0 && (
-                              <div className="px-4 py-3 text-sm text-on-surface-variant text-center font-medium">No properties available</div>
-                            )}
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 sm:gap-5 mt-2">
-                    <div className="relative">
-                      <input
-                        required
-                        type="text"
-                        id="firstName"
-                        value={inviteForm.firstName}
-                        onChange={e => setInviteForm({ ...inviteForm, firstName: e.target.value })}
-                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
-                        placeholder=" "
-                      />
-                      <label htmlFor="firstName" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">First Name</label>
-                    </div>
-                    <div className="relative">
-                      <input
-                        required
-                        type="text"
-                        id="lastName"
-                        value={inviteForm.lastName}
-                        onChange={e => setInviteForm({ ...inviteForm, lastName: e.target.value })}
-                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
-                        placeholder=" "
-                      />
-                      <label htmlFor="lastName" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Last Name</label>
-                    </div>
-                  </div>
-
-                  <div className="relative mt-2">
-                    <input
-                      required
-                      type="email"
-                      id="email"
-                      value={inviteForm.email}
-                      onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
-                      className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
-                      placeholder=" "
-                    />
-                    <label htmlFor="email" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Tenant Email</label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 sm:gap-5 mt-2">
-                    <div className="relative">
-                      <input
-                        required
-                        type="number"
-                        id="rentAmount"
-                        value={inviteForm.rentAmount}
-                        onChange={e => setInviteForm({ ...inviteForm, rentAmount: e.target.value })}
-                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold"
-                        placeholder=" "
-                      />
-                      <label htmlFor="rentAmount" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-on-surface-variant transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-[11px] peer-focus:text-primary pointer-events-none">Weekly Rent ($)</label>
-                    </div>
-                    <div className="relative">
-                      <input
-                        required
-                        type="date"
-                        id="leaseStart"
-                        value={inviteForm.leaseStart}
-                        onChange={e => setInviteForm({ ...inviteForm, leaseStart: e.target.value })}
-                        className="peer w-full bg-transparent border-2 border-outline-variant/40 rounded-[16px] px-4 py-3.5 text-sm text-on-surface focus:outline-none focus:border-primary transition-all font-semibold [color-scheme:light]"
-                        placeholder=" "
-                      />
-                      <label htmlFor="leaseStart" className="absolute left-3 -top-2.5 bg-white px-1.5 text-[11px] font-bold text-primary transition-all pointer-events-none">Lease Start</label>
-                    </div>
-                  </div>
-
-                  <div className="relative overflow-hidden group mt-4">
-                    <div className="relative p-6 border-2 border-dashed border-primary/30 rounded-[20px] flex flex-col items-center justify-center text-center hover:border-primary/60 transition-colors bg-surface-container-lowest/50 hover:bg-primary/5 cursor-pointer">
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setLeaseFile(file);
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              const base64String = reader.result?.toString().split(',')[1];
-                              if (base64String) setLeaseFileBase64(base64String);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      />
-                      <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                        {leaseFile ? <FileUp className="w-6 h-6" /> : <Download className="w-6 h-6" />}
-                      </div>
-                      <p className="text-sm font-bold text-on-surface mb-1">
-                        {leaseFile ? leaseFile.name : "Upload Signed Lease PDF (Optional)"}
-                      </p>
-                      <p className="text-[11px] font-medium text-on-surface-variant">
-                        {leaseFile ? "Click to change file" : "Drag and drop or click to browse"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex flex-col gap-3">
-                    <button 
-                      type="button"
-                      onClick={(e) => handleInviteSubmit(e, 'invite')}
-                      disabled={invitingType !== null}
-                      className="w-full py-4 rounded-[16px] bg-primary text-white font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 group cursor-pointer"
-                    >
-                      {invitingType === 'invite' ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <>Send Digital Invite <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /></>
-                      )}
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={(e) => handleInviteSubmit(e, 'direct')}
-                      disabled={invitingType !== null}
-                      className="w-full py-4 rounded-[16px] bg-surface-container border border-outline-variant text-on-surface font-black text-xs uppercase tracking-widest hover:bg-surface-container-high transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 cursor-pointer"
-                    >
-                      {invitingType === 'direct' ? (
-                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                      ) : (
-                        "Add Directly (No Login Required)"
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
+      {selectedPropertyForSetup && (
+        <TenancySetupWizard 
+          isOpen={true}
+          propertyId={selectedPropertyForSetup.id} 
+          propertyAddress={selectedPropertyForSetup.address} 
+          onClose={() => {
+             setSelectedPropertyForSetup(null);
+             if (session?.user?.id) loadData(session.user.id);
+          }} 
+        />
       )}
 
       {/* Success Modal */}

@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { X, CheckCircle2, User, Plus, Pencil, Trash2 } from 'lucide-react';
 
-const theme = createTheme({
+export const wizardTheme = createTheme({
   palette: {
     primary: {
       main: '#22333b',
@@ -463,7 +463,7 @@ export default function TenancySetupWizard({
             display: 'flex',
             flexDirection: 'column'
         }}>
-          <ThemeProvider theme={theme}>
+          <ThemeProvider theme={wizardTheme}>
             <CssBaseline />
             <Box sx={{ p: { xs: 2, sm: 4, md: 6 }, overflowY: 'auto', flex: 1, position: 'relative' }}>
                 <IconButton 

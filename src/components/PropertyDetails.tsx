@@ -260,14 +260,15 @@ export function PropertyDetails() {
 
         setImages(newImages);
         setProperty({ ...property, images: newImages, image: newImages[0] });
-        // Save to Supabase
-        await supabase
+        // Save to Supabase (Only saving the primary image to DB as 'images' column doesn't exist yet)
+        const { error } = await supabase
           .from('properties')
           .update({ 
-            image: newImages[0],
-            images: newImages
+            image: newImages[0]
           })
           .eq('id', id);
+          
+        if (error) console.error("Error saving image:", error);
 
         setIsMenuOpen(false);
       };
@@ -285,14 +286,15 @@ export function PropertyDetails() {
     setCurrentImageIndex(prev => Math.min(prev, Math.max(0, newImages.length - 1)));
     setProperty({ ...property, images: newImages, image: newImages[0] || null });
     
-    // Save to Supabase
-    await supabase
+    // Save to Supabase (Only updating primary image)
+    const { error } = await supabase
       .from('properties')
       .update({ 
-        image: newImages[0] || null,
-        images: newImages
+        image: newImages[0] || null
       })
       .eq('id', id);
+
+    if (error) console.error("Error deleting image:", error);
 
     setIsMenuOpen(false);
   };
