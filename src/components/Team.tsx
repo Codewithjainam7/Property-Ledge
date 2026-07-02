@@ -315,12 +315,6 @@ export function Team() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-base font-black text-on-surface">Properties</h2>
-                  <button
-                    onClick={() => { setSelectedPropertyId(''); setShowInviteModal(true); }}
-                    className="flex items-center gap-1.5 border border-outline-variant/50 text-on-surface-variant hover:bg-surface-container-low px-3 py-1.5 rounded-xl text-sm font-bold transition-colors"
-                  >
-                    <Plus className="w-4 h-4" /> Invite to Property
-                  </button>
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
                   {properties.map(property => {
