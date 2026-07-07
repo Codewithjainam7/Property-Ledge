@@ -75,22 +75,22 @@ serve(async (req) => {
     <tr><td align="center">
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#141419;border:1px solid #2a2a35;border-radius:16px;overflow:hidden;">
         <tr><td style="padding:40px 40px 20px;text-align:center;">
-          <span style="font-size:24px;font-weight:900;color:#818cf8;">PROPERTY LEDGE</span>
+          <span style="font-size:24px;font-weight:900;color:#a9927d;letter-spacing:2px;">PROPERTY LEDGE</span>
         </td></tr>
         <tr><td style="padding:20px 40px 40px;">
           <h1 style="font-size:26px;font-weight:800;color:#ffffff;margin:0 0 16px;text-align:center;">Welcome to Your New Home, ${firstName || "Tenant"}!</h1>
           <p style="font-size:15px;line-height:1.6;color:#9ca3af;margin-bottom:30px;text-align:center;">Your landlord has invited you to access your digital resident portal.</p>
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#1e1e2a;border:1px solid #2a2a35;border-radius:12px;padding:20px;margin-bottom:30px;">
-            <tr><td style="padding-bottom:8px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Property</td></tr>
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#1e1e2a;border:1px solid #2a2a35;border-radius:12px;padding:24px;margin-bottom:30px;">
+            <tr><td style="padding-bottom:8px;font-size:12px;color:#a9927d;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">Property Address</td></tr>
             <tr><td style="padding-bottom:16px;font-size:16px;color:#ffffff;font-weight:bold;">${propertyAddress || "N/A"}</td></tr>
             <tr><td>
-              <table width="100%" border="0" cellspacing="0" cellpadding="0">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top:1px solid #2a2a35;padding-top:16px;">
                 <tr>
                   <td width="50%" style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Rent</td>
                   <td width="50%" style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Lease Start</td>
                 </tr>
                 <tr>
-                  <td style="font-size:18px;color:#818cf8;font-weight:800;padding-top:4px;">$${rentAmount || "0"}/wk</td>
+                  <td style="font-size:20px;color:#a9927d;font-weight:800;padding-top:4px;">$${rentAmount || "0"}/wk</td>
                   <td style="font-size:16px;color:#ffffff;font-weight:bold;padding-top:4px;">${formatDate(leaseStart)}</td>
                 </tr>
               </table>
@@ -98,7 +98,7 @@ serve(async (req) => {
           </table>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="text-align:center;margin-bottom:24px;">
             <tr><td>
-              <a href="${inviteUrl || "#"}" target="_blank" style="background:#6366f1;color:#ffffff;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:bold;text-decoration:none;display:inline-block;">Accept Lease &amp; Set Password</a>
+              <a href="${inviteUrl || "#"}" target="_blank" style="background:#a9927d;color:#141419;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:bold;text-decoration:none;display:inline-block;letter-spacing:0.5px;">Accept Lease &amp; Set Password</a>
             </td></tr>
           </table>
           <p style="font-size:12px;color:#4b5563;text-align:center;margin:0;">If you did not request this, please ignore this email.</p>
@@ -121,18 +121,18 @@ serve(async (req) => {
     <tr><td align="center">
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#141419;border:1px solid #2a2a35;border-radius:16px;overflow:hidden;">
         <tr><td style="padding:40px 40px 20px;text-align:center;">
-          <span style="font-size:24px;font-weight:900;color:#818cf8;">PROPERTY LEDGE</span>
+          <span style="font-size:24px;font-weight:900;color:#a9927d;letter-spacing:2px;">PROPERTY LEDGE</span>
         </td></tr>
         <tr><td style="padding:20px 40px 40px;">
           <h1 style="font-size:26px;font-weight:800;color:#ffffff;margin:0 0 16px;text-align:center;">Join the Management Team</h1>
           <p style="font-size:15px;line-height:1.6;color:#9ca3af;margin-bottom:30px;text-align:center;">You have been invited by <strong>${landlordEmail || "your landlord"}</strong> to manage <strong>${propertyAddress || "a property"}</strong>.</p>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#1e1e2a;border:1px solid #2a2a35;border-radius:12px;padding:20px;margin-bottom:30px;text-align:center;">
-            <tr><td style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;padding-bottom:8px;">Assigned Role</td></tr>
-            <tr><td style="font-size:20px;color:#818cf8;font-weight:900;">${role || "Team Member"}</td></tr>
+            <tr><td style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;padding-bottom:8px;letter-spacing:1px;">Assigned Role</td></tr>
+            <tr><td style="font-size:20px;color:#a9927d;font-weight:900;letter-spacing:0.5px;">${role || "Team Member"}</td></tr>
           </table>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="text-align:center;margin-bottom:24px;">
             <tr><td>
-              <a href="${inviteUrl || "#"}" target="_blank" style="background:#6366f1;color:#ffffff;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:bold;text-decoration:none;display:inline-block;">Accept Team Invite</a>
+              <a href="${inviteUrl || "#"}" target="_blank" style="background:#a9927d;color:#141419;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:bold;text-decoration:none;display:inline-block;letter-spacing:0.5px;">Accept Team Invite</a>
             </td></tr>
           </table>
           <p style="font-size:12px;color:#4b5563;text-align:center;margin:0;">If you did not request this, please ignore this email.</p>
@@ -268,36 +268,37 @@ serve(async (req) => {
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f9fafb;padding:40px 20px;">
     <tr><td align="center">
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
-        <tr><td style="background-color:#4f46e5;padding:40px 40px 30px;text-align:center;">
-          <span style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:1px;">PROPERTY LEDGE</span>
+        <tr><td style="background-color:#22333b;padding:40px 40px 30px;text-align:center;">
+          <span style="font-size:13px;font-weight:700;color:#a9927d;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">Property Ledge</span>
+          <span style="font-size:22px;font-weight:900;color:#ffffff;">Invoice Delivery</span>
         </td></tr>
         <tr><td style="padding:40px 40px 20px;">
-          <h1 style="font-size:24px;font-weight:800;color:#111827;margin:0 0 16px;text-align:center;">
+          <h1 style="font-size:24px;font-weight:800;color:#22333b;margin:0 0 16px;text-align:center;">
             ${isReminder ? 'Payment Reminder ⚠️' : 'New Invoice Received 📄'}
           </h1>
           <p style="font-size:15px;line-height:1.6;color:#4b5563;margin-bottom:30px;text-align:center;">
             Hi ${tenantName || "Tenant"}, ${isReminder ? 'this is a friendly reminder that your invoice is due.' : 'a new invoice has been generated for your property.'}
           </p>
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f3f4f6;border-radius:12px;padding:24px;margin-bottom:30px;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f2f4f3;border:1px solid rgba(34,51,59,0.1);border-radius:12px;padding:24px;margin-bottom:30px;">
             <tr>
               <td style="padding-bottom:12px;">
-                <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Property</div>
-                <div style="font-size:16px;color:#111827;font-weight:bold;margin-top:4px;">${propertyAddress || "N/A"}</div>
+                <div style="font-size:12px;color:#a9927d;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">Property</div>
+                <div style="font-size:16px;color:#22333b;font-weight:bold;margin-top:4px;">${propertyAddress || "N/A"}</div>
               </td>
             </tr>
             <tr>
-              <td style="padding-bottom:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
-                <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Invoice Number</div>
-                <div style="font-size:16px;color:#111827;font-weight:bold;margin-top:4px;">${invoiceNumber || "N/A"}</div>
+              <td style="padding-bottom:12px;border-top:1px solid rgba(34,51,59,0.1);padding-top:12px;">
+                <div style="font-size:12px;color:#a9927d;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">Invoice Number</div>
+                <div style="font-size:16px;color:#22333b;font-weight:bold;margin-top:4px;">${invoiceNumber || "N/A"}</div>
               </td>
             </tr>
             <tr>
-              <td style="padding-bottom:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
+              <td style="padding-bottom:12px;border-top:1px solid rgba(34,51,59,0.1);padding-top:12px;">
                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
                   <tr>
                     <td width="50%">
                       <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Amount Due</div>
-                      <div style="font-size:20px;color:#4f46e5;font-weight:900;margin-top:4px;">$${totalAmount || "0.00"}</div>
+                      <div style="font-size:22px;color:#a9927d;font-weight:900;margin-top:4px;">$${totalAmount || "0.00"}</div>
                     </td>
                     <td width="50%">
                       <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Due Date</div>
@@ -308,18 +309,18 @@ serve(async (req) => {
               </td>
             </tr>
           </table>
-          <p style="font-size:14px;color:#4b5563;line-height:1.6;margin-bottom:24px;background:#e0e7ff;padding:16px;border-radius:8px;border-left:4px solid #4f46e5;">
+          <p style="font-size:14px;color:#22333b;line-height:1.6;margin-bottom:24px;background:#f2f4f3;padding:16px;border-radius:8px;border-left:4px solid #a9927d;">
             Please find the detailed invoice PDF attached to this email. It contains all payment instructions and line items.
           </p>
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top:30px;">
             <tr>
               <td width="48" style="vertical-align:middle;">
-                <div style="width:48px;height:48px;background:#4f46e5;border-radius:50%;text-align:center;line-height:48px;font-size:20px;color:#ffffff;font-weight:800;">
+                <div style="width:48px;height:48px;background:#22333b;border-radius:50%;text-align:center;line-height:48px;font-size:20px;color:#a9927d;font-weight:800;">
                   ${(senderName || senderEmail || 'L').charAt(0).toUpperCase()}
                 </div>
               </td>
               <td style="padding-left:16px;vertical-align:middle;">
-                <p style="margin:0 0 4px;font-size:15px;font-weight:800;color:#111827;">${senderName || "Your Property Manager"}</p>
+                <p style="margin:0 0 4px;font-size:15px;font-weight:800;color:#22333b;">${senderName || "Your Property Manager"}</p>
                 <p style="margin:0;font-size:14px;color:#6b7280;">${senderEmail || ""}</p>
               </td>
             </tr>

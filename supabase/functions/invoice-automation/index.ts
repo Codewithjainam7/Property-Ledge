@@ -53,32 +53,32 @@ serve(async (req) => {
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f9fafb;padding:40px 20px;">
     <tr><td align="center">
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
-        <tr><td style="background-color:#4f46e5;padding:40px 40px 30px;text-align:center;">
-          <span style="font-size:13px;font-weight:700;color:#c7d2fe;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">PropertyLedge</span>
+        <tr><td style="background-color:#22333b;padding:40px 40px 30px;text-align:center;">
+          <span style="font-size:13px;font-weight:700;color:#a9927d;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">PropertyLedge</span>
           <span style="font-size:22px;font-weight:900;color:#ffffff;">Billing & Invoices</span>
         </td></tr>
         <tr><td style="padding:40px 40px 20px;">
-          <h1 style="font-size:24px;font-weight:800;color:#111827;margin:0 0 16px;text-align:center;">
+          <h1 style="font-size:24px;font-weight:800;color:#22333b;margin:0 0 16px;text-align:center;">
             ${isReminder ? 'Payment Reminder ⚠️' : 'New Invoice Received 📄'}
           </h1>
           <p style="font-size:15px;line-height:1.6;color:#4b5563;margin-bottom:30px;text-align:center;">
             Hi ${tenantName || "Tenant"}, ${isReminder ? 'this is a friendly reminder that your invoice is due.' : 'a new invoice has been automatically generated for your property.'}
           </p>
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f3f4f6;border-radius:12px;padding:24px;margin-bottom:30px;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f2f4f3;border:1px solid rgba(34,51,59,0.1);border-radius:12px;padding:24px;margin-bottom:30px;">
             <tr><td style="padding-bottom:12px;">
-              <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Property</div>
-              <div style="font-size:16px;color:#111827;font-weight:bold;margin-top:4px;">${propertyAddress || "N/A"}</div>
+              <div style="font-size:12px;color:#a9927d;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">Property</div>
+              <div style="font-size:16px;color:#22333b;font-weight:bold;margin-top:4px;">${propertyAddress || "N/A"}</div>
             </td></tr>
-            <tr><td style="padding-bottom:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
-              <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Invoice Number</div>
-              <div style="font-size:16px;color:#111827;font-weight:bold;margin-top:4px;">${invoiceNumber}</div>
+            <tr><td style="padding-bottom:12px;border-top:1px solid rgba(34,51,59,0.1);padding-top:12px;">
+              <div style="font-size:12px;color:#a9927d;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">Invoice Number</div>
+              <div style="font-size:16px;color:#22333b;font-weight:bold;margin-top:4px;">${invoiceNumber}</div>
             </td></tr>
-            <tr><td style="padding-top:12px;border-top:1px solid #e5e7eb;">
+            <tr><td style="padding-top:12px;border-top:1px solid rgba(34,51,59,0.1);">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td width="50%">
                     <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Amount Due</div>
-                    <div style="font-size:20px;color:#4f46e5;font-weight:900;margin-top:4px;">$${Number(totalAmount || 0).toFixed(2)}</div>
+                    <div style="font-size:22px;color:#a9927d;font-weight:900;margin-top:4px;">$${Number(totalAmount || 0).toFixed(2)}</div>
                   </td>
                   <td width="50%">
                     <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Due Date</div>
@@ -88,7 +88,7 @@ serve(async (req) => {
               </table>
             </td></tr>
           </table>
-          <p style="font-size:14px;color:#4b5563;line-height:1.6;margin-bottom:24px;background:#e0e7ff;padding:16px;border-radius:8px;border-left:4px solid #4f46e5;">
+          <p style="font-size:14px;color:#22333b;line-height:1.6;margin-bottom:24px;background:#f2f4f3;padding:16px;border-radius:8px;border-left:4px solid #a9927d;">
             Please ensure payment is made by the due date. If you have any questions, please contact your property manager.
           </p>
         </td></tr>
