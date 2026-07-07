@@ -57,50 +57,12 @@ serve(async (req) => {
       });
     }
 
-    const mailtrapToken = Deno.env.get("MAILTRAP_API_TOKEN") || "";
-    if (!mailtrapToken) {
-      throw new Error("MAILTRAP_API_TOKEN secret is not set.");
+    const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY secret is not set.");
     }
 
-    // ─── Step 1: Get Mailtrap Account ID ───
-    console.log("Step 1: Fetching Mailtrap accounts...");
-    const accountsRes = await fetch("https://mailtrap.io/api/accounts", {
-      headers: { "Api-Token": mailtrapToken }
-    });
-
-    if (!accountsRes.ok) {
-      const errText = await accountsRes.text();
-      throw new Error(`Failed to fetch Mailtrap accounts (${accountsRes.status}): ${errText}`);
-    }
-
-    const accounts = await accountsRes.json();
-    if (!accounts || accounts.length === 0) {
-      throw new Error("No Mailtrap accounts found for this API token.");
-    }
-
-    const accountId = accounts[0].id;
-    console.log(`Found Mailtrap account ID: ${accountId}`);
-
-    // ─── Step 2: Get Sandbox Inbox ID ───
-    console.log("Step 2: Fetching sandbox inboxes...");
-    const inboxesRes = await fetch(`https://mailtrap.io/api/accounts/${accountId}/inboxes`, {
-      headers: { "Api-Token": mailtrapToken }
-    });
-
-    if (!inboxesRes.ok) {
-      const errText = await inboxesRes.text();
-      throw new Error(`Failed to fetch sandbox inboxes (${inboxesRes.status}): ${errText}`);
-    }
-
-    const inboxes = await inboxesRes.json();
-    if (!inboxes || inboxes.length === 0) {
-      throw new Error("No sandbox inboxes found. Please create one at https://mailtrap.io/inboxes");
-    }
-
-    const inboxId = inboxes[0].id;
-    console.log(`Found sandbox inbox ID: ${inboxId}`);
-
-    // ─── Step 3: Build the email HTML ───
+    // ─── Build the email HTML ───
     let htmlContent = "";
 
     if (templateType === "tenant-invite") {
@@ -142,7 +104,7 @@ serve(async (req) => {
           <p style="font-size:12px;color:#4b5563;text-align:center;margin:0;">If you did not request this, please ignore this email.</p>
         </td></tr>
         <tr><td style="padding:16px 40px;border-top:1px solid #2a2a35;text-align:center;">
-          <p style="font-size:11px;color:#4b5563;margin:0;">&copy; 2026 Property Ledge. All rights reserved.</p>
+          <p style="font-size:11px;color:#4b5563;margin:0;">&copy; ${new Date().getFullYear()} Property Ledge. All rights reserved.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -176,7 +138,7 @@ serve(async (req) => {
           <p style="font-size:12px;color:#4b5563;text-align:center;margin:0;">If you did not request this, please ignore this email.</p>
         </td></tr>
         <tr><td style="padding:16px 40px;border-top:1px solid #2a2a35;text-align:center;">
-          <p style="font-size:11px;color:#4b5563;margin:0;">&copy; 2026 Property Ledge. All rights reserved.</p>
+          <p style="font-size:11px;color:#4b5563;margin:0;">&copy; ${new Date().getFullYear()} Property Ledge. All rights reserved.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -286,88 +248,139 @@ serve(async (req) => {
         <!-- Footer -->
         <tr><td style="padding:40px 40px;text-align:center;margin-top:40px;">
           <p style="margin:0 0 8px;font-size:12px;color:#22333b;opacity:0.5;font-weight:500;">This email was securely delivered by Property Ledge.</p>
-          <p style="margin:0;font-size:11px;color:#22333b;opacity:0.3;font-weight:600;">&copy; 2026 Property Ledge. All rights reserved.</p>
+          <p style="margin:0;font-size:11px;color:#22333b;opacity:0.3;font-weight:600;">&copy; ${new Date().getFullYear()} Property Ledge. All rights reserved.</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body>
 </html>`;
+    } else if (templateType === "invoice") {
+      const { 
+        tenantName, propertyAddress, senderName, senderEmail,
+        invoiceNumber, dueDate, totalAmount, isReminder
+      } = variables;
 
-      // Override the "from" to use the landlord/PM email
-      const fromEmail = Deno.env.get("MAILTRAP_SENDER_EMAIL") || "mailtrap@sandbox.api.mailtrap.io";
-      const fromName = senderName || "Property Ledge";
-
-      const mailtrapPayload: any = {
-        from: { email: fromEmail, name: fromName },
-        to: [{ email: to }],
-        subject: subject,
-        html: htmlContent,
-        category: "Tenant Welcome"
-      };
-
-      if (reqBody && reqBody.attachmentBase64) {
-        mailtrapPayload.attachments = [
-          {
-            filename: reqBody.attachmentFilename || "Lease_Agreement.pdf",
-            content: reqBody.attachmentBase64.split(',')[1] || reqBody.attachmentBase64,
-            type: "application/pdf",
-            disposition: "attachment"
-          }
-        ];
-      }
-
-      // ─── Send email via Mailtrap Sandbox API ───
-      const mailtrapRes2 = await fetch(`https://sandbox.api.mailtrap.io/api/send/${inboxId}`, {
-        method: "POST",
-        headers: { "Api-Token": mailtrapToken, "Content-Type": "application/json" },
-        body: JSON.stringify(mailtrapPayload),
-      });
-
-      if (!mailtrapRes2.ok) {
-        const errText = await mailtrapRes2.text();
-        throw new Error(`Mailtrap API failed (${mailtrapRes2.status}): ${errText}`);
-      }
-
-      const resJson2 = await mailtrapRes2.json();
-      return new Response(JSON.stringify({ success: true, message: "Welcome email sent", data: resJson2 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
-      });
-
+      htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${isReminder ? 'Invoice Reminder' : 'New Invoice'}</title></head>
+<body style="margin:0;padding:0;background-color:#f9fafb;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1f2937;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f9fafb;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+        <tr><td style="background-color:#4f46e5;padding:40px 40px 30px;text-align:center;">
+          <span style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:1px;">PROPERTY LEDGE</span>
+        </td></tr>
+        <tr><td style="padding:40px 40px 20px;">
+          <h1 style="font-size:24px;font-weight:800;color:#111827;margin:0 0 16px;text-align:center;">
+            ${isReminder ? 'Payment Reminder ⚠️' : 'New Invoice Received 📄'}
+          </h1>
+          <p style="font-size:15px;line-height:1.6;color:#4b5563;margin-bottom:30px;text-align:center;">
+            Hi ${tenantName || "Tenant"}, ${isReminder ? 'this is a friendly reminder that your invoice is due.' : 'a new invoice has been generated for your property.'}
+          </p>
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f3f4f6;border-radius:12px;padding:24px;margin-bottom:30px;">
+            <tr>
+              <td style="padding-bottom:12px;">
+                <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Property</div>
+                <div style="font-size:16px;color:#111827;font-weight:bold;margin-top:4px;">${propertyAddress || "N/A"}</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-bottom:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
+                <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Invoice Number</div>
+                <div style="font-size:16px;color:#111827;font-weight:bold;margin-top:4px;">${invoiceNumber || "N/A"}</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-bottom:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td width="50%">
+                      <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Amount Due</div>
+                      <div style="font-size:20px;color:#4f46e5;font-weight:900;margin-top:4px;">$${totalAmount || "0.00"}</div>
+                    </td>
+                    <td width="50%">
+                      <div style="font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;">Due Date</div>
+                      <div style="font-size:16px;color:#ef4444;font-weight:bold;margin-top:4px;">${formatDate(dueDate)}</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <p style="font-size:14px;color:#4b5563;line-height:1.6;margin-bottom:24px;background:#e0e7ff;padding:16px;border-radius:8px;border-left:4px solid #4f46e5;">
+            Please find the detailed invoice PDF attached to this email. It contains all payment instructions and line items.
+          </p>
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top:30px;">
+            <tr>
+              <td width="48" style="vertical-align:middle;">
+                <div style="width:48px;height:48px;background:#4f46e5;border-radius:50%;text-align:center;line-height:48px;font-size:20px;color:#ffffff;font-weight:800;">
+                  ${(senderName || senderEmail || 'L').charAt(0).toUpperCase()}
+                </div>
+              </td>
+              <td style="padding-left:16px;vertical-align:middle;">
+                <p style="margin:0 0 4px;font-size:15px;font-weight:800;color:#111827;">${senderName || "Your Property Manager"}</p>
+                <p style="margin:0;font-size:14px;color:#6b7280;">${senderEmail || ""}</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:20px 40px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;">
+          <p style="font-size:12px;color:#9ca3af;margin:0;">This email was sent securely via Property Ledge.</p>
+          <p style="font-size:12px;color:#9ca3af;margin:6px 0 0;">&copy; ${new Date().getFullYear()} Property Ledge. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
     } else {
       throw new Error(`Unknown templateType: ${templateType}`);
     }
 
-    // ─── Step 4: Send email via Mailtrap Sandbox API ───
-    const sendUrl = `https://sandbox.api.mailtrap.io/api/send/${inboxId}`;
-    console.log(`Step 4: Sending email to ${to} via ${sendUrl}`);
+    const fromEmail = "onboarding@resend.dev"; 
+    const fromName = variables?.senderName || "Property Ledge";
 
-    const mailtrapRes = await fetch(sendUrl, {
-      method: "POST",
-      headers: {
-        "Api-Token": mailtrapToken,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        from: {
-          email: "hello@example.com",
-          name: "Property Ledge"
-        },
-        to: [{ email: to }],
-        subject: subject,
-        html: htmlContent,
-        category: templateType === "tenant-invite" ? "Tenant Invitation" : "Team Invitation"
-      })
-    });
+    const resendPayload: any = {
+      from: `${fromName} <${fromEmail}>`,
+      to: [to],
+      subject: subject,
+      html: htmlContent,
+      tags: [
+        {
+          name: 'category',
+          value: templateType
+        }
+      ]
+    };
 
-    if (!mailtrapRes.ok) {
-      const errText = await mailtrapRes.text();
-      console.error(`Mailtrap send failed (${mailtrapRes.status}):`, errText);
-      throw new Error(`Mailtrap API failed (${mailtrapRes.status}): ${errText}`);
+    if (reqBody && reqBody.attachmentBase64) {
+      resendPayload.attachments = [
+        {
+          filename: reqBody.attachmentFilename || "Document.pdf",
+          content: reqBody.attachmentBase64.split(',')[1] || reqBody.attachmentBase64,
+        }
+      ];
     }
 
-    const resJson = await mailtrapRes.json();
-    console.log("Email sent successfully:", JSON.stringify(resJson));
+    // ─── Send email via Resend API ───
+    const resendRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { 
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json" 
+      },
+      body: JSON.stringify(resendPayload),
+    });
+
+    if (!resendRes.ok) {
+      const errText = await resendRes.text();
+      console.error(`Resend API failed (${resendRes.status}):`, errText);
+      throw new Error(`Resend API failed (${resendRes.status}): ${errText}`);
+    }
+
+    const resJson = await resendRes.json();
+    console.log("Email sent successfully via Resend:", JSON.stringify(resJson));
 
     return new Response(JSON.stringify({ success: true, message: "Email sent successfully", data: resJson }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

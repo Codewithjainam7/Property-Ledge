@@ -145,8 +145,37 @@ export function InvoiceManagement() {
   };
 
   const handleSendReminder = async (id: string) => {
-    alert("Reminder sent to tenant via Email.");
-    await handleUpdateStatus(id, 'Sent');
+    try {
+      const inv = invoices.find(i => i.id === id);
+      if (!inv) return;
+      
+      // Call the Resend edge function
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: "tenant@example.com", // In a real scenario, fetch tenant's email
+          subject: \`Reminder: Invoice \${inv.invoice_number} is Due\`,
+          templateType: "invoice",
+          variables: {
+            tenantName: "Tenant", 
+            propertyAddress: "Property Address", 
+            senderName: "Property Manager",
+            senderEmail: "manager@propertyledge.com.au",
+            invoiceNumber: inv.invoice_number,
+            dueDate: inv.due_date,
+            totalAmount: inv.total_amount,
+            isReminder: true
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      alert("Reminder sent to tenant via Resend.");
+      await handleUpdateStatus(id, 'Sent');
+    } catch (err: any) {
+      console.error("Failed to send email:", err);
+      alert("Failed to send email: " + err.message);
+    }
   };
 
   const tabs = [
