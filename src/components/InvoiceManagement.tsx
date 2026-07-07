@@ -152,7 +152,7 @@ export function InvoiceManagement() {
       // Call the Resend edge function
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
-          to: "tenant@example.com", // In a real scenario, fetch tenant's email
+          to: "ashdeveloper2247@gmail.com", // Temporary: Resend requires testing with the account owner's email until the domain is verified
           subject: `Reminder: Invoice ${inv.invoice_number} is Due`,
           templateType: "invoice",
           variables: {
