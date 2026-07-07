@@ -153,7 +153,7 @@ export function InvoiceManagement() {
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           to: "tenant@example.com", // In a real scenario, fetch tenant's email
-          subject: \`Reminder: Invoice \${inv.invoice_number} is Due\`,
+          subject: `Reminder: Invoice ${inv.invoice_number} is Due`,
           templateType: "invoice",
           variables: {
             tenantName: "Tenant", 
