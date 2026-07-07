@@ -444,6 +444,13 @@ export function InvoiceManagement() {
                           </div>
                           <div className="flex gap-2">
                             <IconButton 
+                              onClick={() => handleSendReminder(inv.id)}
+                              sx={{ bgcolor: 'rgba(59,130,246,0.05)', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f6', color: 'white' }, transition: 'all 0.3s' }}
+                              title="Send Email to Tenant"
+                            >
+                              <Mail className="w-5 h-5" />
+                            </IconButton>
+                            <IconButton 
                               onClick={() => setDeleteConfirm({ isOpen: true, id: inv.id })}
                               sx={{ bgcolor: 'rgba(239,68,68,0.05)', color: 'error.main', '&:hover': { bgcolor: 'error.main', color: 'white' }, transition: 'all 0.3s' }}
                             >
