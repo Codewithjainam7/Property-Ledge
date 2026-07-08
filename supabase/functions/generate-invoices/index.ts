@@ -183,77 +183,38 @@ serve(async (req) => {
           payment_type: 'Rent'
         })
 
-        // 6. Send Email with PDF Attachment via Mailtrap
+        // 6. Send Email with PDF Attachment via Resend (Invoking send-email Edge Function)
         if (tenantEmail) {
           try {
-            const mailtrapToken = Deno.env.get("MAILTRAP_API_TOKEN");
-            if (mailtrapToken) {
-              const accountsRes = await fetch("https://mailtrap.io/api/accounts", { headers: { "Api-Token": mailtrapToken } });
-              if (accountsRes.ok) {
-                const accounts = await accountsRes.json();
-                if (accounts && accounts.length > 0) {
-                  const accountId = accounts[0].id;
-                  const inboxesRes = await fetch(`https://mailtrap.io/api/accounts/${accountId}/inboxes`, { headers: { "Api-Token": mailtrapToken } });
-                  if (inboxesRes.ok) {
-                    const inboxes = await inboxesRes.json();
-                    if (inboxes && inboxes.length > 0) {
-                      const inboxId = inboxes[0].id;
-                      const fromEmail = Deno.env.get("MAILTRAP_SENDER_EMAIL") || "mailtrap@sandbox.api.mailtrap.io";
-                      
-                      const htmlContent = `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                          <h2 style="color: #333;">New Invoice from Property Ledge</h2>
-                          <p style="color: #555;">Hello <strong>${tenantName}</strong>,</p>
-                          <p style="color: #555;">Your new invoice for <strong>${propertyAddress}</strong> has been generated and is attached to this email as a PDF.</p>
-                          
-                          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                            <p style="margin: 5px 0;"><strong>Invoice Number:</strong> ${invoiceNumber}</p>
-                            <p style="margin: 5px 0;"><strong>Amount Due:</strong> $${lease.rent_amount.toFixed(2)}</p>
-                            <p style="margin: 5px 0; color: #d32f2f;"><strong>Due Date:</strong> ${dueDate.toISOString().split('T')[0]}</p>
-                          </div>
-                          
-                          <p style="color: #555;">Please find the official PDF receipt attached. You can also log in to your tenant portal to view and pay your invoice online.</p>
-                          <br/>
-                          <p style="color: #777; font-size: 14px;">Thank you,<br/><strong>Property Ledge Management</strong></p>
-                        </div>
-                      `;
-
-                      const mailtrapPayload = {
-                        from: { email: fromEmail, name: "Property Ledge" },
-                        to: [{ email: tenantEmail }],
-                        subject: `New Invoice: ${invoiceNumber} for ${propertyAddress}`,
-                        html: htmlContent,
-                        category: "Automated Invoice",
-                        attachments: [
-                          {
-                            content: pdfBytes,
-                            type: "application/pdf",
-                            filename: `${invoiceNumber}_Invoice.pdf`,
-                            disposition: "attachment"
-                          }
-                        ]
-                      };
-
-                      const sendRes = await fetch(`https://sandbox.api.mailtrap.io/api/send/${inboxId}`, {
-                        method: "POST",
-                        headers: { "Api-Token": mailtrapToken, "Content-Type": "application/json" },
-                        body: JSON.stringify(mailtrapPayload),
-                      });
-
-                      if (sendRes.ok) {
-                        console.log(`Successfully sent email with PDF for invoice ${invoiceNumber} to ${tenantEmail}`);
-                        // Update status to 'Sent' in database
-                        await supabase.from('invoices').update({ status: 'Sent' }).eq('invoice_number', invoiceNumber);
-                      } else {
-                        console.error(`Mailtrap send failed: ${await sendRes.text()}`);
-                      }
-                    }
-                  }
-                }
+            const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+              body: {
+                to: tenantEmail,
+                subject: `New Invoice: ${invoiceNumber} for ${propertyAddress}`,
+                templateType: "invoice",
+                variables: {
+                  tenantName,
+                  propertyAddress,
+                  senderName: "Property Ledge Management",
+                  senderEmail: "manager@propertyledge.com.au",
+                  invoiceNumber,
+                  dueDate: dueDate.toISOString().split('T')[0],
+                  totalAmount: lease.rent_amount,
+                  isReminder: false
+                },
+                attachmentBase64: pdfBytes,
+                attachmentFilename: `${invoiceNumber}_Invoice.pdf`
               }
+            });
+
+            if (emailError) {
+              console.error(`Failed to send email for invoice ${invoiceNumber} via send-email invoke:`, emailError);
+            } else {
+              console.log(`Successfully sent email with PDF for invoice ${invoiceNumber} to ${tenantEmail}`);
+              // Update status to 'Sent' in database
+              await supabase.from('invoices').update({ status: 'Sent' }).eq('invoice_number', invoiceNumber);
             }
           } catch (emailErr) {
-            console.error(`Failed to send email for invoice ${invoiceNumber}:`, emailErr);
+            console.error(`Failed to invoke send-email function for invoice ${invoiceNumber}:`, emailErr);
           }
         }
       }

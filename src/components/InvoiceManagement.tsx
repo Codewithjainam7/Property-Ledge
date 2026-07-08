@@ -29,6 +29,40 @@ export function InvoiceManagement() {
   
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
 
+  // Automation manual trigger states
+  const [runningEngine, setRunningEngine] = useState<'blueprints' | 'leases' | null>(null);
+  const [automationResult, setAutomationResult] = useState<{
+    message?: string;
+    generatedInvoices?: number;
+    generatedCount?: number; // handle both naming patterns if any
+    emailsSent?: number;
+    remindersSent?: number;
+    lateFeesApplied?: number;
+    error?: string;
+  } | null>(null);
+
+  const handleTriggerAutomation = async (engine: 'blueprints' | 'leases') => {
+    setRunningEngine(engine);
+    setAutomationResult(null);
+    try {
+      const functionName = engine === 'blueprints' ? 'invoice-automation' : 'generate-invoices';
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: {}
+      });
+
+      if (error) {
+        throw error;
+      }
+      setAutomationResult(data || { message: "Job completed successfully." });
+      await loadData();
+    } catch (err: any) {
+      console.error(`Automation trigger failed for ${engine}:`, err);
+      setAutomationResult({ error: err.message || `Failed to execute ${engine} engine.` });
+    } finally {
+      setRunningEngine(null);
+    }
+  };
+
   const loadData = async () => {
     setDataLoading(true);
     const userId = (await supabase.auth.getUser()).data.user?.id;
@@ -562,6 +596,147 @@ export function InvoiceManagement() {
                      <Typography variant="body1" sx={{ color: '#4a4a5e', fontWeight: 500 }}>Configure when invoices should be sent automatically.</Typography>
                    </div>
                  </div>
+
+                  {/* Automation Diagnostics & Trigger Desk */}
+                  <div className="bg-[#fcfdfd]/90 backdrop-blur-xl border border-outline-variant/30 rounded-[32px] p-6 mb-8 relative z-10 shadow-sm">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-gray-100">
+                      <div>
+                        <div className="flex items-center gap-2 text-xs font-black text-[#a9927d] uppercase tracking-wider mb-1">
+                          <Settings className="w-3.5 h-3.5 text-amber-500" />
+                          System Diagnostics & Actions
+                        </div>
+                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#1c1c28', mb: 0.5 }}>Manual Automation Panel</Typography>
+                        <Typography variant="body2" sx={{ color: '#4a4a5e', fontWeight: 500 }}>
+                          Directly invoke automated billing scripts to run verification passes right now.
+                        </Typography>
+                      </div>
+
+                      {/* Display live runner status if working */}
+                      {runningEngine && (
+                        <div className="inline-flex items-center gap-2.5 bg-amber-50 border border-amber-200/50 text-[#b45309] text-xs font-black uppercase tracking-widest px-4.5 py-2.5 rounded-full shrink-0">
+                          <div className="w-4 h-4 border-2 border-[#b45309]/30 border-t-[#b45309] rounded-full animate-spin" />
+                          Running {runningEngine === 'blueprints' ? 'Rules' : 'Billing'} Engine...
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Results / Feedback area */}
+                    {automationResult && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`mt-6 p-5 border rounded-2xl ${automationResult.error ? 'bg-red-50/50 border-red-200 text-red-700' : 'bg-emerald-50/50 border-emerald-200 text-emerald-800'}`}
+                      >
+                        {automationResult.error ? (
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                            <div>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 0.5 }}>Execution Error</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{automationResult.error}</Typography>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                              <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>Automation run completed successfully!</Typography>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
+                              <div className="bg-white/80 border border-emerald-100 rounded-xl p-3.5 text-center">
+                                <div className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Generated</div>
+                                <div className="text-xl font-black text-emerald-800">
+                                  {automationResult.generatedInvoices ?? automationResult.generatedCount ?? 0}
+                                </div>
+                              </div>
+                              <div className="bg-white/80 border border-emerald-100 rounded-xl p-3.5 text-center">
+                                <div className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Emails Sent</div>
+                                <div className="text-xl font-black text-emerald-800">
+                                  {automationResult.emailsSent ?? 0}
+                                </div>
+                              </div>
+                              <div className="bg-white/80 border border-emerald-100 rounded-xl p-3.5 text-center">
+                                <div className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Reminders</div>
+                                <div className="text-xl font-black text-emerald-800">
+                                  {automationResult.remindersSent ?? 0}
+                                </div>
+                              </div>
+                              <div className="bg-white/80 border border-emerald-100 rounded-xl p-3.5 text-center">
+                                <div className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Late Fees</div>
+                                <div className="text-xl font-black text-emerald-800">
+                                  {automationResult.lateFeesApplied ?? 0}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {/* Quick triggers buttons */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      <div className="bg-[#f8faf9] border border-gray-100 rounded-[20px] p-5 flex flex-col justify-between items-start gap-4">
+                        <div>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#1c1c28', mb: 1 }}>Blueprints & Overdue rules</Typography>
+                          <Typography variant="caption" sx={{ color: '#4a4a5e', fontWeight: 600, display: 'block', lineHeight: 1.4 }}>
+                            Evaluate schedule rules, auto-generate invoices, update overdue states, send reminder notices, and apply fees.
+                          </Typography>
+                        </div>
+                        <Button 
+                          variant="contained"
+                          size="small"
+                          disabled={!!runningEngine}
+                          onClick={() => handleTriggerAutomation('blueprints')}
+                          disableElevation
+                          sx={{ 
+                            bgcolor: '#d97706', 
+                            color: 'white',
+                            borderRadius: '50px', 
+                            fontWeight: 900, 
+                            px: 3.5, 
+                            py: 1.25, 
+                            textTransform: 'uppercase', 
+                            letterSpacing: '1px', 
+                            fontSize: '0.7rem',
+                            boxShadow: '0 6px 16px -4px rgba(217,119,6,0.3)',
+                            '&:hover': { bgcolor: '#b45309' } 
+                          }}
+                        >
+                          Run Rules Engine
+                        </Button>
+                      </div>
+
+                      <div className="bg-[#f8faf9] border border-gray-100 rounded-[20px] p-5 flex flex-col justify-between items-start gap-4">
+                        <div>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#1c1c28', mb: 1 }}>Lease rent generator</Typography>
+                          <Typography variant="caption" sx={{ color: '#4a4a5e', fontWeight: 600, display: 'block', lineHeight: 1.4 }}>
+                            Examine active leases, generate rent invoices due today, render PDF bills, and email them to tenants via Resend.
+                          </Typography>
+                        </div>
+                        <Button 
+                          variant="contained"
+                          size="small"
+                          disabled={!!runningEngine}
+                          onClick={() => handleTriggerAutomation('leases')}
+                          disableElevation
+                          sx={{ 
+                            bgcolor: '#22333b', 
+                            color: 'white',
+                            borderRadius: '50px', 
+                            fontWeight: 900, 
+                            px: 3.5, 
+                            py: 1.25, 
+                            textTransform: 'uppercase', 
+                            letterSpacing: '1px', 
+                            fontSize: '0.7rem',
+                            boxShadow: '0 6px 16px -4px rgba(34,51,59,0.3)',
+                            '&:hover': { bgcolor: '#111a1e' } 
+                          }}
+                        >
+                          Run Lease Billing Engine
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                  
                  {templates.length === 0 ? (
                    <div className="p-6 md:p-8 bg-gradient-to-r from-amber-50 to-[#fffdf7] border border-amber-200/60 rounded-[32px] flex gap-5 mb-4 relative z-10 shadow-sm">

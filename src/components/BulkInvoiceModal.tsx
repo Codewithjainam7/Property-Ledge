@@ -29,10 +29,10 @@ type Screen = 'mode' | 'config' | 'generating' | 'done';
 interface BulkConfig {
   propertyId: string;
   startMonth: string; // YYYY-MM
-  monthCount: number;
-  amountPerMonth: number;
+  monthCount: number | '';
+  amountPerMonth: number | '';
   description: string;
-  dueDays: number;
+  dueDays: number | '';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,14 +96,15 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
   }, [config.propertyId]);
 
   // Preview: last month of the batch
-  const endMonth = addMonths(config.startMonth, config.monthCount - 1);
+  const endMonth = addMonths(config.startMonth, typeof config.monthCount === 'number' ? Math.max(1, config.monthCount) - 1 : 0);
   const selectedProp = properties.find(p => p.id === config.propertyId);
-  const totalValue = config.amountPerMonth * config.monthCount;
+  const totalValue = (typeof config.amountPerMonth === 'number' ? config.amountPerMonth : 0) * (typeof config.monthCount === 'number' ? config.monthCount : 0);
 
   const isConfigValid =
     config.propertyId &&
-    config.monthCount >= 1 &&
-    config.amountPerMonth > 0 &&
+    typeof config.monthCount === 'number' && config.monthCount >= 1 &&
+    typeof config.amountPerMonth === 'number' && config.amountPerMonth > 0 &&
+    typeof config.dueDays === 'number' && config.dueDays >= 1 &&
     config.startMonth;
 
   // ─── Bulk Generate Logic ───────────────────────────────────────────────────
@@ -111,7 +112,7 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
     if (!isConfigValid || !user) return;
     setScreen('generating');
     setError(null);
-    setProgress({ current: 0, total: config.monthCount, label: 'Preparing...' });
+    setProgress({ current: 0, total: config.monthCount as number, label: 'Preparing...' });
 
     try {
       const prop = properties.find(p => p.id === config.propertyId);
@@ -142,13 +143,14 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
 
       let successCount = 0;
 
-      for (let i = 0; i < config.monthCount; i++) {
+      for (let i = 0; i < (config.monthCount as number); i++) {
         const monthStr = addMonths(config.startMonth, i);
         const label = monthLabel(monthStr);
-        setProgress({ current: i + 1, total: config.monthCount, label: `Creating invoice for ${label}...` });
+        setProgress({ current: i + 1, total: config.monthCount as number, label: `Creating invoice for ${label}...` });
 
         const issueDate = toIsoDate(monthStr, 1);
-        const dueDate = addDaysToDate(issueDate, config.dueDays);
+        const dueDaysVal = typeof config.dueDays === 'number' ? config.dueDays : 7;
+        const dueDate = addDaysToDate(issueDate, dueDaysVal);
 
         // Build invoice number: INV-[PROP_PREFIX]-[MM]-[YYYY]
         const [yr, mo] = monthStr.split('-');
@@ -160,7 +162,7 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
           property_id: config.propertyId,
           lease_id: lease?.id || null,
           invoice_number: invoiceNumber,
-          total_amount: config.amountPerMonth,
+          total_amount: config.amountPerMonth as number,
           issue_date: issueDate,
           due_date: dueDate,
           status: 'Draft',
@@ -190,7 +192,7 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
             property_id: config.propertyId,
             lease_id: lease?.id || null,
             invoice_id: newInvoice.id,
-            amount_due: config.amountPerMonth,
+            amount_due: config.amountPerMonth as number,
             due_date: dueDate,
             status: 'Pending',
             payment_type: 'Rent',
@@ -228,7 +230,7 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.97 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-          className="relative w-full sm:max-w-lg bg-white rounded-t-[40px] sm:rounded-[40px] shadow-[0_32px_80px_-12px_rgba(0,0,0,0.25)] overflow-hidden"
+          className="relative w-full sm:max-w-lg bg-white rounded-t-[40px] sm:rounded-[40px] shadow-[0_32px_80px_-12px_rgba(0,0,0,0.25)] overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           style={{ maxHeight: '92vh', overflowY: 'auto' }}
           onClick={e => e.stopPropagation()}
         >
@@ -408,7 +410,15 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
                       min={1}
                       max={24}
                       value={config.monthCount}
-                      onChange={e => setConfig(prev => ({ ...prev, monthCount: Math.max(1, Math.min(24, parseInt(e.target.value) || 1)) }))}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setConfig(prev => ({ ...prev, monthCount: val === '' ? '' : parseInt(val) }));
+                      }}
+                      onBlur={() => {
+                        if (typeof config.monthCount !== 'number') setConfig(prev => ({ ...prev, monthCount: 1 }));
+                        else if (config.monthCount < 1) setConfig(prev => ({ ...prev, monthCount: 1 }));
+                        else if (config.monthCount > 24) setConfig(prev => ({ ...prev, monthCount: 24 }));
+                      }}
                       className="w-full bg-[#f8faf9] border-2 border-outline-variant/30 rounded-[16px] px-4 py-3 font-bold text-sm text-[#1c1c28] outline-none focus:border-primary focus:bg-white transition-all"
                     />
                     <p className="text-[11px] text-[#a9927d] font-bold mt-1.5 pl-1">Max 24 months</p>
@@ -423,7 +433,15 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
                       min={1}
                       max={60}
                       value={config.dueDays}
-                      onChange={e => setConfig(prev => ({ ...prev, dueDays: Math.max(1, Math.min(60, parseInt(e.target.value) || 7)) }))}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setConfig(prev => ({ ...prev, dueDays: val === '' ? '' : parseInt(val) }));
+                      }}
+                      onBlur={() => {
+                        if (typeof config.dueDays !== 'number') setConfig(prev => ({ ...prev, dueDays: 7 }));
+                        else if (config.dueDays < 1) setConfig(prev => ({ ...prev, dueDays: 1 }));
+                        else if (config.dueDays > 60) setConfig(prev => ({ ...prev, dueDays: 60 }));
+                      }}
                       className="w-full bg-[#f8faf9] border-2 border-outline-variant/30 rounded-[16px] px-4 py-3 font-bold text-sm text-[#1c1c28] outline-none focus:border-primary focus:bg-white transition-all"
                     />
                     <p className="text-[11px] text-[#a9927d] font-bold mt-1.5 pl-1">After issue date</p>
@@ -442,9 +460,16 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
                       type="number"
                       min={0}
                       step={50}
-                      value={config.amountPerMonth || ''}
+                      value={config.amountPerMonth}
                       placeholder="0.00"
-                      onChange={e => setConfig(prev => ({ ...prev, amountPerMonth: parseFloat(e.target.value) || 0 }))}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setConfig(prev => ({ ...prev, amountPerMonth: val === '' ? '' : parseFloat(val) }));
+                      }}
+                      onBlur={() => {
+                        if (typeof config.amountPerMonth !== 'number') setConfig(prev => ({ ...prev, amountPerMonth: 0 }));
+                        else if (config.amountPerMonth < 0) setConfig(prev => ({ ...prev, amountPerMonth: 0 }));
+                      }}
                       className="w-full bg-[#f8faf9] border-2 border-outline-variant/30 rounded-[16px] pl-8 pr-4 py-3 font-bold text-sm text-[#1c1c28] outline-none focus:border-primary focus:bg-white transition-all"
                     />
                   </div>
@@ -505,7 +530,7 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
                 className="mt-6 w-full h-14 rounded-[18px] bg-[#22333b] text-white font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2.5 shadow-[0_8px_24px_-6px_rgba(34,51,59,0.45)] hover:bg-[#111a1e] hover:shadow-[0_12px_28px_-6px_rgba(34,51,59,0.55)] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 <Layers className="w-4 h-4" />
-                Generate {config.monthCount > 0 ? `${config.monthCount} ` : ''}Invoice{config.monthCount !== 1 ? 's' : ''}
+                Generate {typeof config.monthCount === 'number' && config.monthCount > 0 ? `${config.monthCount} ` : ''}Invoice{config.monthCount !== 1 ? 's' : ''}
               </button>
             </div>
           )}
@@ -575,13 +600,13 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
                 <div className="bg-[#f8faf9] rounded-[20px] p-4 border border-outline-variant/20">
                   <div className="text-[10px] font-black text-[#a9927d] uppercase tracking-widest mb-1.5">Total Value</div>
                   <div className="text-xl font-black text-[#22333b]">
-                    ${(config.amountPerMonth * createdCount).toLocaleString('en-AU')}
+                    ${(Number(config.amountPerMonth) * createdCount).toLocaleString('en-AU')}
                   </div>
                 </div>
                 <div className="bg-[#f8faf9] rounded-[20px] p-4 border border-outline-variant/20">
                   <div className="text-[10px] font-black text-[#a9927d] uppercase tracking-widest mb-1.5">Per Month</div>
                   <div className="text-xl font-black text-[#22333b]">
-                    ${config.amountPerMonth.toLocaleString('en-AU')}
+                    ${Number(config.amountPerMonth).toLocaleString('en-AU')}
                   </div>
                 </div>
               </div>

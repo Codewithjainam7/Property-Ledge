@@ -3,12 +3,44 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 console.log("PropertyLedge Invoice Automation starting...");
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Authenticate the user via JWT or verify Service Role Key
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    
+    let isAuthenticated = false;
+    if (token === supabaseServiceKey) {
+      isAuthenticated = true;
+    } else if (token) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && user) {
+        isAuthenticated = true;
+      }
+    }
+
+    if (!isAuthenticated) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
     const today = new Date();
     const dayOfMonth = today.getUTCDate();
@@ -209,14 +241,14 @@ serve(async (req) => {
       remindersSent,
       lateFeesApplied,
     }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (err: any) {
     console.error("Critical error in PropertyLedge automation:", err.message);
     return new Response(JSON.stringify({ error: err.message }), {
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
