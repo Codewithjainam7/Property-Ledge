@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,75 @@ const formatDate = (dateStr: string | undefined | null): string => {
   }
 };
 
+// ─── HELPER: Generate Invoice PDF Server-Side ───
+async function generateInvoicePdf(variables: any): Promise<string> {
+  const { tenantName, propertyAddress, senderName, senderEmail, invoiceNumber, dueDate, totalAmount } = variables;
+
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([600, 800]);
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  
+  // Header background block
+  page.drawRectangle({
+    x: 0,
+    y: 700,
+    width: 600,
+    height: 100,
+    color: rgb(34 / 255, 51 / 255, 59 / 255), // Brand primary #22333b
+  });
+
+  page.drawText('INVOICE', { x: 50, y: 740, size: 28, font: helveticaBold, color: rgb(1, 1, 1) });
+  page.drawText('Property Ledge', { x: 50, y: 715, size: 14, font: helvetica, color: rgb(169 / 255, 146 / 255, 125 / 255) }); // Brand accent #a9927d
+
+  page.drawText(`Invoice Number: ${invoiceNumber || 'N/A'}`, { x: 380, y: 750, size: 10, font: helvetica, color: rgb(1, 1, 1) });
+  page.drawText(`Issue Date: ${new Date().toISOString().split('T')[0]}`, { x: 380, y: 730, size: 10, font: helvetica, color: rgb(1, 1, 1) });
+  page.drawText(`Due Date: ${dueDate || 'N/A'}`, { x: 380, y: 710, size: 10, font: helveticaBold, color: rgb(1, 1, 1) });
+
+  page.drawText('BILL TO:', { x: 50, y: 640, size: 11, font: helveticaBold, color: rgb(169 / 255, 146 / 255, 125 / 255) });
+  page.drawText(tenantName || 'Tenant', { x: 50, y: 620, size: 12, font: helveticaBold });
+  
+  page.drawText('PROPERTY ADDRESS:', { x: 50, y: 560, size: 11, font: helveticaBold, color: rgb(169 / 255, 146 / 255, 125 / 255) });
+  page.drawText(propertyAddress || 'N/A', { x: 50, y: 540, size: 12, font: helvetica });
+
+  page.drawText('FROM:', { x: 350, y: 640, size: 11, font: helveticaBold, color: rgb(169 / 255, 146 / 255, 125 / 255) });
+  page.drawText(senderName || 'Property Manager', { x: 350, y: 620, size: 12, font: helveticaBold });
+  if (senderEmail) {
+    page.drawText(senderEmail, { x: 350, y: 605, size: 10, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+  }
+
+  // Table header
+  page.drawLine({ start: { x: 50, y: 480 }, end: { x: 550, y: 480 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+  page.drawText('Description', { x: 60, y: 460, size: 11, font: helveticaBold });
+  page.drawText('Amount', { x: 480, y: 460, size: 11, font: helveticaBold });
+  page.drawLine({ start: { x: 50, y: 445 }, end: { x: 550, y: 445 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+
+  // Items
+  page.drawText(`Rent Payment for ${propertyAddress || 'Property'}`, { x: 60, y: 420, size: 11, font: helvetica });
+  page.drawText(`$${Number(totalAmount || 0).toFixed(2)}`, { x: 480, y: 420, size: 11, font: helvetica });
+
+  // Totals
+  page.drawLine({ start: { x: 350, y: 370 }, end: { x: 550, y: 370 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+  page.drawText('TOTAL DUE:', { x: 350, y: 345, size: 13, font: helveticaBold, color: rgb(34 / 255, 51 / 255, 59 / 255) });
+  page.drawText(`$${Number(totalAmount || 0).toFixed(2)}`, { x: 470, y: 345, size: 13, font: helveticaBold, color: rgb(169 / 255, 146 / 255, 125 / 255) });
+
+  // Footer instructions
+  page.drawRectangle({
+    x: 50,
+    y: 180,
+    width: 500,
+    height: 100,
+    color: rgb(242 / 255, 244 / 255, 243 / 255), // Brand light #f2f4f3
+  });
+  page.drawText('Payment Instructions:', { x: 65, y: 260, size: 10, font: helveticaBold, color: rgb(34 / 255, 51 / 255, 59 / 255) });
+  page.drawText('Bank Name: Commonwealth Bank', { x: 65, y: 240, size: 9, font: helvetica });
+  page.drawText('BSB: 123-456', { x: 65, y: 225, size: 9, font: helvetica });
+  page.drawText('Account: 12345678', { x: 65, y: 210, size: 9, font: helvetica });
+
+  const pdfBytes = await pdfDoc.saveAsBase64();
+  return pdfBytes;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -30,16 +100,21 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Authenticate the user via JWT
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+    // Authenticate the user via JWT or verify Service Role Key
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    
+    let isAuthenticated = false;
+    if (token === supabaseServiceKey) {
+      isAuthenticated = true;
+    } else if (token) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && user) {
+        isAuthenticated = true;
+      }
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (authError || !user) {
+    if (!isAuthenticated) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
@@ -48,13 +123,20 @@ serve(async (req) => {
 
     // Parse request body
     const reqBody = await req.json();
-    const { to, subject, templateType, variables, attachmentBase64, attachmentFilename } = reqBody;
+    let { to, subject, templateType, variables, attachmentBase64, attachmentFilename } = reqBody;
 
     if (!to || !subject || !templateType || !variables) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject, templateType, variables" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
+    }
+
+    // Auto-generate invoice PDF if missing
+    if (templateType === "invoice" && !attachmentBase64) {
+      console.log("Invoice PDF missing from request. Generating server-side PDF attachment...");
+      attachmentBase64 = await generateInvoicePdf(variables);
+      attachmentFilename = `Invoice_${variables.invoiceNumber || 'Document'}.pdf`;
     }
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
@@ -75,7 +157,7 @@ serve(async (req) => {
     <tr><td align="center">
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#141419;border:1px solid #2a2a35;border-radius:16px;overflow:hidden;">
         <tr><td style="padding:40px 40px 20px;text-align:center;">
-          <span style="font-size:24px;font-weight:900;color:#a9927d;letter-spacing:2px;">PROPERTY LEDGE</span>
+          <img src="https://property-ledge.vercel.app/logo.png" alt="Property Ledge" style="height:36px;width:auto;" />
         </td></tr>
         <tr><td style="padding:20px 40px 40px;">
           <h1 style="font-size:26px;font-weight:800;color:#ffffff;margin:0 0 16px;text-align:center;">Welcome to Your New Home, ${firstName || "Tenant"}!</h1>
@@ -121,7 +203,7 @@ serve(async (req) => {
     <tr><td align="center">
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#141419;border:1px solid #2a2a35;border-radius:16px;overflow:hidden;">
         <tr><td style="padding:40px 40px 20px;text-align:center;">
-          <span style="font-size:24px;font-weight:900;color:#a9927d;letter-spacing:2px;">PROPERTY LEDGE</span>
+          <img src="https://property-ledge.vercel.app/logo.png" alt="Property Ledge" style="height:36px;width:auto;" />
         </td></tr>
         <tr><td style="padding:20px 40px 40px;">
           <h1 style="font-size:26px;font-weight:800;color:#ffffff;margin:0 0 16px;text-align:center;">Join the Management Team</h1>
@@ -162,7 +244,7 @@ serve(async (req) => {
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.06);">
         <!-- Header -->
         <tr><td style="background:#22333b;padding:48px 40px 36px;text-align:center;">
-          <p style="margin:0 0 16px;font-size:13px;font-weight:700;color:#a9927d;letter-spacing:3px;text-transform:uppercase;">Property Ledge</p>
+          <img src="https://property-ledge.vercel.app/logo.png" alt="Property Ledge" style="height:36px;width:auto;margin-bottom:16px;" />
           <h1 style="margin:0 0 12px;font-size:32px;font-weight:900;color:#ffffff;line-height:1.2;">Welcome Home, ${tenantFirstName || "Tenant"}! 🏡</h1>
           <p style="margin:0;font-size:16px;color:#f2f4f3;line-height:1.5;opacity:0.9;">Your lease agreement has been confirmed. Please find your details and signed lease attached.</p>
         </td></tr>
@@ -269,8 +351,8 @@ serve(async (req) => {
     <tr><td align="center">
       <table width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
         <tr><td style="background-color:#22333b;padding:40px 40px 30px;text-align:center;">
-          <span style="font-size:13px;font-weight:700;color:#a9927d;letter-spacing:3px;text-transform:uppercase;display:block;margin-bottom:8px;">Property Ledge</span>
-          <span style="font-size:22px;font-weight:900;color:#ffffff;">Invoice Delivery</span>
+          <img src="https://property-ledge.vercel.app/logo.png" alt="Property Ledge" style="height:36px;width:auto;margin-bottom:8px;vertical-align:middle;" />
+          <span style="font-size:22px;font-weight:900;color:#ffffff;display:block;margin-top:8px;">Invoice Delivery</span>
         </td></tr>
         <tr><td style="padding:40px 40px 20px;">
           <h1 style="font-size:24px;font-weight:800;color:#22333b;margin:0 0 16px;text-align:center;">
@@ -355,11 +437,11 @@ serve(async (req) => {
       ]
     };
 
-    if (reqBody && reqBody.attachmentBase64) {
+    if (attachmentBase64) {
       resendPayload.attachments = [
         {
-          filename: reqBody.attachmentFilename || "Document.pdf",
-          content: reqBody.attachmentBase64.split(',')[1] || reqBody.attachmentBase64,
+          filename: attachmentFilename || "Document.pdf",
+          content: attachmentBase64.split(',')[1] || attachmentBase64,
         }
       ];
     }
