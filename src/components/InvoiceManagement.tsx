@@ -85,12 +85,14 @@ export function InvoiceManagement() {
       { data: inv, error: invError },
       { data: props, error: propsError },
       { data: tmpl, error: tmplError },
-      { data: enqs }
+      { data: enqs },
+      { data: activeLeases }
     ] = await Promise.all([
       invsQuery,
       propsQuery,
       supabase.from('invoice_templates').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-      supabase.from('property_enquiries').select('property_id, first_name, last_name, email').eq('status', 'Accepted')
+      supabase.from('property_enquiries').select('property_id, first_name, last_name, email').eq('status', 'Accepted'),
+      supabase.from('leases').select('property_id, lease_tenants(tenants(first_name, last_name))').eq('status', 'Active')
     ]);
 
     if (tmplError) console.error("Error fetching templates:", tmplError);
@@ -100,6 +102,19 @@ export function InvoiceManagement() {
       // Map Supabase snake_case fields to what the UI expects
       setInvoices(inv.map(i => {
         let name = i.tenant_name || i.properties?.tenant_name;
+        
+        // Fallback 1: Resolve from Active Leases / tenancy setup
+        if (!name || name.trim() === 'Tenant' || name.trim() === 'Unknown Tenant' || name.trim() === 'Tenant Name') {
+          const activeLease = activeLeases?.find(l => l.property_id === i.property_id);
+          if (activeLease?.lease_tenants) {
+            const lTenants = activeLease.lease_tenants as any[];
+            if (lTenants.length > 0 && lTenants[0].tenants) {
+              name = `${lTenants[0].tenants.first_name} ${lTenants[0].tenants.last_name}`.trim();
+            }
+          }
+        }
+
+        // Fallback 2: Resolve from Accepted enquiries
         if (!name || name.trim() === 'Tenant' || name.trim() === 'Unknown Tenant' || name.trim() === 'Tenant Name') {
           const enq = enqs?.find(e => e.property_id === i.property_id);
           if (enq) name = `${enq.first_name} ${enq.last_name}`.trim();
@@ -121,8 +136,19 @@ export function InvoiceManagement() {
         let name = p.tenant_name;
         // Fix dummy names instantly during the bulk load
         if (!name || name.trim() === 'Tenant' || name.trim() === 'Unknown Tenant' || name.trim() === 'Tenant Name') {
-          const enq = enqs?.find(e => e.property_id === p.id);
-          if (enq) name = `${enq.first_name} ${enq.last_name}`.trim();
+          // Check lease first
+          const activeLease = activeLeases?.find(l => l.property_id === p.id);
+          if (activeLease?.lease_tenants) {
+            const lTenants = activeLease.lease_tenants as any[];
+            if (lTenants.length > 0 && lTenants[0].tenants) {
+              name = `${lTenants[0].tenants.first_name} ${lTenants[0].tenants.last_name}`.trim();
+            }
+          }
+          // Fallback to accepted enquiries
+          if (!name || name.trim() === 'Tenant' || name.trim() === 'Unknown Tenant' || name.trim() === 'Tenant Name') {
+            const enq = enqs?.find(e => e.property_id === p.id);
+            if (enq) name = `${enq.first_name} ${enq.last_name}`.trim();
+          }
         }
         return { 
           ...p, 
