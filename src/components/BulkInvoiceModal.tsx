@@ -126,7 +126,7 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
         .maybeSingle();
 
       // Fetch tenant details
-      let tenantName = prop?.tenant_name || 'Tenant';
+      let tenantName = prop?.tenant_name || '';
       let tenantEmail = prop?.tenant_email || '';
 
       if (lease?.tenant_id) {
@@ -139,6 +139,24 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
           tenantName = `${tenant.first_name} ${tenant.last_name}`.trim();
           tenantEmail = tenant.email || '';
         }
+      }
+
+      if (!tenantName || tenantName.trim() === 'Tenant' || tenantName.trim() === 'Unknown Tenant' || tenantName.trim() === 'Tenant Name') {
+        const { data: enq } = await supabase
+          .from('property_enquiries')
+          .select('first_name, last_name, email')
+          .eq('property_id', config.propertyId)
+          .eq('status', 'Accepted')
+          .limit(1)
+          .maybeSingle();
+        if (enq) {
+          tenantName = `${enq.first_name} ${enq.last_name}`.trim();
+          tenantEmail = enq.email || '';
+        }
+      }
+
+      if (!tenantName) {
+        tenantName = 'Tenant';
       }
 
       let successCount = 0;

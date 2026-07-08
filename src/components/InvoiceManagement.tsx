@@ -98,15 +98,23 @@ export function InvoiceManagement() {
     if (propsError) console.error("Error fetching properties:", propsError);
     if (inv) {
       // Map Supabase snake_case fields to what the UI expects
-      setInvoices(inv.map(i => ({
-        ...i,
-        tenantName: i.tenant_name || i.properties?.tenant_name || 'Unknown Tenant',
-        propertyName: i.property_address || i.properties?.address || 'Unknown Property',
-        dueDate: i.due_date,
-        totalAmount: i.total_amount,
-        templateId: i.template_id,
-        propertyId: i.property_id,
-      })));
+      setInvoices(inv.map(i => {
+        let name = i.tenant_name || i.properties?.tenant_name;
+        if (!name || name.trim() === 'Tenant' || name.trim() === 'Unknown Tenant' || name.trim() === 'Tenant Name') {
+          const enq = enqs?.find(e => e.property_id === i.property_id);
+          if (enq) name = `${enq.first_name} ${enq.last_name}`.trim();
+        }
+        if (!name) name = 'Unknown Tenant';
+        return {
+          ...i,
+          tenantName: name,
+          propertyName: i.property_address || i.properties?.address || 'Unknown Property',
+          dueDate: i.due_date,
+          totalAmount: i.total_amount,
+          templateId: i.template_id,
+          propertyId: i.property_id,
+        };
+      }));
     }
     if (props) {
       setProperties(props.map(p => {
