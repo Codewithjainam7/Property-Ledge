@@ -5,6 +5,7 @@ import { Plus, FileText, Settings, CreditCard, ChevronRight, Calendar, Bell, Shi
 import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox, Select, MenuItem, FormControl } from '@mui/material';
 
 import { InvoiceGenerator } from './InvoiceGenerator';
+import { BulkInvoiceModal } from './BulkInvoiceModal';
 import { InvoiceTemplateBuilder } from './InvoiceTemplateBuilder';
 import JSZip from 'jszip';
 import { supabase } from '../lib/supabase';
@@ -15,6 +16,7 @@ export function InvoiceManagement() {
   const [activeTab, setActiveTab] = useState(0);
   const [showGenerator, setShowGenerator] = useState(false);
   const [showTemplateBuilder, setShowTemplateBuilder] = useState(false);
+  const [showModeModal, setShowModeModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: number | string | null }>({ isOpen: false, id: null });
   const [dataLoading, setDataLoading] = useState(true);
@@ -210,7 +212,7 @@ export function InvoiceManagement() {
             <Button 
               variant="contained" 
               startIcon={<Plus className="w-5 h-5" />}
-              onClick={() => setShowGenerator(true)}
+              onClick={() => setShowModeModal(true)}
               disableElevation
               sx={{ bgcolor: '#22333b', '&:hover': { bgcolor: '#111a1e' }, borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.3)' }}
             >
@@ -269,7 +271,7 @@ export function InvoiceManagement() {
                     </Typography>
                     <Button 
                       variant="contained" 
-                      onClick={() => setShowGenerator(true)}
+                      onClick={() => setShowModeModal(true)}
                       disableElevation
                       sx={{ bgcolor: '#22333b', borderRadius: '50px', px: 6, py: 2, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 12px 24px -8px rgba(34,51,59,0.4)', '&:hover': { bgcolor: '#111a1e', boxShadow: '0 16px 32px -8px rgba(34,51,59,0.5)' } }}
                     >
@@ -308,7 +310,7 @@ export function InvoiceManagement() {
                           Download ({selectedInvoices.length})
                         </Button>
                       )}
-                      <Button onClick={() => setShowGenerator(true)} variant="contained" size="small" disableElevation sx={{ bgcolor: '#22333b', '&:hover': { bgcolor: '#111a1e' }, borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.3)', flex: { xs: 1, sm: 'auto' } }}>Generate New</Button>
+                      <Button onClick={() => setShowModeModal(true)} variant="contained" size="small" disableElevation sx={{ bgcolor: '#22333b', '&:hover': { bgcolor: '#111a1e' }, borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.3)', flex: { xs: 1, sm: 'auto' } }}>Generate New</Button>
                     </div>
                   </div>
                   
@@ -641,6 +643,14 @@ export function InvoiceManagement() {
       <AnimatePresence>
         {showGenerator && <InvoiceGenerator properties={properties} initialData={selectedInvoice} onClose={() => { setShowGenerator(false); setSelectedInvoice(null); loadData(); }} />}
         {showTemplateBuilder && <InvoiceTemplateBuilder onClose={() => setShowTemplateBuilder(false)} />}
+        {showModeModal && (
+          <BulkInvoiceModal
+            properties={properties}
+            onClose={() => setShowModeModal(false)}
+            onOpenSingle={() => { setShowModeModal(false); setSelectedInvoice(null); setShowGenerator(true); }}
+            onSuccess={() => { setShowModeModal(false); loadData(); }}
+          />
+        )}
       </AnimatePresence>
 
       <Dialog
