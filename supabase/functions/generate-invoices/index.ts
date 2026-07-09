@@ -31,6 +31,7 @@ serve(async (req) => {
         created_by,
         start_date,
         properties ( owner_id, address ),
+        created_by,
         lease_tenants (
           tenants ( first_name, last_name, email )
         )
@@ -39,9 +40,13 @@ serve(async (req) => {
 
     if (leasesError) throw leasesError
 
+    console.log(`[DEBUG] Found ${(leases || []).length} active leases`);
     let generatedCount = 0
 
     for (const lease of leases || []) {
+      const tenantInfo = lease.lease_tenants?.[0]?.tenants;
+      console.log(`[DEBUG] Lease ${lease.id}: start=${lease.start_date}, property=${lease.property_id}, tenant=${tenantInfo ? tenantInfo.email : 'NO TENANT LINKED'}`);
+
       // 2. Determine if invoice is due today
       const { data: lastInvoices } = await supabase
         .from('invoices')
@@ -56,6 +61,7 @@ serve(async (req) => {
       if (!lastInvoices || lastInvoices.length === 0) {
         // First invoice ever - check if we passed start date
         const startDate = new Date(lease.start_date);
+        console.log(`[DEBUG] Lease ${lease.id}: today=${today.toISOString()}, startDate=${startDate.toISOString()}, isDue=${today >= startDate}`);
         if (today >= startDate) {
           isDue = true;
           issueDate = startDate;
@@ -72,19 +78,20 @@ serve(async (req) => {
         } else if (lease.payment_frequency === 'Fortnightly') {
           issueDate.setDate(issueDate.getDate() + 14);
         } else {
-          // Default fallback to monthly
           issueDate.setMonth(issueDate.getMonth() + 1);
         }
 
+        console.log(`[DEBUG] Lease ${lease.id}: nextBillingDate=${issueDate.toISOString()}, today=${today.toISOString()}, isDue=${today >= issueDate}`);
         if (today >= issueDate) {
           isDue = true;
         }
       }
 
       if (!isDue) {
-        console.log(`Lease ${lease.id} is not due yet. Skipping.`);
+        console.log(`[DEBUG] Lease ${lease.id} is NOT due yet. Skipping.`);
         continue;
       }
+      console.log(`[DEBUG] Lease ${lease.id} IS due! Generating invoice...`);
 
       // 3. Calculate all dates for the invoice
       const dueDate = new Date(issueDate);
@@ -148,8 +155,11 @@ serve(async (req) => {
       const pdfBytes = await pdfDoc.saveAsBase64();
 
       // 5. Insert new draft invoice into database
+      // Use created_by as user_id — this is the authenticated user who created the lease
+      // owner_id on properties is the same person, but created_by is guaranteed to match auth.uid()
+      const invoiceUserId = lease.created_by || lease.properties?.owner_id;
       const invoicePayload = {
-        user_id: lease.properties?.owner_id || lease.created_by,
+        user_id: invoiceUserId,
         property_id: lease.property_id,
         lease_id: lease.id,
         invoice_number: invoiceNumber,
@@ -221,7 +231,11 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ message: `Successfully checked leases and generated ${generatedCount} due invoices.` }), {
+    return new Response(JSON.stringify({ 
+      message: `Successfully checked leases and generated ${generatedCount} due invoices.`,
+      generatedCount: generatedCount,
+      emailsSent: generatedCount
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
