@@ -110,8 +110,15 @@ serve(async (req) => {
       const primaryTenantObj = lease.lease_tenants && lease.lease_tenants.length > 0 
         ? lease.lease_tenants[0].tenants 
         : null;
-      const tenantName = primaryTenantObj ? `${primaryTenantObj.first_name} ${primaryTenantObj.last_name}` : 'Unknown Tenant';
-      const tenantEmail = primaryTenantObj ? primaryTenantObj.email : '';
+
+      // Skip leases with no linked tenant — can't email anyone
+      if (!primaryTenantObj) {
+        console.log(`[DEBUG] Lease ${lease.id} has no linked tenant. Skipping.`);
+        continue;
+      }
+
+      const tenantName = `${primaryTenantObj.first_name} ${primaryTenantObj.last_name}`;
+      const tenantEmail = primaryTenantObj.email || '';
       const propertyAddress = lease.properties?.address || 'Unknown Property';
 
       // 4. Generate the PDF Document
