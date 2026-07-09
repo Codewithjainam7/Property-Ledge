@@ -185,6 +185,14 @@ serve(async (req) => {
     let remindersSent = 0;
     if (overdueToEmail && overdueToEmail.length > 0) {
       for (const inv of overdueToEmail) {
+        // Only send reminder if not sent today already
+        const lastReminder = inv.reminder_sent_at ? new Date(inv.reminder_sent_at) : null;
+        const oneDayAgo = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        if (lastReminder && lastReminder > oneDayAgo) {
+          console.log(`Skipping reminder for invoice ${inv.invoice_number} — already sent today.`);
+          continue;
+        }
+
         await supabase.functions.invoke('send-email', {
           body: {
             to: inv.tenant_email,
@@ -202,6 +210,9 @@ serve(async (req) => {
             }
           }
         });
+
+        // Update last reminder timestamp
+        await supabase.from('invoices').update({ reminder_sent_at: new Date().toISOString() }).eq('id', inv.id);
         remindersSent++;
       }
     }

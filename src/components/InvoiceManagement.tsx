@@ -218,16 +218,22 @@ export function InvoiceManagement() {
     try {
       const inv = invoices.find(i => i.id === id);
       if (!inv) return;
+
+      const recipientEmail = inv.tenant_email;
+      if (!recipientEmail) {
+        alert('No email address on file for this tenant. Please update the tenant record first.');
+        return;
+      }
       
       // Call the Resend edge function
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
-          to: "ashdeveloper2247@gmail.com", // Temporary: Resend requires testing with the account owner's email until the domain is verified
+          to: recipientEmail,
           subject: `Reminder: Invoice ${inv.invoice_number} is Due`,
           templateType: "invoice",
           variables: {
-            tenantName: "Tenant", 
-            propertyAddress: "Property Address", 
+            tenantName: inv.tenantName || inv.tenant_name || 'Tenant', 
+            propertyAddress: inv.propertyName || inv.property_address || 'Property Address', 
             senderName: "Property Manager",
             senderEmail: "manager@propertyledge.com.au",
             invoiceNumber: inv.invoice_number,
@@ -240,7 +246,7 @@ export function InvoiceManagement() {
       
       if (error) throw error;
       
-      alert("Reminder sent to tenant via Resend.");
+      alert(`Reminder sent to ${recipientEmail} via Resend.`);
       await handleUpdateStatus(id, 'Sent');
     } catch (err: any) {
       console.error("Failed to send email:", err);

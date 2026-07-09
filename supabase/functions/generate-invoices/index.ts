@@ -82,7 +82,8 @@ serve(async (req) => {
       }
 
       if (!isDue) {
-        console.log(`Lease ${lease.id} is not technically due today, but forcing for testing purposes!`);
+        console.log(`Lease ${lease.id} is not due yet. Skipping.`);
+        continue;
       }
 
       // 3. Calculate all dates for the invoice
