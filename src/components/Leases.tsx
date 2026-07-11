@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Building, User, Calendar, DollarSign, X, CheckCircle2, AlertTriangle, ArrowRight, ChevronDown, Eye, Trash2, Clock, UserPlus, Mail, Send } from 'lucide-react';
+import { FileText, Plus, Building, User, Calendar, DollarSign, X, CheckCircle2, AlertTriangle, ArrowRight, ChevronDown, Eye, Trash2, Clock, UserPlus, Mail, Send, LayoutGrid, List, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from './DashboardLayout';
@@ -41,6 +41,7 @@ export function Leases() {
   const [showGeneratorModal, setShowGeneratorModal] = useState(false);
   const [canEditPropertyIds, setCanEditPropertyIds] = useState<string[]>([]);
   const [initialLeaseData, setInitialLeaseData] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Delete Lease State
   const [deletingLeaseId, setDeletingLeaseId] = useState<string | null>(null);
@@ -223,15 +224,31 @@ export function Leases() {
           </h1>
           <p className="text-on-surface-variant font-medium mt-1">Manage active leases, renewals, and historical records.</p>
         </div>
-        {properties.length > 0 && (
-          <button 
-            onClick={() => setShowLeaseModal(true)}
-            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
-          >
-            <Plus className="w-5 h-5" />
-            Create Lease
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <div className="flex bg-white/60 backdrop-blur-md p-1 rounded-full shadow-inner border border-white items-center">
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-[#4a4a5e] hover:text-[#1c1c28]'}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => setViewMode('table')}
+              className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-primary' : 'text-[#4a4a5e] hover:text-[#1c1c28]'}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+          {properties.length > 0 && (
+            <button 
+              onClick={() => { setInitialLeaseData(null); setShowLeaseModal(true); }}
+              className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
+            >
+              <Plus className="w-5 h-5" />
+              Create Lease
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -255,6 +272,8 @@ export function Leases() {
               )}
             </div>
           ) : (
+            <>
+            {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {leases.map(lease => (
                 <div key={lease.id} className="bg-white border border-outline-variant/30 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col gap-4">
@@ -339,8 +358,8 @@ export function Leases() {
                       </>
                     )}
                     {(lease.status === 'Expired' || lease.status === 'Active') && (
-                      <button onClick={() => handleRenewLease(lease)} className="text-xs px-2.5 py-1.5 font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200">
-                        Renew
+                      <button onClick={() => handleRenewLease(lease)} className="text-xs px-2.5 py-1.5 font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Edit or Renew Lease">
+                        Edit / Renew
                       </button>
                     )}
                     {lease.status === 'Expired' && (
@@ -400,6 +419,131 @@ export function Leases() {
                 </div>
               ))}
             </div>
+            ) : (
+              <div className="bg-white/80 backdrop-blur-2xl border border-white/50 rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgba(59,34,181,0.04)]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-black/5 bg-[#f8f9fc]/50">
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Property</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Tenants</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Term / Dates</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Rent</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Status</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e] text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leases.map((lease, index) => (
+                        <tr key={lease.id} className={`border-b border-black/5 transition-colors group ${index % 2 === 0 ? 'bg-transparent hover:bg-[#f8f9fc]/50' : 'bg-[#f8f9fc]/30 hover:bg-[#f8f9fc]/80'}`}>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-[#f8f9fc] to-white flex items-center justify-center shrink-0 border border-black/5 shadow-inner">
+                                <Building className="w-5 h-5 text-primary" />
+                              </div>
+                              <div className="flex flex-col justify-center max-w-[200px]">
+                                <div className="font-black text-sm text-[#1c1c28] tracking-tight truncate">{lease.properties?.address}</div>
+                                <div className="text-[10px] font-bold text-[#4a4a5e] uppercase tracking-wider mt-0.5">{lease.properties?.suburb}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              {lease.lease_tenants && lease.lease_tenants.length > 0 ? (
+                                lease.lease_tenants.map((lt: any, idx: number) => (
+                                  <div key={idx} className="flex items-center gap-1.5">
+                                    <span className="font-medium text-sm text-[#1c1c28] whitespace-nowrap">{lt.tenants?.first_name} {lt.tenants?.last_name}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <span className="text-[11px] text-slate-400 italic">No Tenants</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="text-sm font-medium text-[#1c1c28]">
+                                {new Date(lease.start_date).toLocaleDateString()} - {lease.end_date ? new Date(lease.end_date).toLocaleDateString() : 'Periodic'}
+                              </div>
+                              <div className={`text-[11px] font-bold ${lease.status === 'Expired' || (lease.end_date && new Date(lease.end_date) < new Date()) ? 'text-red-500' : 'text-primary'}`}>
+                                {getLeaseTimeRemaining(lease.end_date, lease.status)}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-0.5">
+                              <div className="text-base font-black text-[#1c1c28]">${Number(lease.rent_amount).toLocaleString('en-AU')}</div>
+                              <div className="text-[10px] text-[#4a4a5e] uppercase">/{lease.payment_frequency?.toLowerCase().replace('ly', '') || 'week'}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 ${lease.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : lease.status === 'Expired' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-slate-50 text-slate-600 border border-slate-200'}`}>
+                              {lease.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => handleRenewLease(lease)} 
+                                className="p-2 text-primary hover:bg-primary/5 rounded-xl transition-colors border border-primary/10"
+                                title="Edit / Renew Lease"
+                              >
+                                <Settings className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  const dummyAgreementDetails = {
+                                    signingProvider: `${session?.user?.email || 'Landlord'} - ${session?.user?.email || ''}, `,
+                                    dateOfAgreement: new Date().toISOString(),
+                                    renterAddresses: {},
+                                    urgentRepairs: { contactName: "Agent/Landlord", phone: "000", email: session?.user?.email || "" },
+                                    ownersCorporation: false,
+                                    conditionReport: "To be provided",
+                                    additionalTerms: "Standard Residential Tenancies Act terms apply"
+                                  };
+                                  const formattedTenants = lease.lease_tenants?.map(lt => ({
+                                    id: lt.tenants.email,
+                                    firstName: lt.tenants.first_name,
+                                    lastName: lt.tenants.last_name,
+                                    email: lt.tenants.email,
+                                    phone: ""
+                                  })) || [];
+                                  const bondDetails = { amount: String(lease.bond_amount || lease.rent_amount * 4 || 0), isPaid: false, dueDate: lease.start_date, collectViaPlatform: false };
+                                  const leaseDetails = {
+                                    startDate: lease.start_date,
+                                    endDate: lease.end_date,
+                                    rentAmount: String(lease.rent_amount),
+                                    rentFrequency: lease.payment_frequency,
+                                    leaseType: lease.end_date ? "Fixed term" : "Periodic"
+                                  };
+                                  const fullAddress = lease.properties ? `${lease.properties.address}, ${lease.properties.suburb}` : "";
+
+                                  generateVictoriaLeasePdf(dummyAgreementDetails, formattedTenants, bondDetails, leaseDetails, fullAddress, lease.property_id);
+                                }}
+                                className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors border border-blue-100"
+                                title="Download PDF"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                              {(lease.properties?.owner_id === session?.user?.id || canEditPropertyIds.includes(lease.property_id)) && (
+                                <button 
+                                  onClick={() => setDeletingLeaseId(lease.id)}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
+                                  title="Delete Lease"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
       )}

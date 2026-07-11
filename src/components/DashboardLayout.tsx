@@ -62,6 +62,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, loading, user, userContext]);
 
+  // Completely prevent global body scroll while in the dashboard
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   const handleLogout = async () => {
     await signOut();
     navigate('/');
@@ -189,7 +197,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-surface-container-lowest flex overflow-hidden relative">
+    <div className="h-screen bg-surface-container-lowest flex overflow-hidden relative">
       {/* --- Ambient Background Elements --- */}
       {/* Grid Pattern */}
       <div className="absolute inset-0 grid-pattern opacity-40 z-0 pointer-events-none" />

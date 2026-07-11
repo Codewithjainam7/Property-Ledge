@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Plus, Building, Trash2, Users, AlertTriangle, CheckCircle2, ChevronDown, Clock, RefreshCw, Search, Filter, MoreHorizontal, LayoutGrid, List, UserCheck, X as XIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -65,6 +66,7 @@ const ROWS_PER_PAGE_OPTIONS = [5, 10, 20];
 
 export function Team() {
   const { session } = useAuth();
+  const navigate = useNavigate();
   const [properties, setProperties] = useState<Property[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMemberRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,7 +325,7 @@ export function Team() {
                     const pending = pm.filter(m => m.status === 'Pending' || m.status === 'Expired').length;
                     const roles = new Set(pm.map(m => m.role)).size;
                     return (
-                      <div key={property.id} className="bg-white rounded-[20px] border border-outline-variant/30 shadow-sm hover:shadow-lg transition-all cursor-pointer group shrink-0 w-[220px] sm:w-[240px] overflow-hidden">
+                      <div key={property.id} onClick={() => navigate(`/dashboard/property/${property.id}`)} className="bg-white rounded-[20px] border border-outline-variant/30 shadow-sm hover:shadow-lg transition-all cursor-pointer group shrink-0 w-[220px] sm:w-[240px] overflow-hidden">
                         {/* Property image placeholder */}
                         <div className="h-28 bg-gradient-to-br from-primary/20 via-primary/10 to-slate-100 relative overflow-hidden">
                           {property.image ? (

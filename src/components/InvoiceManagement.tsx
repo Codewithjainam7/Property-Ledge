@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, FileText, Settings, CreditCard, ChevronRight, Calendar, Bell, ShieldCheck, Clock, CheckCircle2, AlertCircle, Trash2, BarChart2, Mail, MailOpen, Activity, Search, Filter } from 'lucide-react';
+import { Plus, FileText, Settings, CreditCard, ChevronRight, Calendar, Bell, ShieldCheck, Clock, CheckCircle2, AlertCircle, Trash2, BarChart2, Mail, MailOpen, Activity, Search, Filter, LayoutGrid, List, Send } from 'lucide-react';
 import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox, Select, MenuItem, FormControl } from '@mui/material';
 
 import { InvoiceGenerator } from './InvoiceGenerator';
@@ -28,6 +28,9 @@ export function InvoiceManagement() {
   const [savingAutomationId, setSavingAutomationId] = useState<string | null>(null);
   
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [propertyFilter, setPropertyFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Automation manual trigger states
   const [runningEngine, setRunningEngine] = useState<'blueprints' | 'leases' | null>(null);
@@ -358,6 +361,20 @@ export function InvoiceManagement() {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 px-2 gap-4">
                     <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Space Grotesk', color: '#1c1c28' }}>All Invoices</Typography>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                      <div className="flex bg-white/60 backdrop-blur-md p-1 rounded-full shadow-inner border border-white items-center mr-2">
+                        <button 
+                          onClick={() => setViewMode('grid')}
+                          className={`p-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-[#4a4a5e] hover:text-[#1c1c28]'}`}
+                        >
+                          <LayoutGrid className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => setViewMode('table')}
+                          className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-primary' : 'text-[#4a4a5e] hover:text-[#1c1c28]'}`}
+                        >
+                          <List className="w-4 h-4" />
+                        </button>
+                      </div>
                       {invoices.length > 0 && (
                         <Button 
                           onClick={() => {
@@ -395,7 +412,8 @@ export function InvoiceManagement() {
                     </div>
                     <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200 }}>
                       <Select
-                        defaultValue="all"
+                        value={propertyFilter}
+                        onChange={(e) => setPropertyFilter(e.target.value)}
                         displayEmpty
                         sx={{
                           bgcolor: 'rgba(255, 255, 255, 0.6)',
@@ -432,7 +450,8 @@ export function InvoiceManagement() {
 
                     <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200 }}>
                       <Select
-                        defaultValue="all"
+                        value={propertyFilter}
+                        onChange={(e) => setPropertyFilter(e.target.value)}
                         displayEmpty
                         sx={{
                           bgcolor: 'rgba(255, 255, 255, 0.6)',
@@ -471,8 +490,12 @@ export function InvoiceManagement() {
                     </FormControl>
                   </div>
 
-                  <div className="grid gap-4">
-                    {invoices.map((inv, idx) => (
+                  {viewMode === 'grid' ? (
+                    <div className="grid gap-4">
+                    {invoices
+                      .filter(inv => propertyFilter === 'all' || inv.propertyId === propertyFilter)
+                      .filter(inv => statusFilter === 'all' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase())
+                      .map((inv, idx) => (
                       <motion.div 
                         key={idx}
                         initial={{ opacity: 0, y: 10 }}
@@ -545,7 +568,83 @@ export function InvoiceManagement() {
                         </div>
                       </motion.div>
                     ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white/80 backdrop-blur-2xl border border-white/50 rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgba(59,34,181,0.04)]">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-black/5 bg-[#f8f9fc]/50">
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">#</th>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Tenant</th>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Property</th>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Due Date</th>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Amount</th>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Status</th>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e] text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {invoices
+                              .filter(inv => propertyFilter === 'all' || inv.propertyId === propertyFilter)
+                              .filter(inv => statusFilter === 'all' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase())
+                              .map((inv, index) => (
+                              <tr key={inv.id} className={`border-b border-black/5 transition-colors group ${index % 2 === 0 ? 'bg-transparent hover:bg-[#f8f9fc]/50' : 'bg-[#f8f9fc]/30 hover:bg-[#f8f9fc]/80'}`}>
+                                <td className="px-6 py-4 text-[11px] font-black text-[#4a4a5e]">#{index + 1}</td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#f8f9fc] to-white flex items-center justify-center border border-black/5 shrink-0">
+                                      <FileText className="w-4 h-4 text-primary" />
+                                    </div>
+                                    <span className="font-black text-sm text-[#1c1c28]">{inv.tenantName}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-sm font-medium text-[#4a4a5e]">{inv.propertyName}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-sm font-medium text-[#1c1c28]">{new Date(inv.dueDate).toLocaleDateString('en-GB')}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-base font-black text-[#1c1c28]">${inv.totalAmount}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 ${(inv.status || 'Draft') === 'Sent' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : (inv.status || 'Draft') === 'Overdue' ? 'bg-red-50 text-red-600 border border-red-200' : (inv.status || 'Draft') === 'Paid' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                                    {inv.status || 'Draft'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => handleSendReminder(inv.id)}
+                                      className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors border border-blue-100"
+                                      title="Send Email"
+                                    >
+                                      <Mail className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => { setSelectedInvoice(inv); setShowGenerator(true); }}
+                                      className="p-2 text-primary hover:bg-primary/5 rounded-xl transition-colors border border-primary/10"
+                                      title="View Invoice"
+                                    >
+                                      <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteConfirm({ isOpen: true, id: inv.id })}
+                                      className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
