@@ -244,7 +244,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
         
-        <nav className={`flex-1 py-6 overflow-y-auto mt-16 md:mt-0 overflow-x-hidden ${isCollapsed ? 'flex flex-col items-center px-0 gap-6' : 'px-5 space-y-8'}`}>
+        <nav className={`flex-1 py-6 overflow-y-auto hide-scrollbar mt-16 md:mt-0 overflow-x-hidden ${isCollapsed ? 'flex flex-col items-center px-0 gap-6' : 'px-5 space-y-8'}`}>
           {/* Assigned Properties Section for Property Managers */}
           {userContext?.isTeamMember && assignedProperties.length > 0 && (
             <div className="space-y-1.5 mb-6">
