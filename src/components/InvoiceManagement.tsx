@@ -407,73 +407,32 @@ export function InvoiceManagement() {
                   </div>
                   
                   {/* Search and Filters panel */}
-                  <div className="flex flex-col md:flex-row gap-4 p-4 bg-surface-container-lowest backdrop-blur-xl rounded-[24px] border border-outline-variant/50 shadow-sm mb-6">
+                  <div className="flex flex-col sm:flex-row gap-4 p-4 bg-surface-container-lowest backdrop-blur-xl rounded-[24px] border border-outline-variant/50 shadow-sm mb-6">
                     <div className="relative flex-1">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-on-surface-variant" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        placeholder="Search invoices by tenant, property, or invoice number..."
+                        placeholder="Search invoices by tenant, property, or invoice no..."
                         className="w-full bg-surface border border-outline-variant/50 rounded-xl pl-12 pr-4 py-3.5 text-sm font-semibold text-on-surface placeholder-on-surface-variant/70 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                       />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                      {/* Property Filter Dropdown */}
-                      <FormControl size="small" sx={{ minWidth: 160 }}>
-                        <Select
-                          value={propertyFilter}
-                          onChange={(e) => setPropertyFilter(e.target.value)}
-                          displayEmpty
-                          sx={{
-                            bgcolor: 'rgba(255, 255, 255, 0.6)',
-                            borderRadius: '12px',
-                            border: '1px solid rgba(0,0,0,0.08)',
-                            boxShadow: 'none',
-                            '.MuiOutlinedInput-notchedOutline': { border: 0 },
-                            '&:hover .MuiOutlinedInput-notchedOutline': { border: 0 },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 0 },
-                            fontWeight: 700,
-                            fontSize: '0.875rem',
-                            color: '#1c1c28',
-                            py: 1,
-                            pl: 1
-                          }}
-                          MenuProps={{
-                            slotProps: {
-                              paper: {
-                                sx: {
-                                  borderRadius: '16px',
-                                  boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
-                                  mt: 1,
-                                  border: '1px solid rgba(255,255,255,0.6)',
-                                  backdropFilter: 'blur(16px)'
-                                }
-                              }
-                            }
-                          }}
+                    <div className="flex gap-2 flex-wrap">
+                      {['All', 'Draft', 'Sent', 'Overdue', 'Paid'].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => setStatusFilter(status === 'All' ? 'all' : status)}
+                          className={`px-5 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                            statusFilter.toLowerCase() === (status === 'All' ? 'all' : status).toLowerCase()
+                              ? 'bg-primary text-on-primary border-primary font-extrabold'
+                              : 'bg-surface text-on-surface-variant border-outline-variant/50 hover:bg-surface-container'
+                          }`}
                         >
-                          <MenuItem value="all" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>All Properties</MenuItem>
-                          {properties.map(p => <MenuItem key={p.id} value={p.id} sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.address}</MenuItem>)}
-                        </Select>
-                      </FormControl>
-
-                      <div className="flex gap-2">
-                        {['All', 'Draft', 'Sent', 'Overdue', 'Paid'].map((status) => (
-                          <button
-                            key={status}
-                            onClick={() => setStatusFilter(status === 'All' ? 'all' : status)}
-                            className={`px-5 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
-                              statusFilter.toLowerCase() === (status === 'All' ? 'all' : status).toLowerCase()
-                                ? 'bg-primary text-white border-primary font-extrabold shadow-sm'
-                                : 'bg-surface text-on-surface-variant border-outline-variant/50 hover:bg-surface-container'
-                            }`}
-                          >
-                            {status}
-                          </button>
-                        ))}
-                      </div>
+                          {status}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
