@@ -191,6 +191,19 @@ export function InvoiceManagement() {
     setSelectedInvoices([]);
   };
 
+  const handleBulkDelete = async () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedInvoices.length} invoice${selectedInvoices.length !== 1 ? 's' : ''}? This action cannot be undone.`)) {
+      try {
+        const { error } = await supabase.from('invoices').delete().in('id', selectedInvoices);
+        if (error) throw error;
+        setInvoices(prev => prev.filter(i => !selectedInvoices.includes(i.id)));
+        setSelectedInvoices([]);
+      } catch (e: any) {
+        alert("Error deleting invoices: " + e.message);
+      }
+    }
+  };
+
   const handleSaveAutomation = async (templateId: string, updates: any) => {
     setSavingAutomationId(templateId);
     try {
@@ -396,14 +409,25 @@ export function InvoiceManagement() {
                         </Button>
                       )}
                       {selectedInvoices.length > 0 && (
-                        <Button 
-                          onClick={handleBulkDownload} 
-                          variant="outlined" 
-                          size="small" 
-                          sx={{ borderColor: 'primary.main', color: 'primary.main', borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', '&:hover': { bgcolor: 'primary.main', color: 'white' }, flex: { xs: 1, sm: 'auto' } }}
-                        >
-                          Download ({selectedInvoices.length})
-                        </Button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button 
+                            onClick={handleBulkDownload} 
+                            variant="outlined" 
+                            size="small" 
+                            sx={{ borderColor: 'primary.main', color: 'primary.main', borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', '&:hover': { bgcolor: 'primary.main', color: 'white' }, flex: { xs: 1, sm: 'auto' } }}
+                          >
+                            Download ({selectedInvoices.length})
+                          </Button>
+                          <Button 
+                            onClick={handleBulkDelete} 
+                            variant="outlined" 
+                            color="error"
+                            size="small" 
+                            sx={{ borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', flex: { xs: 1, sm: 'auto' } }}
+                          >
+                            Delete ({selectedInvoices.length})
+                          </Button>
+                        </div>
                       )}
                       <Button onClick={() => setShowModeModal(true)} variant="contained" size="small" disableElevation sx={{ bgcolor: '#22333b', '&:hover': { bgcolor: '#111a1e' }, borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.3)', flex: { xs: 1, sm: 'auto' } }}>Generate New</Button>
                     </div>
@@ -480,6 +504,23 @@ export function InvoiceManagement() {
                           <table className="w-full min-w-[700px]">
                             <thead>
                               <tr className="border-b border-outline-variant/20">
+                                <th className="px-6 py-3 w-12 text-center">
+                                  <Checkbox
+                                    checked={selectedInvoices.length > 0 && paginatedInvoices.length > 0 && paginatedInvoices.every(inv => selectedInvoices.includes(inv.id))}
+                                    indeterminate={selectedInvoices.length > 0 && !paginatedInvoices.every(inv => selectedInvoices.includes(inv.id)) && paginatedInvoices.some(inv => selectedInvoices.includes(inv.id))}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        const paginatedIds = paginatedInvoices.map(i => i.id);
+                                        const newSelected = new Set([...selectedInvoices, ...paginatedIds]);
+                                        setSelectedInvoices(Array.from(newSelected));
+                                      } else {
+                                        const paginatedIds = paginatedInvoices.map(i => i.id);
+                                        setSelectedInvoices(selectedInvoices.filter(id => !paginatedIds.includes(id)));
+                                      }
+                                    }}
+                                    sx={{ color: 'rgba(0,0,0,0.2)', '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: 'primary.main' }, p: 0.5 }}
+                                  />
+                                </th>
                                 <th className="text-left px-6 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Tenant</th>
                                 <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Property</th>
                                 <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Due Date</th>
@@ -500,6 +541,20 @@ export function InvoiceManagement() {
                                   : 'bg-amber-50 text-amber-700 border-amber-200';
                                 return (
                                   <tr key={inv.id} className="hover:bg-surface-container-lowest/50 transition-colors group">
+                                    {/* Checkbox */}
+                                    <td className="px-6 py-3.5 text-center w-12">
+                                      <Checkbox
+                                        checked={selectedInvoices.includes(inv.id)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setSelectedInvoices([...selectedInvoices, inv.id]);
+                                          } else {
+                                            setSelectedInvoices(selectedInvoices.filter(id => id !== inv.id));
+                                          }
+                                        }}
+                                        sx={{ color: 'rgba(0,0,0,0.2)', '&.Mui-checked': { color: 'primary.main' }, p: 0.5 }}
+                                      />
+                                    </td>
                                     {/* Tenant */}
                                     <td className="px-6 py-3.5">
                                       <div className="flex items-center gap-3">
