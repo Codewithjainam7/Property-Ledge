@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, Plus, Trash2, Building, Calendar as CalendarIcon, User, ChevronDown, PenTool } from 'lucide-react';
-import { Typography, Button, TextField, Select, MenuItem, IconButton, Accordion, AccordionSummary, AccordionDetails, FormControl, Paper, Box, Divider, CircularProgress, Backdrop, Chip } from '@mui/material';
+import { Typography, Button, TextField, Select, MenuItem, IconButton, Accordion, AccordionSummary, AccordionDetails, FormControl, Paper, Box, Checkbox, Divider, CircularProgress, Backdrop, Chip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReactToPrint } from 'react-to-print';
 import { formatCurrency } from '../utils/format';
