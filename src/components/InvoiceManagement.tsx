@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from './DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, FileText, Settings, CreditCard, ChevronRight, Calendar, Bell, ShieldCheck, Clock, CheckCircle2, AlertCircle, Trash2, BarChart2, Mail, MailOpen, Activity, Search, Filter, LayoutGrid, List, Send } from 'lucide-react';
+import { Plus, FileText, Settings, CreditCard, ChevronRight, ChevronDown, Calendar, Bell, ShieldCheck, Clock, CheckCircle2, AlertCircle, Trash2, BarChart2, Mail, MailOpen, Activity, Search, Filter, LayoutGrid, List, Send } from 'lucide-react';
 import { Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Checkbox, Select, MenuItem, FormControl } from '@mui/material';
 
 import { InvoiceGenerator } from './InvoiceGenerator';
@@ -32,6 +32,9 @@ export function InvoiceManagement() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const ROWS_PER_PAGE_OPTIONS = [5, 10, 20];
 
   // Automation manual trigger states
   const [runningEngine, setRunningEngine] = useState<'blueprints' | 'leases' | null>(null);
@@ -468,6 +471,9 @@ export function InvoiceManagement() {
                       );
                     }
 
+                    const totalPages = Math.ceil(filteredInvoices.length / rowsPerPage);
+                    const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
                     return (
                       <div className="bg-white rounded-[24px] border border-outline-variant/30 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
@@ -483,7 +489,7 @@ export function InvoiceManagement() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-outline-variant/10">
-                              {filteredInvoices.map((inv) => {
+                              {paginatedInvoices.map((inv) => {
                                 const initials = (inv.tenantName || '?').charAt(0).toUpperCase();
                                 const statusStyle = (inv.status || 'Draft') === 'Sent'
                                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -556,6 +562,65 @@ export function InvoiceManagement() {
                             </tbody>
                           </table>
                         </div>
+                        
+                        {/* Pagination */}
+                        {filteredInvoices.length > 0 && (
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-outline-variant/20">
+                            <p className="text-sm text-on-surface-variant font-medium order-2 sm:order-1">
+                              Showing {Math.min((currentPage - 1) * rowsPerPage + 1, filteredInvoices.length)}–{Math.min(currentPage * rowsPerPage, filteredInvoices.length)} of {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
+                            </p>
+                            <div className="flex items-center gap-3 order-1 sm:order-2">
+                              {/* Page buttons */}
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                  disabled={currentPage === 1}
+                                  className="w-8 h-8 rounded-xl border border-outline-variant/40 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  <ChevronDown className="w-4 h-4 rotate-90" />
+                                </button>
+                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                  let page = i + 1;
+                                  if (totalPages > 5 && currentPage > 3) page = currentPage - 2 + i;
+                                  if (page > totalPages) return null;
+                                  return (
+                                    <button
+                                      key={page}
+                                      onClick={() => setCurrentPage(page)}
+                                      className={`w-8 h-8 rounded-xl text-sm font-bold transition-colors ${currentPage === page ? 'bg-primary text-white' : 'border border-outline-variant/40 text-on-surface hover:bg-surface-container-low'}`}
+                                    >
+                                      {page}
+                                    </button>
+                                  );
+                                })}
+                                <button
+                                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                  disabled={currentPage === totalPages || totalPages === 0}
+                                  className="w-8 h-8 rounded-xl border border-outline-variant/40 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  <ChevronDown className="w-4 h-4 -rotate-90" />
+                                </button>
+                              </div>
+                              {/* Rows per page */}
+                              <div className="flex items-center gap-2 text-sm text-on-surface-variant font-medium">
+                                <span className="hidden sm:inline">Rows per page</span>
+                                <div className="relative">
+                                  <select
+                                    value={rowsPerPage}
+                                    onChange={e => {
+                                      setRowsPerPage(Number(e.target.value));
+                                      setCurrentPage(1);
+                                    }}
+                                    className="appearance-none bg-white border border-outline-variant/40 rounded-xl px-3 py-1.5 pr-7 text-sm font-bold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+                                  >
+                                    {ROWS_PER_PAGE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
+                                  </select>
+                                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-on-surface-variant pointer-events-none" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
