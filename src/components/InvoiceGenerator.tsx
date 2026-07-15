@@ -51,22 +51,24 @@ const getInitialState = (user: any, initialData?: any): InvoiceState => {
   d.setDate(d.getDate() + 7);
   const dueDate = initialData?.due_date || d.toISOString().split('T')[0];
 
+  const agencyDetails = initialData?.agency_details || {};
+
   return {
     invoiceNumber: initialData?.invoice_number || `INV${Date.now().toString().slice(-6)}`,
     issueDate,
     dueDate,
-    landlordName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Landlord Name',
-    landlordAbn: '17 234 567 890',
-    landlordAddress: '123 Main Street\nSydney NSW 2000\nAustralia',
-    landlordPhone: '0412 345 678',
-    landlordEmail: user?.email || '',
+    landlordName: agencyDetails.landlordName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Landlord Name',
+    landlordAbn: agencyDetails.landlordAbn || '17 234 567 890',
+    landlordAddress: agencyDetails.landlordAddress || '123 Main Street\nSydney NSW 2000\nAustralia',
+    landlordPhone: agencyDetails.landlordPhone || '0412 345 678',
+    landlordEmail: agencyDetails.landlordEmail || user?.email || '',
     tenantName: initialData?.tenant_name || initialData?.tenantName || 'Tenant Name',
     tenantEmail: initialData?.tenant_email || '',
     propertyId: initialData?.property_id || null,
-    tenantAbn: '45 678 123 456',
-    tenantAttention: initialData?.tenant_name || initialData?.tenantName || 'Tenant Name',
+    tenantAbn: agencyDetails.tenantAbn || '45 678 123 456',
+    tenantAttention: agencyDetails.tenantAttention || initialData?.tenant_name || initialData?.tenantName || 'Tenant Name',
     tenantAddress: initialData?.property_address || initialData?.propertyName || 'Property Address\nCity State Zip\nAustralia',
-    items: [
+    items: agencyDetails.items || [
       {
         id: Date.now().toString(),
         description: initialData ? `Rent payment for ${initialData.property_address || initialData.propertyName}` : `Rent payment for 1 month (${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })})`,
@@ -74,9 +76,9 @@ const getInitialState = (user: any, initialData?: any): InvoiceState => {
         gst: 0
       }
     ],
-    paymentInstructions: 'Bank Name: Commonwealth Bank\nBSB: 123-456\nAccount: 12345678',
-    notes: 'Please let us know if you have any questions.',
-    templateStyle: 'classic'
+    paymentInstructions: agencyDetails.paymentInstructions || 'Bank Name: Commonwealth Bank\nBSB: 123-456\nAccount: 12345678',
+    notes: initialData?.notes || agencyDetails.notes || 'Please let us know if you have any questions.',
+    templateStyle: agencyDetails.templateStyle || 'classic'
   };
 };
 
@@ -268,6 +270,19 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
           tenant_email: state.tenantEmail,
           billing_period_start: state.issueDate || new Date().toISOString().split('T')[0],
           billing_period_end: state.dueDate || new Date().toISOString().split('T')[0],
+          notes: state.notes,
+          agency_details: {
+            templateStyle: state.templateStyle,
+            landlordName: state.landlordName,
+            landlordAbn: state.landlordAbn,
+            landlordAddress: state.landlordAddress,
+            landlordPhone: state.landlordPhone,
+            landlordEmail: state.landlordEmail,
+            tenantAbn: state.tenantAbn,
+            tenantAttention: state.tenantAttention,
+            items: state.items,
+            paymentInstructions: state.paymentInstructions,
+          }
         };
 
         let invError;
@@ -373,7 +388,22 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
           billing_period_start: issueDateVal,
           billing_period_end: dueDateVal,
           status: 'Draft',
-          late_fee_applied: false
+          late_fee_applied: false,
+          agency_details: {
+            templateStyle: state.templateStyle,
+            landlordName: state.landlordName,
+            landlordAbn: state.landlordAbn,
+            landlordAddress: state.landlordAddress,
+            landlordPhone: state.landlordPhone,
+            landlordEmail: state.landlordEmail,
+            tenantAbn: state.tenantAbn,
+            tenantAttention: state.tenantAttention,
+            items: state.items.map(item => ({
+              ...item,
+              description: `${item.description} (${monthLabel})`
+            })),
+            paymentInstructions: state.paymentInstructions,
+          }
         };
 
         const { data: newInvoice, error: invError } = await supabase.from('invoices').insert(invoicePayload).select().single();

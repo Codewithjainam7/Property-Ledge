@@ -322,7 +322,7 @@ export function InvoiceManagement() {
             <Button 
               variant="contained" 
               startIcon={<Plus className="w-5 h-5" />}
-              onClick={() => setShowGenerator(true)}
+              onClick={() => { setSelectedInvoice(null); setShowGenerator(true); }}
               disableElevation
               sx={{ bgcolor: '#22333b', '&:hover': { bgcolor: '#111a1e' }, borderRadius: '50px', fontWeight: 900, px: 3, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', boxShadow: '0 8px 16px -4px rgba(34,51,59,0.3)' }}
             >
@@ -381,7 +381,7 @@ export function InvoiceManagement() {
                     </Typography>
                     <Button 
                       variant="contained" 
-                      onClick={() => setShowGenerator(true)}
+                      onClick={() => { setSelectedInvoice(null); setShowGenerator(true); }}
                       disableElevation
                       sx={{ bgcolor: '#22333b', borderRadius: '50px', px: 6, py: 2, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 12px 24px -8px rgba(34,51,59,0.4)', '&:hover': { bgcolor: '#111a1e', boxShadow: '0 16px 32px -8px rgba(34,51,59,0.5)' } }}
                     >
