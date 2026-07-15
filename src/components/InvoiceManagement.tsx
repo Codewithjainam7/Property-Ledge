@@ -283,6 +283,22 @@ export function InvoiceManagement() {
   const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
   const unopenedInvoices = invoices.filter(i => i.status === 'Sent');
 
+  const filteredInvoices = invoices.filter(inv => {
+    const tenantName = (inv.tenantName || inv.tenant_name || '').toLowerCase();
+    const propertyAddress = (inv.propertyName || inv.property_address || '').toLowerCase();
+    const invoiceNumber = (inv.invoice_number || '').toLowerCase();
+    const matchesSearch = tenantName.includes(searchQuery.toLowerCase()) ||
+                          propertyAddress.includes(searchQuery.toLowerCase()) ||
+                          invoiceNumber.includes(searchQuery.toLowerCase());
+                          
+    const matchesProperty = propertyFilter === 'all' || inv.propertyId === propertyFilter;
+    const matchesStatus = statusFilter === 'all' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase();
+    
+    return matchesSearch && matchesProperty && matchesStatus;
+  });
+
+  const totalPages = Math.ceil(filteredInvoices.length / rowsPerPage);
+  const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
   return (
     <DashboardLayout>
@@ -392,20 +408,20 @@ export function InvoiceManagement() {
                           <List className="w-4 h-4" />
                         </button>
                       </div>
-                      {invoices.length > 0 && (
+                      {filteredInvoices.length > 0 && (
                         <Button 
                           onClick={() => {
-                            if (selectedInvoices.length === invoices.length) {
+                            if (selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0) {
                               setSelectedInvoices([]);
                             } else {
-                              setSelectedInvoices(invoices.map(inv => inv.id));
+                              setSelectedInvoices(filteredInvoices.map(inv => inv.id));
                             }
                           }}
                           variant="text" 
                           size="small" 
                           sx={{ color: '#4a4a5e', fontWeight: 900, px: 2, py: 1.5, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem', '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' }, flex: { xs: 1, sm: 'auto' } }}
                         >
-                          {selectedInvoices.length === invoices.length ? 'Deselect All' : 'Select All'}
+                          {selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0 ? 'Deselect All' : 'Select All'}
                         </Button>
                       )}
                       {selectedInvoices.length > 0 && (
@@ -464,20 +480,6 @@ export function InvoiceManagement() {
                   </div>
 
                   {(() => {
-                    const filteredInvoices = invoices.filter(inv => {
-                      const tenantName = (inv.tenantName || inv.tenant_name || '').toLowerCase();
-                      const propertyAddress = (inv.propertyName || inv.property_address || '').toLowerCase();
-                      const invoiceNumber = (inv.invoice_number || '').toLowerCase();
-                      const matchesSearch = tenantName.includes(searchQuery.toLowerCase()) ||
-                                            propertyAddress.includes(searchQuery.toLowerCase()) ||
-                                            invoiceNumber.includes(searchQuery.toLowerCase());
-                                            
-                      const matchesProperty = propertyFilter === 'all' || inv.propertyId === propertyFilter;
-                      const matchesStatus = statusFilter === 'all' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase();
-                      
-                      return matchesSearch && matchesProperty && matchesStatus;
-                    });
-
                     if (filteredInvoices.length === 0) {
                       return (
                         <div className="bg-white/60 backdrop-blur-3xl border border-white/80 rounded-[40px] p-10 md:p-16 text-center shadow-[0_16px_40px_-12px_rgba(59,34,181,0.06)] relative overflow-hidden group">
@@ -495,32 +497,13 @@ export function InvoiceManagement() {
                       );
                     }
 
-                    const totalPages = Math.ceil(filteredInvoices.length / rowsPerPage);
-                    const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-
                     return (
                       <div className="bg-white rounded-[24px] border border-outline-variant/30 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
                           <table className="w-full min-w-[700px]">
                             <thead>
                               <tr className="border-b border-outline-variant/20">
-                                <th className="px-6 py-3 w-12 text-center">
-                                  <Checkbox
-                                    checked={selectedInvoices.length > 0 && paginatedInvoices.length > 0 && paginatedInvoices.every(inv => selectedInvoices.includes(inv.id))}
-                                    indeterminate={selectedInvoices.length > 0 && !paginatedInvoices.every(inv => selectedInvoices.includes(inv.id)) && paginatedInvoices.some(inv => selectedInvoices.includes(inv.id))}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        const paginatedIds = paginatedInvoices.map(i => i.id);
-                                        const newSelected = new Set([...selectedInvoices, ...paginatedIds]);
-                                        setSelectedInvoices(Array.from(newSelected));
-                                      } else {
-                                        const paginatedIds = paginatedInvoices.map(i => i.id);
-                                        setSelectedInvoices(selectedInvoices.filter(id => !paginatedIds.includes(id)));
-                                      }
-                                    }}
-                                    sx={{ color: 'rgba(0,0,0,0.2)', '&.Mui-checked, &.MuiCheckbox-indeterminate': { color: 'primary.main' }, p: 0.5 }}
-                                  />
-                                </th>
+                                <th className="px-6 py-3 w-12 text-center"></th>
                                 <th className="text-left px-6 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Tenant</th>
                                 <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Property</th>
                                 <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Due Date</th>
