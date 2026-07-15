@@ -468,150 +468,91 @@ export function InvoiceManagement() {
                       );
                     }
 
-                    return viewMode === 'grid' ? (
-                      <div className="grid gap-4">
-                      {filteredInvoices.map((inv, idx) => (
-                      <motion.div 
-                        key={idx}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className="bg-white/70 backdrop-blur-xl border border-white/60 rounded-[32px] p-5 sm:p-6 shadow-[0_8px_32px_rgba(59,34,181,0.03)] hover:shadow-[0_16px_48px_rgba(59,34,181,0.08)] hover:border-primary/20 transition-all duration-300 hover:-translate-y-1 group flex flex-col md:flex-row justify-between items-start md:items-center gap-5 min-w-0"
-                      >
-                        <div className="flex items-start sm:items-center gap-3 sm:gap-5 w-full min-w-0">
-                          <Checkbox 
-                            checked={selectedInvoices.includes(inv.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedInvoices([...selectedInvoices, inv.id]);
-                              } else {
-                                setSelectedInvoices(selectedInvoices.filter(id => id !== inv.id));
-                              }
-                            }}
-                            sx={{
-                              color: 'rgba(59,34,181,0.2)',
-                              '&.Mui-checked': { color: 'primary.main' },
-                              padding: { xs: 0.5, sm: 1 }
-                            }}
-                          />
-                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[20px] bg-gradient-to-br from-[#f8f9fc] to-white flex items-center justify-center shrink-0 border border-black/5 shadow-inner group-hover:scale-105 transition-transform duration-300">
-                            <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <Typography sx={{ fontWeight: 900, fontSize: { xs: '1rem', sm: '1.125rem' }, color: '#1c1c28', mb: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inv.tenantName}</Typography>
-                            <Typography variant="body2" sx={{ color: '#4a4a5e', fontWeight: 500, mb: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inv.propertyName}</Typography>
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#4a4a5e] bg-black/5 px-2 py-1 rounded-full whitespace-nowrap">
-                                Due: {new Date(inv.dueDate).toLocaleDateString('en-GB')}
-                              </span>
-                              <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${inv.status === 'Sent' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-                                {inv.status === 'Sent' ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                                {inv.status || 'Draft'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between w-full md:w-auto gap-4 sm:gap-6 border-t md:border-t-0 border-outline-variant/30 pt-4 md:pt-0 mt-2 md:mt-0">
-                          <div className="text-right">
-                            <div className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Total Amount</div>
-                            <Typography sx={{ fontWeight: 900, fontSize: '1.75rem', fontFamily: 'Space Grotesk', color: '#1c1c28', lineHeight: 1 }}>${inv.totalAmount}</Typography>
-                          </div>
-                          <div className="flex gap-2">
-                            <IconButton 
-                              onClick={() => handleSendReminder(inv.id)}
-                              sx={{ bgcolor: 'rgba(59,130,246,0.05)', color: '#3b82f6', '&:hover': { bgcolor: '#3b82f6', color: 'white' }, transition: 'all 0.3s' }}
-                              title="Send Email to Tenant"
-                            >
-                              <Mail className="w-5 h-5" />
-                            </IconButton>
-                            <IconButton 
-                              onClick={() => setDeleteConfirm({ isOpen: true, id: inv.id })}
-                              sx={{ bgcolor: 'rgba(239,68,68,0.05)', color: 'error.main', '&:hover': { bgcolor: 'error.main', color: 'white' }, transition: 'all 0.3s' }}
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </IconButton>
-                            <IconButton 
-                              onClick={() => {
-                                setSelectedInvoice(inv);
-                                setShowGenerator(true);
-                              }}
-                              sx={{ bgcolor: 'rgba(59,34,181,0.05)', color: 'primary.main', '&:hover': { bgcolor: 'primary.main', color: 'white' }, transition: 'all 0.3s' }}
-                            >
-                              <ChevronRight className="w-6 h-6" />
-                            </IconButton>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                    </div>
-                  ) : (
-                    <div className="bg-white/80 backdrop-blur-2xl border border-white/50 rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgba(59,34,181,0.04)]">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="border-b border-black/5 bg-[#f8f9fc]/50">
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">#</th>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Tenant</th>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Property</th>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Due Date</th>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Amount</th>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e]">Status</th>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-wider text-[#4a4a5e] text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                              {filteredInvoices.map((inv, index) => (
-                              <tr key={inv.id} className={`border-b border-black/5 transition-colors group ${index % 2 === 0 ? 'bg-transparent hover:bg-[#f8f9fc]/50' : 'bg-[#f8f9fc]/30 hover:bg-[#f8f9fc]/80'}`}>
-                                <td className="px-6 py-4 text-[11px] font-black text-[#4a4a5e]">#{index + 1}</td>
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#f8f9fc] to-white flex items-center justify-center border border-black/5 shrink-0">
-                                      <FileText className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <span className="font-black text-sm text-[#1c1c28]">{inv.tenantName}</span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="text-sm font-medium text-[#4a4a5e]">{inv.propertyName}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="text-sm font-medium text-[#1c1c28]">{new Date(inv.dueDate).toLocaleDateString('en-GB')}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="text-base font-black text-[#1c1c28]">${inv.totalAmount}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 ${(inv.status || 'Draft') === 'Sent' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : (inv.status || 'Draft') === 'Overdue' ? 'bg-red-50 text-red-600 border border-red-200' : (inv.status || 'Draft') === 'Paid' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-                                    {inv.status || 'Draft'}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <button
-                                      onClick={() => handleSendReminder(inv.id)}
-                                      className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors border border-blue-100"
-                                      title="Send Email"
-                                    >
-                                      <Mail className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => { setSelectedInvoice(inv); setShowGenerator(true); }}
-                                      className="p-2 text-primary hover:bg-primary/5 rounded-xl transition-colors border border-primary/10"
-                                      title="View Invoice"
-                                    >
-                                      <ChevronRight className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => setDeleteConfirm({ isOpen: true, id: inv.id })}
-                                      className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
-                                      title="Delete"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </td>
+                    return (
+                      <div className="bg-white rounded-[24px] border border-outline-variant/30 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[700px]">
+                            <thead>
+                              <tr className="border-b border-outline-variant/20">
+                                <th className="text-left px-6 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Tenant</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Property</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Due Date</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Amount</th>
+                                <th className="text-left px-4 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Status</th>
+                                <th className="text-right px-6 py-3 text-[11px] font-black text-on-surface-variant uppercase tracking-wider">Actions</th>
                               </tr>
-                            ))}
+                            </thead>
+                            <tbody className="divide-y divide-outline-variant/10">
+                              {filteredInvoices.map((inv) => {
+                                const initials = (inv.tenantName || '?').charAt(0).toUpperCase();
+                                const statusStyle = (inv.status || 'Draft') === 'Sent'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : (inv.status || 'Draft') === 'Overdue'
+                                  ? 'bg-red-50 text-red-700 border-red-200'
+                                  : (inv.status || 'Draft') === 'Paid'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200';
+                                return (
+                                  <tr key={inv.id} className="hover:bg-surface-container-lowest/50 transition-colors group">
+                                    {/* Tenant */}
+                                    <td className="px-6 py-3.5">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm shrink-0 border border-primary/20">
+                                          {initials}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <p className="font-bold text-on-surface text-sm truncate">{inv.tenantName || '—'}</p>
+                                          <p className="text-xs text-on-surface-variant truncate">{inv.invoice_number || ''}</p>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    {/* Property */}
+                                    <td className="px-4 py-3.5">
+                                      <span className="text-sm font-medium text-on-surface-variant truncate">{inv.propertyName || '—'}</span>
+                                    </td>
+                                    {/* Due Date */}
+                                    <td className="px-4 py-3.5">
+                                      <span className="text-sm font-medium text-on-surface">{new Date(inv.dueDate).toLocaleDateString('en-GB')}</span>
+                                    </td>
+                                    {/* Amount */}
+                                    <td className="px-4 py-3.5">
+                                      <span className="text-sm font-black text-on-surface">${inv.totalAmount}</span>
+                                    </td>
+                                    {/* Status */}
+                                    <td className="px-4 py-3.5">
+                                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${statusStyle}`}>
+                                        {inv.status || 'Draft'}
+                                      </span>
+                                    </td>
+                                    {/* Actions */}
+                                    <td className="px-6 py-3.5 text-right">
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        <button
+                                          onClick={() => handleSendReminder(inv.id)}
+                                          className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-colors border border-blue-100"
+                                          title="Send Email"
+                                        >
+                                          <Mail className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => { setSelectedInvoice(inv); setShowGenerator(true); }}
+                                          className="p-2 text-primary hover:bg-primary/5 rounded-xl transition-colors border border-primary/10"
+                                          title="View Invoice"
+                                        >
+                                          <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => setDeleteConfirm({ isOpen: true, id: inv.id })}
+                                          className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-red-100"
+                                          title="Delete"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
