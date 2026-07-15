@@ -31,6 +31,7 @@ export function InvoiceManagement() {
   const [propertyFilter, setPropertyFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Automation manual trigger states
   const [runningEngine, setRunningEngine] = useState<'blueprints' | 'leases' | null>(null);
@@ -405,97 +406,112 @@ export function InvoiceManagement() {
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
-                    {/* Basic visual filters mock */}
-                    <div className="flex items-center gap-2 text-sm font-bold bg-white/60 rounded-full px-4 py-2 border border-white">
-                      <Filter className="w-4 h-4 text-primary" /> Filter by:
+                  {/* Search and Filters panel */}
+                  <div className="flex flex-col md:flex-row gap-4 p-4 bg-surface-container-lowest backdrop-blur-xl rounded-[24px] border border-outline-variant/50 shadow-sm mb-6">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-on-surface-variant" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="Search invoices by tenant, property, or invoice number..."
+                        className="w-full bg-surface border border-outline-variant/50 rounded-xl pl-12 pr-4 py-3.5 text-sm font-semibold text-on-surface placeholder-on-surface-variant/70 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      />
                     </div>
-                    <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200 }}>
-                      <Select
-                        value={propertyFilter}
-                        onChange={(e) => setPropertyFilter(e.target.value)}
-                        displayEmpty
-                        sx={{
-                          bgcolor: 'rgba(255, 255, 255, 0.6)',
-                          borderRadius: '9999px',
-                          border: '1px solid white',
-                          boxShadow: 'none',
-                          '.MuiOutlinedInput-notchedOutline': { border: 0 },
-                          '&:hover .MuiOutlinedInput-notchedOutline': { border: 0 },
-                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 0 },
-                          fontWeight: 700,
-                          fontSize: '0.875rem',
-                          color: '#1c1c28',
-                          py: 0.5,
-                          pl: 1
-                        }}
-                        MenuProps={{
-                          slotProps: {
-                            paper: {
-                              sx: {
-                                borderRadius: '16px',
-                                boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
-                                mt: 1,
-                                border: '1px solid rgba(255,255,255,0.6)',
-                                backdropFilter: 'blur(16px)'
-                              }
-                            }
-                          }
-                        }}
-                      >
-                        <MenuItem value="all" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>All Properties</MenuItem>
-                        {properties.map(p => <MenuItem key={p.id} value={p.id} sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.address}</MenuItem>)}
-                      </Select>
-                    </FormControl>
 
-                    <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200 }}>
-                      <Select
-                        value={propertyFilter}
-                        onChange={(e) => setPropertyFilter(e.target.value)}
-                        displayEmpty
-                        sx={{
-                          bgcolor: 'rgba(255, 255, 255, 0.6)',
-                          borderRadius: '9999px',
-                          border: '1px solid white',
-                          boxShadow: 'none',
-                          '.MuiOutlinedInput-notchedOutline': { border: 0 },
-                          '&:hover .MuiOutlinedInput-notchedOutline': { border: 0 },
-                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 0 },
-                          fontWeight: 700,
-                          fontSize: '0.875rem',
-                          color: '#1c1c28',
-                          py: 0.5,
-                          pl: 1
-                        }}
-                        MenuProps={{
-                          slotProps: {
-                            paper: {
-                              sx: {
-                                borderRadius: '16px',
-                                boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
-                                mt: 1,
-                                border: '1px solid rgba(255,255,255,0.6)',
-                                backdropFilter: 'blur(16px)'
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Property Filter Dropdown */}
+                      <FormControl size="small" sx={{ minWidth: 160 }}>
+                        <Select
+                          value={propertyFilter}
+                          onChange={(e) => setPropertyFilter(e.target.value)}
+                          displayEmpty
+                          sx={{
+                            bgcolor: 'rgba(255, 255, 255, 0.6)',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            boxShadow: 'none',
+                            '.MuiOutlinedInput-notchedOutline': { border: 0 },
+                            '&:hover .MuiOutlinedInput-notchedOutline': { border: 0 },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 0 },
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            color: '#1c1c28',
+                            py: 1,
+                            pl: 1
+                          }}
+                          MenuProps={{
+                            slotProps: {
+                              paper: {
+                                sx: {
+                                  borderRadius: '16px',
+                                  boxShadow: '0 8px 32px rgba(59,34,181,0.08)',
+                                  mt: 1,
+                                  border: '1px solid rgba(255,255,255,0.6)',
+                                  backdropFilter: 'blur(16px)'
+                                }
                               }
                             }
-                          }
-                        }}
-                      >
-                        <MenuItem value="all" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>All Statuses</MenuItem>
-                        <MenuItem value="Draft" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Draft</MenuItem>
-                        <MenuItem value="Sent" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Sent</MenuItem>
-                        <MenuItem value="Overdue" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Overdue</MenuItem>
-                        <MenuItem value="Paid" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Paid</MenuItem>
-                      </Select>
-                    </FormControl>
+                          }}
+                        >
+                          <MenuItem value="all" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>All Properties</MenuItem>
+                          {properties.map(p => <MenuItem key={p.id} value={p.id} sx={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.address}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+
+                      <div className="flex gap-2">
+                        {['All', 'Draft', 'Sent', 'Overdue', 'Paid'].map((status) => (
+                          <button
+                            key={status}
+                            onClick={() => setStatusFilter(status === 'All' ? 'all' : status)}
+                            className={`px-5 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                              statusFilter.toLowerCase() === (status === 'All' ? 'all' : status).toLowerCase()
+                                ? 'bg-primary text-white border-primary font-extrabold shadow-sm'
+                                : 'bg-surface text-on-surface-variant border-outline-variant/50 hover:bg-surface-container'
+                            }`}
+                          >
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
-                  {viewMode === 'grid' ? (
-                    <div className="grid gap-4">
-                    {invoices
-                      .filter(inv => propertyFilter === 'all' || inv.propertyId === propertyFilter)
-                      .filter(inv => statusFilter === 'all' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase())
-                      .map((inv, idx) => (
+                  {(() => {
+                    const filteredInvoices = invoices.filter(inv => {
+                      const tenantName = (inv.tenantName || inv.tenant_name || '').toLowerCase();
+                      const propertyAddress = (inv.propertyName || inv.property_address || '').toLowerCase();
+                      const invoiceNumber = (inv.invoice_number || '').toLowerCase();
+                      const matchesSearch = tenantName.includes(searchQuery.toLowerCase()) ||
+                                            propertyAddress.includes(searchQuery.toLowerCase()) ||
+                                            invoiceNumber.includes(searchQuery.toLowerCase());
+                                            
+                      const matchesProperty = propertyFilter === 'all' || inv.propertyId === propertyFilter;
+                      const matchesStatus = statusFilter === 'all' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase();
+                      
+                      return matchesSearch && matchesProperty && matchesStatus;
+                    });
+
+                    if (filteredInvoices.length === 0) {
+                      return (
+                        <div className="bg-white/60 backdrop-blur-3xl border border-white/80 rounded-[40px] p-10 md:p-16 text-center shadow-[0_16px_40px_-12px_rgba(59,34,181,0.06)] relative overflow-hidden group">
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/5 rounded-full blur-[80px]" />
+                          <div className="relative z-10">
+                            <div className="w-16 h-16 rounded-[24px] bg-gradient-to-br from-white to-[#f8f9fc] flex items-center justify-center mx-auto mb-6 shadow-sm border border-white">
+                              <FileText className="w-8 h-8 text-primary" />
+                            </div>
+                            <Typography variant="h5" sx={{ fontWeight: 900, mb: 1, fontFamily: 'Space Grotesk', color: '#1c1c28' }}>No Invoices Found</Typography>
+                            <Typography sx={{ mb: 2, maxWidth: 450, mx: 'auto', color: '#4a4a5e', fontSize: '1rem', fontWeight: 500 }}>
+                              No records match your filters. Try clearing your search query or selecting a different status filter.
+                            </Typography>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return viewMode === 'grid' ? (
+                      <div className="grid gap-4">
+                      {filteredInvoices.map((inv, idx) => (
                       <motion.div 
                         key={idx}
                         initial={{ opacity: 0, y: 10 }}
@@ -585,10 +601,7 @@ export function InvoiceManagement() {
                             </tr>
                           </thead>
                           <tbody>
-                            {invoices
-                              .filter(inv => propertyFilter === 'all' || inv.propertyId === propertyFilter)
-                              .filter(inv => statusFilter === 'all' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase())
-                              .map((inv, index) => (
+                              {filteredInvoices.map((inv, index) => (
                               <tr key={inv.id} className={`border-b border-black/5 transition-colors group ${index % 2 === 0 ? 'bg-transparent hover:bg-[#f8f9fc]/50' : 'bg-[#f8f9fc]/30 hover:bg-[#f8f9fc]/80'}`}>
                                 <td className="px-6 py-4 text-[11px] font-black text-[#4a4a5e]">#{index + 1}</td>
                                 <td className="px-6 py-4">
@@ -640,11 +653,12 @@ export function InvoiceManagement() {
                                 </td>
                               </tr>
                             ))}
-                          </tbody>
-                        </table>
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               )}
             </motion.div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Building, User, Calendar, DollarSign, X, CheckCircle2, AlertTriangle, ArrowRight, ChevronDown, Eye, Trash2, Clock, UserPlus, Mail, Send, LayoutGrid, List, Settings } from 'lucide-react';
+import { FileText, Plus, Building, User, Calendar, DollarSign, X, CheckCircle2, AlertTriangle, ArrowRight, ChevronDown, Eye, Trash2, Clock, UserPlus, Mail, Send, LayoutGrid, List, Settings, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { DashboardLayout } from './DashboardLayout';
@@ -42,6 +42,8 @@ export function Leases() {
   const [canEditPropertyIds, setCanEditPropertyIds] = useState<string[]>([]);
   const [initialLeaseData, setInitialLeaseData] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   // Delete Lease State
   const [deletingLeaseId, setDeletingLeaseId] = useState<string | null>(null);
@@ -253,30 +255,86 @@ export function Leases() {
 
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div></div>
-      ) : (
-        <div className="grid gap-4">
-          {leases.length === 0 ? (
-            <div className="bg-white rounded-[32px] p-12 text-center border border-outline-variant/30 shadow-sm flex flex-col items-center">
-              <div className="w-20 h-20 bg-surface-container-low rounded-full flex items-center justify-center mb-4 border border-outline-variant/30">
-                <FileText className="w-10 h-10 text-slate-300" />
+      ) : (() => {
+        const filteredLeases = leases.filter(lease => {
+          const address = (lease.properties?.address || '').toLowerCase();
+          const suburb = (lease.properties?.suburb || '').toLowerCase();
+          const tenantNames = (lease.lease_tenants || []).map((lt: any) => `${lt.tenants?.first_name || ''} ${lt.tenants?.last_name || ''}`.toLowerCase()).join(' ');
+          
+          const matchesSearch = address.includes(searchQuery.toLowerCase()) || 
+                                suburb.includes(searchQuery.toLowerCase()) || 
+                                tenantNames.includes(searchQuery.toLowerCase());
+                                
+          if (statusFilter === 'All') return matchesSearch;
+          return matchesSearch && lease.status === statusFilter;
+        });
+
+        return (
+          <div className="grid gap-6">
+            {/* Search and Filters panel */}
+            {leases.length > 0 && (
+              <div className="flex flex-col sm:flex-row gap-4 p-4 bg-surface-container-lowest backdrop-blur-xl rounded-[24px] border border-outline-variant/50 shadow-sm">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-on-surface-variant" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search leases by address, suburb, or tenant name..."
+                    className="w-full bg-surface border border-outline-variant/50 rounded-xl pl-12 pr-4 py-3.5 text-sm font-semibold text-on-surface placeholder-on-surface-variant/70 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  {['All', 'Active', 'Pending', 'Expired'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={`px-5 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                        statusFilter === status 
+                          ? 'bg-primary text-on-primary border-primary font-extrabold' 
+                          : 'bg-surface text-on-surface-variant border-outline-variant/50 hover:bg-surface-container'
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-on-surface mb-2">No Leases Found</h3>
-              <p className="text-on-surface-variant max-w-sm mb-6">You don't have any leases recorded yet. Create one manually or wait for a tenant to sign a rental application.</p>
-              {properties.length > 0 && (
-                <button 
-                  onClick={() => setShowLeaseModal(true)}
-                  className="bg-primary text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors"
-                >
-                  Create First Lease
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-            {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {leases.map(lease => (
-                <div key={lease.id} className="bg-white border border-outline-variant/30 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col gap-4">
+            )}
+
+            {leases.length === 0 ? (
+              <div className="bg-white rounded-[32px] p-12 text-center border border-outline-variant/30 shadow-sm flex flex-col items-center">
+                <div className="w-20 h-20 bg-surface-container-low rounded-full flex items-center justify-center mb-4 border border-outline-variant/30">
+                  <FileText className="w-10 h-10 text-slate-300" />
+                </div>
+                <h3 className="text-xl font-bold text-on-surface mb-2">No Leases Found</h3>
+                <p className="text-on-surface-variant max-w-sm mb-6">You don't have any leases recorded yet. Create one manually or wait for a tenant to sign a rental application.</p>
+                {properties.length > 0 && (
+                  <button 
+                    onClick={() => setShowLeaseModal(true)}
+                    className="bg-primary text-white px-6 py-2.5 rounded-2xl font-bold hover:bg-primary/90 transition-colors"
+                  >
+                    Create First Lease
+                  </button>
+                )}
+              </div>
+            ) : filteredLeases.length === 0 ? (
+              <div className="bg-white rounded-[32px] py-24 px-6 text-center border border-outline-variant/30 shadow-sm flex flex-col items-center">
+                <div className="w-16 h-16 bg-surface border border-outline-variant/50 text-on-surface-variant rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FileText className="w-8 h-8 text-slate-300" />
+                </div>
+                <h3 className="text-xl font-black text-on-surface mb-2 tracking-tight">No leases found</h3>
+                <p className="text-on-surface-variant max-w-sm mx-auto font-medium">
+                  No records match your filters. Try clearing your search query or selecting a different status filter.
+                </p>
+              </div>
+            ) : (
+              <>
+              {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredLeases.map(lease => (
+                  <div key={lease.id} className="bg-white border border-outline-variant/30 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col gap-4">
                   {/* Header: Property & Status */}
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
@@ -434,7 +492,7 @@ export function Leases() {
                       </tr>
                     </thead>
                     <tbody>
-                      {leases.map((lease, index) => (
+                      {filteredLeases.map((lease, index) => (
                         <tr key={lease.id} className={`border-b border-black/5 transition-colors group ${index % 2 === 0 ? 'bg-transparent hover:bg-[#f8f9fc]/50' : 'bg-[#f8f9fc]/30 hover:bg-[#f8f9fc]/80'}`}>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-4">
@@ -545,8 +603,9 @@ export function Leases() {
             )}
             </>
           )}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* ── CREATE LEASE MODAL ── */}
       <LeaseManagerModal
