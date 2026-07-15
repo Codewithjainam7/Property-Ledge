@@ -88,6 +88,13 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
   const { user } = useAuth();
   const [state, setState] = useState<InvoiceState>(getInitialState(user, initialData));
   const [isSaving, setIsSaving] = useState(false);
+  const [isBulk, setIsBulk] = useState(false);
+  const [bulkStartMonth, setBulkStartMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [bulkMonthCount, setBulkMonthCount] = useState(12);
+  const [bulkDueDays, setBulkDueDays] = useState(7);
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
   const [mobileScale, setMobileScale] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -146,21 +153,25 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
       // fetch it directly from the actual tenants table or the accepted rental application!
       if (!prop.tenant_name || prop.tenant_name.trim() === 'Tenant' || prop.tenant_name.trim() === 'Unknown Tenant' || prop.tenant_name.trim() === 'Tenant Name') {
         try {
-          // 1. Try actual onboarded tenants first
-          const { data: tenant, error: tenantError } = await supabase
-            .from('tenants')
-            .select('first_name, last_name, email')
+          // 1. Try active lease first
+          const { data: lease } = await supabase
+            .from('leases')
+            .select('id, tenant_id, lease_tenants(tenants(first_name, last_name, email))')
             .eq('property_id', prop.id)
-            .limit(1)
+            .eq('status', 'Active')
             .maybeSingle();
 
-          if (tenant && !tenantError) {
-            setState(prev => ({ 
-              ...prev, 
-              tenantName: `${tenant.first_name} ${tenant.last_name}`.trim(),
-              tenantEmail: tenant.email || ''
-            }));
-            return;
+          if (lease && lease.lease_tenants) {
+            const lTenants = lease.lease_tenants as any;
+            const tenant = Array.isArray(lTenants) ? lTenants[0]?.tenants : lTenants?.tenants;
+            if (tenant) {
+              setState(prev => ({ 
+                ...prev, 
+                tenantName: `${tenant.first_name} ${tenant.last_name}`.trim(),
+                tenantEmail: tenant.email || ''
+              }));
+              return;
+            }
           }
 
           // 2. Fallback to accepted property enquiry
@@ -299,8 +310,105 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
     }
   });
 
+  const handleSaveBulk = async () => {
+    setIsSaving(true);
+    try {
+      // Resolve active lease for this property to get lease_id
+      let activeLeaseId = null;
+      if (state.propertyId) {
+        const { data: lease } = await supabase
+          .from('leases')
+          .select('id')
+          .eq('property_id', state.propertyId)
+          .eq('status', 'Active')
+          .maybeSingle();
+        
+        if (lease) activeLeaseId = lease.id;
+      }
+
+      const totalAmount = total; // computed total in frontend
+      
+      const addMonthsLocal = (dateStr: string, n: number): string => {
+        const [year, month] = dateStr.split('-').map(Number);
+        const d = new Date(year, month - 1 + n, 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      };
+
+      const toIsoDateLocal = (yearMonth: string, day = 1): string => {
+        const [year, month] = yearMonth.split('-').map(Number);
+        const d = new Date(year, month - 1, day);
+        return d.toISOString().split('T')[0];
+      };
+
+      const addDaysToDateLocal = (isoDate: string, days: number): string => {
+        const d = new Date(isoDate);
+        d.setDate(d.getDate() + days);
+        return d.toISOString().split('T')[0];
+      };
+
+      const propPrefix = state.propertyId ? state.propertyId.split('-')[0].toUpperCase() : 'CUST';
+
+      for (let i = 0; i < bulkMonthCount; i++) {
+        const monthStr = addMonthsLocal(bulkStartMonth, i);
+        const [yr, mo] = monthStr.split('-');
+        
+        const issueDateVal = toIsoDateLocal(monthStr, 1);
+        const dueDateVal = addDaysToDateLocal(issueDateVal, bulkDueDays);
+        const invoiceNumberVal = `INV-${propPrefix}-${mo}-${yr}`;
+
+        const monthLabel = new Date(parseInt(yr), parseInt(mo) - 1, 1).toLocaleString('en-AU', { month: 'long', year: 'numeric' });
+
+        const invoicePayload = {
+          user_id: user?.id,
+          property_id: state.propertyId,
+          lease_id: activeLeaseId,
+          invoice_number: invoiceNumberVal,
+          total_amount: totalAmount,
+          due_date: dueDateVal,
+          issue_date: issueDateVal,
+          property_address: state.tenantAddress || '',
+          tenant_name: state.tenantName,
+          tenant_email: state.tenantEmail,
+          notes: `${state.notes}\n\nRent payment for ${monthLabel}`,
+          billing_period_start: issueDateVal,
+          billing_period_end: dueDateVal,
+          status: 'Draft',
+          late_fee_applied: false
+        };
+
+        const { data: newInvoice, error: invError } = await supabase.from('invoices').insert(invoicePayload).select().single();
+        if (invError) throw invError;
+
+        if (newInvoice && state.propertyId) {
+          // Auto-sync with Payments ledger
+          await supabase.from('payments').insert({
+             property_id: state.propertyId,
+             lease_id: activeLeaseId,
+             invoice_id: newInvoice.id,
+             amount_due: totalAmount,
+             due_date: dueDateVal,
+             status: 'Pending',
+             payment_type: 'Rent'
+          });
+        }
+      }
+
+      alert(`Successfully generated ${bulkMonthCount} bulk invoices!`);
+      onClose();
+    } catch (e: any) {
+      console.error('Error saving bulk invoices:', e);
+      alert('Failed to save bulk invoices. Error: ' + (e?.message || 'Unknown'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleGenerateAndSave = () => {
-    handlePrint();
+    if (isBulk) {
+      handleSaveBulk();
+    } else {
+      handlePrint();
+    }
   };
 
   // Common Template Components to reduce repetition
@@ -376,7 +484,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
             className="hidden md:flex items-center gap-2 bg-primary text-on-primary rounded-2xl px-5 py-2 font-bold text-sm shadow-md hover:opacity-90 transition-all disabled:opacity-60"
           >
             <Download size={16} />
-            {isSaving ? 'Generating...' : 'Save PDF'}
+            {isSaving ? 'Generating...' : isBulk ? 'Generate Bulk' : 'Save PDF'}
           </button>
         </div>
       </div>
@@ -439,22 +547,72 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
               </Select>
             </FormControl>
 
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              {/* @ts-ignore */}
-              <TextField variant="outlined" label="Issue Date" type="date" size="small" fullWidth value={state.issueDate} onChange={(e) => updateState('issueDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
-              {/* @ts-ignore */}
-              <TextField variant="outlined" label="Due Date" type="date" size="small" fullWidth value={state.dueDate} onChange={(e) => updateState('dueDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, bgcolor: 'primary.50/10', border: '1px solid', borderColor: 'primary.100', borderRadius: '16px' }}>
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.900' }}>Generate in Bulk</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>Create sequential monthly invoices</Typography>
+              </Box>
+              <Checkbox
+                checked={isBulk}
+                onChange={(e) => setIsBulk(e.target.checked)}
+                sx={{ p: 0.5, '&.Mui-checked': { color: 'primary.main' } }}
+              />
             </Box>
-            
-            <TextField 
-              variant="outlined"
-              label="Invoice Number" 
-              size="small" 
-              fullWidth 
-              value={state.invoiceNumber} 
-              disabled
-              helperText="System Generated Automatically"
-            />
+
+            {isBulk ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+                <TextField
+                  variant="outlined"
+                  label="Start Month"
+                  type="month"
+                  size="small"
+                  fullWidth
+                  value={bulkStartMonth}
+                  onChange={(e) => setBulkStartMonth(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <TextField
+                    variant="outlined"
+                    label="Months Count"
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={bulkMonthCount}
+                    onChange={(e) => setBulkMonthCount(Math.min(24, Math.max(1, parseInt(e.target.value) || 1)))}
+                  />
+                  <TextField
+                    variant="outlined"
+                    label="Due in (days)"
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={bulkDueDays}
+                    onChange={(e) => setBulkDueDays(Math.min(60, Math.max(1, parseInt(e.target.value) || 7)))}
+                  />
+                </Box>
+              </Box>
+            ) : (
+              <>
+                <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                  {/* @ts-ignore */}
+                  <TextField variant="outlined" label="Issue Date" type="date" size="small" fullWidth value={state.issueDate} onChange={(e) => updateState('issueDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                  {/* @ts-ignore */}
+                  <TextField variant="outlined" label="Due Date" type="date" size="small" fullWidth value={state.dueDate} onChange={(e) => updateState('dueDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                </Box>
+                
+                <TextField 
+                  variant="outlined"
+                  label="Invoice Number" 
+                  size="small" 
+                  fullWidth 
+                  value={state.invoiceNumber} 
+                  disabled
+                  helperText="System Generated Automatically"
+                  sx={{ mb: 3 }}
+                />
+              </>
+            )}
           </Box>
 
           <Divider />
@@ -1227,7 +1385,7 @@ export function InvoiceGenerator({ onClose, properties = [], initialData }: { on
                 disabled={isSaving}
                 sx={{ py: 1.5, borderRadius: 2, fontWeight: 800, fontSize: '0.9rem' }}
               >
-                {isSaving ? 'Generating PDF...' : 'Save as PDF'}
+                {isSaving ? 'Generating...' : isBulk ? 'Generate Bulk Invoices' : 'Save as PDF'}
               </Button>
             </div>
           </div>

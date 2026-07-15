@@ -33,6 +33,9 @@ interface BulkConfig {
   amountPerMonth: number | '';
   description: string;
   dueDays: number | '';
+  tenantName: string;
+  tenantEmail: string;
+  propertyAddress: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -76,24 +79,58 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
     amountPerMonth: 0,
     description: 'Rent Payment',
     dueDays: 7,
+    tenantName: '',
+    tenantEmail: '',
+    propertyAddress: '',
   });
 
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' });
   const [error, setError] = useState<string | null>(null);
   const [createdCount, setCreatedCount] = useState(0);
 
-  // Auto-fill amount when property changes
+  // Auto-fill details when property changes
   useEffect(() => {
     if (!config.propertyId) return;
     const prop = properties.find(p => p.id === config.propertyId);
-    if (prop?.rent_amount) {
-      setConfig(prev => ({
-        ...prev,
-        amountPerMonth: Number(prop.rent_amount),
-        description: `Rent Payment — ${prop.address}`,
-      }));
-    }
-  }, [config.propertyId]);
+    
+    // Set basic info first
+    setConfig(prev => ({
+      ...prev,
+      amountPerMonth: prop?.rent_amount ? Number(prop.rent_amount) : 0,
+      description: prop?.address ? `Rent Payment — ${prop.address}` : 'Rent Payment',
+      propertyAddress: prop?.address || '',
+      tenantName: prop?.tenant_name || '',
+      tenantEmail: prop?.tenant_email || '',
+    }));
+
+    // Fetch active lease details for precise pre-fill
+    const fetchLeaseDetails = async () => {
+      try {
+        const { data: lease } = await supabase
+          .from('leases')
+          .select('id, tenant_id, lease_tenants(tenants(first_name, last_name, email))')
+          .eq('property_id', config.propertyId)
+          .eq('status', 'Active')
+          .maybeSingle();
+
+        if (lease) {
+          const lTenants = lease.lease_tenants as any;
+          const tenant = Array.isArray(lTenants) ? lTenants[0]?.tenants : lTenants?.tenants;
+          if (tenant) {
+            setConfig(prev => ({
+              ...prev,
+              tenantName: `${tenant.first_name} ${tenant.last_name}`.trim(),
+              tenantEmail: tenant.email || prev.tenantEmail,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching lease details:", err);
+      }
+    };
+
+    fetchLeaseDetails();
+  }, [config.propertyId, properties]);
 
   // Preview: last month of the batch
   const endMonth = addMonths(config.startMonth, typeof config.monthCount === 'number' ? Math.max(1, config.monthCount) - 1 : 0);
@@ -105,7 +142,8 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
     typeof config.monthCount === 'number' && config.monthCount >= 1 &&
     typeof config.amountPerMonth === 'number' && config.amountPerMonth > 0 &&
     typeof config.dueDays === 'number' && config.dueDays >= 1 &&
-    config.startMonth;
+    config.startMonth &&
+    config.tenantName.trim().length > 0;
 
   // ─── Bulk Generate Logic ───────────────────────────────────────────────────
   const handleGenerate = async () => {
@@ -115,49 +153,17 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
     setProgress({ current: 0, total: config.monthCount as number, label: 'Preparing...' });
 
     try {
-      const prop = properties.find(p => p.id === config.propertyId);
-
-      // Fetch active lease for this property
+      // Fetch active lease for this property to get lease_id
       const { data: lease } = await supabase
         .from('leases')
-        .select('id, tenant_id')
+        .select('id')
         .eq('property_id', config.propertyId)
         .eq('status', 'Active')
         .maybeSingle();
 
-      // Fetch tenant details
-      let tenantName = prop?.tenant_name || '';
-      let tenantEmail = prop?.tenant_email || '';
-
-      if (lease?.tenant_id) {
-        const { data: tenant } = await supabase
-          .from('tenants')
-          .select('first_name, last_name, email')
-          .eq('id', lease.tenant_id)
-          .maybeSingle();
-        if (tenant) {
-          tenantName = `${tenant.first_name} ${tenant.last_name}`.trim();
-          tenantEmail = tenant.email || '';
-        }
-      }
-
-      if (!tenantName || tenantName.trim() === 'Tenant' || tenantName.trim() === 'Unknown Tenant' || tenantName.trim() === 'Tenant Name') {
-        const { data: enq } = await supabase
-          .from('property_enquiries')
-          .select('first_name, last_name, email')
-          .eq('property_id', config.propertyId)
-          .eq('status', 'Accepted')
-          .limit(1)
-          .maybeSingle();
-        if (enq) {
-          tenantName = `${enq.first_name} ${enq.last_name}`.trim();
-          tenantEmail = enq.email || '';
-        }
-      }
-
-      if (!tenantName) {
-        tenantName = 'Tenant';
-      }
+      const tenantName = config.tenantName || 'Tenant';
+      const tenantEmail = config.tenantEmail || '';
+      const propertyAddress = config.propertyAddress || '';
 
       let successCount = 0;
 
@@ -184,7 +190,7 @@ export function BulkInvoiceModal({ onClose, onOpenSingle, properties, onSuccess 
           issue_date: issueDate,
           due_date: dueDate,
           status: 'Draft',
-          property_address: prop?.address || '',
+          property_address: propertyAddress,
           tenant_name: tenantName,
           tenant_email: tenantEmail,
           notes: `${config.description} — ${label}`,
