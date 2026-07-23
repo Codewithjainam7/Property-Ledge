@@ -19,6 +19,8 @@
     "@supabase/supabase-js": "^2.107.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "ag-grid-community": "^36.0.1",
+    "ag-grid-react": "^36.0.1",
     "dom-to-image-more": "^3.7.2",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",

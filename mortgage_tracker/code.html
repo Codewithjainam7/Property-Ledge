@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bank Interest &amp; Fees - Property Ledge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#43474a",
+                        "surface-bright": "#fbf9f9",
+                        "surface-container-low": "#f5f3f3",
+                        "inverse-surface": "#303031",
+                        "surface-container": "#efedee",
+                        "primary-container": "#22333b",
+                        "background": "#fbf9f9",
+                        "surface-dim": "#dbd9da",
+                        "tertiary-container": "#412c1d",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#dcc2ab",
+                        "on-tertiary-fixed-variant": "#594231",
+                        "on-background": "#1b1c1c",
+                        "on-primary-fixed-variant": "#384952",
+                        "primary-fixed": "#d3e5f0",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#e9e8e8",
+                        "primary-fixed-dim": "#b7c9d3",
+                        "inverse-primary": "#b7c9d3",
+                        "surface-variant": "#e4e2e2",
+                        "surface-container-highest": "#e4e2e2",
+                        "on-secondary-fixed-variant": "#554332",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#29170a",
+                        "outline": "#73787b",
+                        "on-surface": "#1b1c1c",
+                        "tertiary-fixed-dim": "#e2c0aa",
+                        "secondary-fixed": "#f9dec6",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-container": "#b1927e",
+                        "secondary": "#6e5b48",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-tint": "#50616a",
+                        "on-primary-fixed": "#0c1e25",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#f9dec6",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#899ba5",
+                        "on-secondary-container": "#75614e",
+                        "primary": "#0c1e26",
+                        "on-secondary": "#ffffff",
+                        "surface": "#fbf9f9",
+                        "outline-variant": "#c3c7ca",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed": "#26190a",
+                        "inverse-on-surface": "#f2f0f0",
+                        "tertiary": "#2a180a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "margin-desktop": "48px",
+                        "margin-mobile": "16px",
+                        "unit": "8px",
+                        "container-max-width": "1440px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Space Grotesk"],
+                        "body-sm": ["Outfit"],
+                        "headline-lg-mobile": ["Space Grotesk"],
+                        "display-lg": ["Space Grotesk"],
+                        "label-md": ["Outfit"],
+                        "headline-lg": ["Space Grotesk"],
+                        "body-lg": ["Outfit"],
+                        "body-md": ["Outfit"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #f2f4f3; } /* White Smoke custom mapping to inverse-on-surface close enough */
+    </style>
+</head>
+<body class="bg-inverse-on-surface font-body-md text-body-md text-on-background flex antialiased min-h-screen">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-surface-container-low text-primary dark:text-primary-fixed font-body-md text-body-md h-screen w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline flex flex-col py-unit px-4 z-20">
+<div class="mb-8 mt-4 flex flex-col items-start px-4">
+<span class="material-symbols-outlined text-[32px] mb-2" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Property Ledge</h1>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Enterprise Management</span>
+</div>
+<button class="bg-primary text-on-primary py-[12px] px-[24px] rounded hover:bg-inverse-surface transition-colors mb-8 flex justify-center items-center gap-2 font-label-md text-label-md uppercase tracking-wider mx-2">
+<span class="material-symbols-outlined text-[18px]">add</span> Add New Entry
+        </button>
+<ul class="flex-1 space-y-2">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">payments</span>
+                    Rent Ledger
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+                    Expense Tracker
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded bg-surface-container-highest dark:bg-primary-container text-primary dark:text-on-primary-container border-r-4 border-primary transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+                    Mortgage Tracker
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                    Financial Reports
+                </a>
+</li>
+</ul>
+<ul class="mt-auto space-y-2 pb-4">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">help</span>
+                    Help Center
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">logout</span>
+                    Sign Out
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="ml-64 flex-1 flex flex-col w-full min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-container-low text-primary dark:text-primary-fixed font-body-md text-body-md w-full h-16 border-b border-outline-variant dark:border-outline flex justify-between items-center px-margin-desktop sticky top-0 z-10">
+<div class="flex-1"></div> <!-- Spacer since search is normally on left but skipped here to focus on breadcrumb in content -->
+<div class="flex items-center gap-6">
+<button class="font-label-md text-label-md text-on-surface-variant border border-outline-variant rounded py-2 px-4 hover:bg-surface-container-high transition-colors uppercase tracking-widest">
+                    Property Selector
+                </button>
+<div class="flex gap-4 items-center">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">settings</span>
+<div class="w-8 h-8 rounded-full bg-surface-dim ml-2 overflow-hidden border border-outline-variant cursor-pointer">
+<img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcjXFzUwWJ9UBJQnTXy1fRvSiHMbEYkwDlWttRHIolY9DUhbzB7i5Zxv2cRX5GY8MtidtNjdQS2dEHZDo2Uq8cKqjjQkGEfgkXfn83kkd62IlLX8PX_Q61C2LNEcTeahxz5mYEdbm9bxSMYSRuIipRsD3F_7UcHf3ImL5FKd5rZb91-_0fsFJ27Ee6OgLvwyjtsXV9CPdt9-fQz9TE9dC9fJBEaySJRRfdi7gjXV3xzDq3JDPazxcwlVG3cevAZ6uW4eIjMpm0zc08"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<main class="flex-1 p-margin-desktop max-w-container-max-width mx-auto w-full flex flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-col gap-2">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Accounting &gt; Bank Interest &amp; Fees</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Bank Interest &amp; Fees</h2>
+</div>
+<!-- Top Section: Horizontal Entry Form -->
+<div class="bg-primary-container text-surface-container-lowest p-gutter rounded-xl shadow-none flex flex-wrap lg:flex-nowrap gap-gutter items-end">
+<div class="flex-1 min-w-[200px]">
+<label class="block font-label-md text-label-md uppercase tracking-wider text-surface-tint mb-2">Statement Date</label>
+<input class="w-full bg-transparent border-0 border-b border-surface-tint focus:border-surface-container-lowest focus:ring-0 text-surface-container-lowest font-body-md py-2 px-0 transition-colors" type="date"/>
+</div>
+<div class="flex-1 min-w-[200px]">
+<label class="block font-label-md text-label-md uppercase tracking-wider text-surface-tint mb-2">Interest Charged</label>
+<div class="relative">
+<span class="absolute left-0 top-2 text-surface-tint">$</span>
+<input class="w-full bg-transparent border-0 border-b border-surface-tint focus:border-surface-container-lowest focus:ring-0 text-surface-container-lowest font-body-md py-2 pl-6 pr-0 transition-colors" placeholder="0.00" type="number"/>
+</div>
+</div>
+<div class="flex-1 min-w-[200px]">
+<label class="block font-label-md text-label-md uppercase tracking-wider text-surface-tint mb-2">Bank Fees</label>
+<div class="relative">
+<span class="absolute left-0 top-2 text-surface-tint">$</span>
+<input class="w-full bg-transparent border-0 border-b border-surface-tint focus:border-surface-container-lowest focus:ring-0 text-surface-container-lowest font-body-md py-2 pl-6 pr-0 transition-colors" placeholder="0.00" type="number"/>
+</div>
+</div>
+<div class="mt-4 lg:mt-0">
+<button class="bg-surface-container-lowest text-primary-container hover:bg-surface-container-high transition-colors font-label-md text-label-md uppercase py-[12px] px-[24px] rounded whitespace-nowrap font-bold tracking-widest">
+                        Save Record
+                    </button>
+</div>
+</div>
+<!-- Main Content: Historical Ledger Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-bright">
+<th class="font-label-md text-label-md uppercase text-on-surface-variant p-6 font-semibold">Date</th>
+<th class="font-label-md text-label-md uppercase text-on-surface-variant p-6 font-semibold">Description</th>
+<th class="font-label-md text-label-md uppercase text-on-surface-variant p-6 font-semibold text-right">Interest</th>
+<th class="font-label-md text-label-md uppercase text-on-surface-variant p-6 font-semibold text-right">Fees</th>
+<th class="font-label-md text-label-md uppercase text-on-surface-variant p-6 font-semibold text-center">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-on-surface divide-y divide-surface-variant">
+<tr class="hover:bg-surface-container-low transition-colors h-16">
+<td class="p-6">Oct 31, 2023</td>
+<td class="p-6">Mortgage Interest - Loan #8849</td>
+<td class="p-6 text-right font-medium">$1,245.00</td>
+<td class="p-6 text-right text-on-surface-variant">$0.00</td>
+<td class="p-6 text-center">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-[#d3e5f0] text-[#0c1e26] font-label-md text-label-md uppercase tracking-wider">Logged</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-16">
+<td class="p-6">Sep 30, 2023</td>
+<td class="p-6">Mortgage Interest - Loan #8849</td>
+<td class="p-6 text-right font-medium">$1,248.50</td>
+<td class="p-6 text-right text-on-surface-variant">$25.00</td>
+<td class="p-6 text-center">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-[#d3e5f0] text-[#0c1e26] font-label-md text-label-md uppercase tracking-wider">Logged</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-16">
+<td class="p-6">Aug 31, 2023</td>
+<td class="p-6">Mortgage Interest - Loan #8849</td>
+<td class="p-6 text-right font-medium">$1,252.00</td>
+<td class="p-6 text-right text-on-surface-variant">$0.00</td>
+<td class="p-6 text-center">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-[#d3e5f0] text-[#0c1e26] font-label-md text-label-md uppercase tracking-wider">Logged</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Total Summary Card -->
+<div class="flex justify-end mt-4">
+<div class="bg-secondary-fixed-dim text-on-secondary-fixed p-8 rounded-lg min-w-[400px] border border-[#c2b0a0]">
+<span class="font-label-md text-label-md uppercase tracking-widest block mb-2 opacity-80">YTD Accumulation</span>
+<h3 class="font-headline-lg text-headline-lg font-bold">Total Deductible Interest (YTD): <br/> $12,450.00</h3>
+</div>
+</div>
+</main>
+</div>
+</body></html>
