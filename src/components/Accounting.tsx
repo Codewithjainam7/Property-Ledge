@@ -367,11 +367,11 @@ export function Accounting() {
             ACCOUNTING WORKSPACE
         ════════════════════════════════════════════════════════ */}
         {(selectedProperty && selectedLease) ? (
-          <div className="flex flex-col h-full overflow-hidden">
+          <div className="flex flex-col h-full overflow-hidden bg-white border border-[#e6e8e7] rounded-xl shadow-sm mb-3">
 
             {/* ── Toolbar ── */}
-            <div className="shrink-0 pb-3">
-              <div className="bg-white border border-[#e6e8e7] rounded-xl shadow-sm overflow-hidden">
+            <div className="shrink-0 border-b border-[#e6e8e7]">
+              <div className="bg-white overflow-hidden">
                 {/* Row 1: Filters */}
                 <div className="flex items-end gap-3 px-5 py-3 border-b border-[#e6e8e7] flex-wrap">
 
@@ -495,7 +495,7 @@ export function Accounting() {
                 </div>
 
                 {/* Row 2: Tabs + Density */}
-                <div className="flex items-center justify-between px-5 bg-[#fafbfa] rounded-b-xl">
+                <div className="flex items-center justify-between px-5 bg-[#fafbfa]">
                   <div className="flex overflow-x-auto gap-1">
                     {([
                       { key: 'payments', label: 'Payments', icon: <CreditCard className="w-3.5 h-3.5" /> },
@@ -533,7 +533,7 @@ export function Accounting() {
             </div>
 
 {/* ── Main Grid + Right Panel ── */}
-            <div className={`flex flex-1 min-h-0 bg-white border border-[#e6e8e7] rounded-xl shadow-sm overflow-hidden mb-3`}>
+            <div className={`flex flex-1 min-h-0 bg-white overflow-hidden`}>
 
               {/* Grid */}
               <div className={`flex-1 overflow-auto min-w-0 transition-all duration-200 ${panelRow ? 'lg:w-[calc(100%-380px)]' : 'w-full'}`}>
