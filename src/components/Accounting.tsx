@@ -64,6 +64,51 @@ const densityConfig: Record<Density, { rowPy: string; text: string; label: strin
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+function CustomDropdown({ value, options, onChange, icon, className = '' }: { value: string, options: {value: string, label: string}[], onChange: (val: string) => void, icon?: React.ReactNode, className?: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const selected = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className={`relative ${className}`} ref={ref}>
+      <button 
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-2 appearance-none bg-[#f8faf9] border border-[#e6e8e7] rounded-[8px] px-4 py-2 text-[13px] font-semibold text-[#22333b] hover:border-[#a9927d] transition-all"
+      >
+        <div className="flex items-center gap-2 overflow-hidden">
+          {icon && <span className="text-[#a9927d] shrink-0">{icon}</span>}
+          <span className="truncate">{selected?.label || 'Select...'}</span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-[#a9927d] shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 bg-white border border-[#e6e8e7] rounded-[8px] shadow-xl z-[100] min-w-full overflow-hidden p-1 max-h-64 overflow-y-auto">
+          {options.map(o => (
+            <button 
+              key={o.value}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className={`w-full text-left px-3 py-2.5 text-xs font-bold rounded-[4px] transition-colors flex items-center justify-between ${value === o.value ? 'bg-[#22333b] text-white' : 'text-[#22333b] hover:bg-[#f2f4f3]'}`}
+            >
+              <span className="truncate">{o.label}</span>
+              {value === o.value && <Check className="w-4 h-4 ml-2 shrink-0 text-white" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Accounting() {
   const { user } = useAuth();
 
@@ -367,58 +412,47 @@ export function Accounting() {
             ACCOUNTING WORKSPACE
         ════════════════════════════════════════════════════════ */}
         {(selectedProperty && selectedLease) ? (
-          <div className="flex flex-col h-full overflow-hidden bg-white border border-[#e6e8e7] rounded-xl shadow-sm mb-3">
+          <div className="flex flex-col h-full overflow-hidden bg-white border border-[#e6e8e7] rounded-md shadow-sm mb-3">
 
             {/* ── Toolbar ── */}
             <div className="shrink-0 border-b border-[#e6e8e7]">
-              <div className="bg-white overflow-hidden">
+              <div className="bg-white">
                 {/* Row 1: Filters */}
-                <div className="flex items-end gap-3 px-5 py-3 border-b border-[#e6e8e7] flex-wrap">
+                <div className="flex items-end gap-3 px-5 pt-5 pb-3 border-b border-[#e6e8e7] flex-wrap">
 
                   {/* Property Selector */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] font-bold text-[#a9927d] uppercase tracking-widest">Property</label>
-                    <div className="relative">
-                      <Building2 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a9927d] pointer-events-none z-10" />
-                      <select
-                        value={selectedProperty.id}
-                        onChange={e => {
-                          const p = properties.find(pr => pr.id === e.target.value);
-                          if (p) {
-                            const activeLease = leases.find(l => l.property_id === p.id && l.status === 'Active') || leases.find(l => l.property_id === p.id);
-                            if (activeLease) openDashboard(p, activeLease);
-                          }
-                        }}
-                        className="appearance-none bg-[#f8faf9] border border-[#e6e8e7] rounded-lg pl-8 pr-8 py-2 text-[13px] font-semibold text-[#22333b] focus:ring-2 focus:ring-[#22333b]/20 focus:border-[#22333b] outline-none cursor-pointer hover:border-[#a9927d] transition-all"
-                      >
-                        {properties.map(p => (
-                          <option key={p.id} value={p.id}>{p.address}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a9927d] pointer-events-none" />
-                    </div>
+                    <CustomDropdown
+                      value={selectedProperty.id}
+                      options={properties.map(p => ({ value: p.id, label: p.address }))}
+                      onChange={val => {
+                        const p = properties.find(pr => pr.id === val);
+                        if (p) {
+                          const activeLease = leases.find(l => l.property_id === p.id && l.status === 'Active') || leases.find(l => l.property_id === p.id);
+                          if (activeLease) openDashboard(p, activeLease);
+                        }
+                      }}
+                      icon={<Building2 className="w-3.5 h-3.5" />}
+                      className="w-[180px]"
+                    />
                   </div>
 
                   {/* Lease Selector */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] font-bold text-[#a9927d] uppercase tracking-widest">Lease</label>
-                    <div className="relative">
-                      <select
-                        value={selectedLease.id}
-                        onChange={e => {
-                          const l = leases.find(ls => ls.id === e.target.value);
-                          if (l) openDashboard(selectedProperty, l);
-                        }}
-                        className="appearance-none bg-[#f8faf9] border border-[#e6e8e7] rounded-lg pl-3 pr-8 py-2 text-[13px] font-semibold text-[#22333b] focus:ring-2 focus:ring-[#22333b]/20 focus:border-[#22333b] outline-none cursor-pointer hover:border-[#a9927d] transition-all"
-                      >
-                        {leases.filter(l => l.property_id === selectedProperty.id).map(l => (
-                          <option key={l.id} value={l.id}>
-                            {l.status} — {l.start_date} → {l.end_date || 'Ongoing'}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a9927d] pointer-events-none" />
-                    </div>
+                    <CustomDropdown
+                      value={selectedLease.id}
+                      options={leases.filter(l => l.property_id === selectedProperty.id).map(l => ({ 
+                        value: l.id, 
+                        label: `${l.status} — ${l.start_date} → ${l.end_date || 'Ongoing'}` 
+                      }))}
+                      onChange={val => {
+                        const l = leases.find(ls => ls.id === val);
+                        if (l) openDashboard(selectedProperty, l);
+                      }}
+                      className="w-[240px]"
+                    />
                   </div>
 
                   {/* Separator */}
@@ -427,35 +461,36 @@ export function Accounting() {
                   {/* Date Range */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] font-bold text-[#a9927d] uppercase tracking-widest">Period</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a9927d] pointer-events-none z-10" />
-                      <select
-                        value={dateRange}
-                        onChange={e => setDateRange(e.target.value)}
-                        className="appearance-none bg-[#f8faf9] border border-[#e6e8e7] rounded-lg pl-8 pr-8 py-2 text-[13px] font-semibold text-[#22333b] focus:ring-2 focus:ring-[#22333b]/20 focus:border-[#22333b] outline-none cursor-pointer hover:border-[#a9927d] transition-all"
-                      >
-                        {['All Time', 'This Month', 'Last Month', 'This Year', 'Last Year'].map(r => (
-                          <option key={r} value={r}>{r}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a9927d] pointer-events-none" />
-                    </div>
+                    <CustomDropdown
+                      value={dateRange}
+                      options={['All Time', 'This Month', 'Last Month', 'This Year', 'Last Year'].map(r => ({ value: r, label: r }))}
+                      onChange={val => setDateRange(val)}
+                      icon={<Calendar className="w-3.5 h-3.5" />}
+                      className="w-[140px]"
+                    />
                   </div>
 
                   {/* Status Filter */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] font-bold text-[#a9927d] uppercase tracking-widest">Status</label>
-                    <div className="relative">
-                      <select
-                        value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
-                        className="appearance-none bg-[#f8faf9] border border-[#e6e8e7] rounded-lg pl-3 pr-8 py-2 text-[13px] font-semibold text-[#22333b] focus:ring-2 focus:ring-[#22333b]/20 focus:border-[#22333b] outline-none cursor-pointer hover:border-[#a9927d] transition-all"
-                      >
-                        <option value="all">All Status</option>
-                        {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a9927d] pointer-events-none" />
-                    </div>
+                    <CustomDropdown
+                      value={statusFilter}
+                      options={[{ value: 'all', label: 'All Status' }, ...PAYMENT_STATUSES.map(s => ({ value: s, label: s }))]}
+                      onChange={val => setStatusFilter(val)}
+                      className="w-[130px]"
+                    />
+                  </div>
+
+                  {/* View/Density Filter */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-[#a9927d] uppercase tracking-widest">View</label>
+                    <CustomDropdown
+                      value={density}
+                      options={(Object.entries(densityConfig) as [Density, typeof densityConfig[Density]][]).map(([k, v]) => ({ value: k, label: `${v.label} View` }))}
+                      onChange={val => setDensity(val as Density)}
+                      icon={densityConfig[density].icon}
+                      className="w-[150px]"
+                    />
                   </div>
 
                   {/* Separator */}
@@ -494,7 +529,7 @@ export function Accounting() {
                   </div>
                 </div>
 
-                {/* Row 2: Tabs + Density */}
+                {/* Row 2: Tabs */}
                 <div className="flex items-center justify-between px-5 bg-[#fafbfa]">
                   <div className="flex overflow-x-auto gap-1">
                     {([
@@ -509,24 +544,6 @@ export function Accounting() {
                         {v.icon} {v.label}
                       </button>
                     ))}
-                  </div>
-                  <div className="flex items-center gap-2 relative" ref={densityRef}>
-                    <button onClick={() => setShowDensity(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 border border-[#e6e8e7] bg-white rounded-lg text-[11px] font-semibold text-[#22333b] hover:border-[#a9927d] transition-all">
-                      {densityConfig[density].icon}
-                      <span className="hidden sm:inline">{densityConfig[density].label}</span>
-                      <ChevronDown className="w-3 h-3 text-[#a9927d]" />
-                    </button>
-                    {showDensity && (
-                      <div className="absolute top-9 right-0 bg-white border border-[#e6e8e7] rounded-xl shadow-lg z-20 w-44 overflow-hidden p-1">
-                        {(Object.entries(densityConfig) as [Density, typeof densityConfig[Density]][]).map(([k, v]) => (
-                          <button key={k} onClick={() => { setDensity(k); setShowDensity(false); }}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-all rounded-lg ${density === k ? 'bg-[#22333b] text-white' : 'text-[#22333b] hover:bg-[#f2f4f3]'}`}>
-                            {v.icon} {v.label}
-                            {density === k && <Check className="w-3 h-3 ml-auto" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -936,7 +953,7 @@ export function Accounting() {
             )}
             
             {/* Row count footer */}
-            <div className="shrink-0 flex items-center justify-between px-4 py-2 text-[10px] text-[#a9927d] font-medium border border-[#e6e8e7] rounded-md bg-[#f8faf9] mb-3">
+            <div className="shrink-0 flex items-center justify-between px-5 py-2.5 text-[10px] text-[#a9927d] font-bold border-t border-[#e6e8e7] bg-[#f8faf9]">
               <span>
                 {view === 'payments' && `${filteredPayments.length} payments`}
                 {view === 'expenses' && `${filteredExpenses.length} expenses`}
