@@ -176,9 +176,10 @@ export function Accounting() {
       const lses = l || [];
       setProperties(props); setLeases(lses);
 
-      let initialProp = props[0] || null;
+      let initialProp = null;
       let initialLease = null;
 
+      // 1. Try loading from localStorage context
       const raw = localStorage.getItem(CONTEXT_KEY);
       if (raw) {
         try {
@@ -192,8 +193,21 @@ export function Accounting() {
         } catch { localStorage.removeItem(CONTEXT_KEY); }
       }
 
-      if (!initialLease && initialProp) {
-        initialLease = lses.find(x => x.property_id === initialProp.id && x.status === 'Active') || lses.find(x => x.property_id === initialProp.id) || null;
+      // 2. If nothing valid from localStorage, find the first property that has a lease
+      if (!initialProp || !initialLease) {
+        for (const pr of props) {
+          const foundL = lses.find(x => x.property_id === pr.id && x.status === 'Active') || lses.find(x => x.property_id === pr.id);
+          if (foundL) {
+            initialProp = pr;
+            initialLease = foundL;
+            break;
+          }
+        }
+      }
+
+      // 3. Fallback: if we still don't have a lease, just select the first property and null lease (we will show empty state)
+      if (!initialProp && props.length > 0) {
+        initialProp = props[0];
       }
 
       if (initialProp && initialLease) {
@@ -965,8 +979,30 @@ export function Accounting() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 min-h-[80vh] flex items-center justify-center">
-            {loading ? <Loader2 className="w-8 h-8 animate-spin text-[#a9927d]" /> : <p className="text-[#a9927d]">Loading workspace...</p>}
+          <div className="flex-1 min-h-[80vh] flex items-center justify-center p-6 bg-[#fbf9f9]">
+            {loading ? (
+              <Loader2 className="w-8 h-8 animate-spin text-[#a9927d]" />
+            ) : properties.length === 0 ? (
+              <div className="text-center max-w-md bg-white border border-[#e6e8e7] rounded-[8px] p-8 shadow-sm">
+                <Building2 className="w-12 h-12 text-[#a9927d] mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-[#22333b] mb-2 font-display">No Properties Found</h3>
+                <p className="text-sm text-[#5e503f] mb-6">You need to add a property to your account before you can track accounting and payments.</p>
+                <a href="/properties" className="inline-block bg-[#22333b] text-white px-6 py-2.5 rounded-[8px] text-sm font-bold hover:bg-[#111a1e] transition-colors">
+                  Go to Properties
+                </a>
+              </div>
+            ) : !selectedLease ? (
+              <div className="text-center max-w-md bg-white border border-[#e6e8e7] rounded-[8px] p-8 shadow-sm">
+                <FileText className="w-12 h-12 text-[#a9927d] mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-[#22333b] mb-2 font-display">No Leases Created</h3>
+                <p className="text-sm text-[#5e503f] mb-6">To generate a payment ledger and track income, your property must have an active lease.</p>
+                <a href="/leases" className="inline-block bg-[#22333b] text-white px-6 py-2.5 rounded-[8px] text-sm font-bold hover:bg-[#111a1e] transition-colors">
+                  Go to Leases
+                </a>
+              </div>
+            ) : (
+              <p className="text-[#a9927d] font-bold">Loading workspace...</p>
+            )}
           </div>
         )}
       </div>
