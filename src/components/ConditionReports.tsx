@@ -309,10 +309,10 @@ export function ConditionReports() {
         </header>
 
         {/* Stats Dashboard Grid */}
-        <div className="px-6 md:px-10 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="px-6 md:px-10 mb-8 flex overflow-x-auto snap-x snap-mandatory gap-4 pb-2 sm:grid sm:grid-cols-3 hide-scrollbar">
           <motion.div 
             whileHover={{ y: -2 }}
-            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            className="snap-start min-w-[240px] sm:min-w-0 bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
           >
             <div className="space-y-1">
               <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Total Reports</span>
@@ -325,7 +325,7 @@ export function ConditionReports() {
 
           <motion.div 
             whileHover={{ y: -2 }}
-            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            className="snap-start min-w-[240px] sm:min-w-0 bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
           >
             <div className="space-y-1">
               <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Draft Inspections</span>
@@ -338,7 +338,7 @@ export function ConditionReports() {
 
           <motion.div 
             whileHover={{ y: -2 }}
-            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            className="snap-start min-w-[240px] sm:min-w-0 bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
           >
             <div className="space-y-1">
               <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Completed & Locked</span>
