@@ -197,28 +197,32 @@ export function ConditionReports() {
         'Cleanliness', 'General Condition'
       ];
 
-      // 3. Save rooms and items checklist
-      for (const r of roomsToCreate) {
-        const { data: newRoom, error: roomErr } = await supabase
-          .from('inspection_rooms')
-          .insert(r)
-          .select()
-          .single();
+      // 3. Batch save all rooms in 1 query
+      const { data: newRooms, error: roomsErr } = await supabase
+        .from('inspection_rooms')
+        .insert(roomsToCreate)
+        .select();
 
-        if (roomErr) throw roomErr;
+      if (roomsErr) throw roomsErr;
 
-        const itemsToCreate = standardItems.map(name => ({
-          room_id: newRoom.id,
-          name,
-          rating: null
-        }));
+      // 4. Batch save all items checklists for all rooms in 1 query
+      const itemsToCreate: { room_id: string; name: string; rating: null }[] = [];
+      
+      newRooms.forEach(newRoom => {
+        standardItems.forEach(name => {
+          itemsToCreate.push({
+            room_id: newRoom.id,
+            name,
+            rating: null
+          });
+        });
+      });
 
-        const { error: itemsErr } = await supabase
-          .from('inspection_items')
-          .insert(itemsToCreate);
+      const { error: itemsErr } = await supabase
+        .from('inspection_items')
+        .insert(itemsToCreate);
 
-        if (itemsErr) throw itemsErr;
-      }
+      if (itemsErr) throw itemsErr;
 
       // Close modal and navigate to wizard
       setIsAddModalOpen(false);
