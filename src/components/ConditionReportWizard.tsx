@@ -246,6 +246,7 @@ export function ConditionReportWizard() {
       }));
 
       alert('Report finalized and locked successfully!');
+      navigate('/dashboard/condition-reports');
     } catch (err) {
       console.error('Failed finalizing report:', err);
     } finally {
