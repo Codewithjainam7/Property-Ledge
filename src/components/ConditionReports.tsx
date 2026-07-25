@@ -79,6 +79,7 @@ export function ConditionReports() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // New Report Form State
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
@@ -234,15 +235,21 @@ export function ConditionReports() {
     }
   };
 
-  const handleDeleteReport = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this report?')) return;
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDeleteReport = async () => {
+    if (!deleteConfirmId) return;
     try {
-      const { error } = await supabase.from('condition_reports').delete().eq('id', id);
+      const { error } = await supabase.from('condition_reports').delete().eq('id', deleteConfirmId);
       if (error) throw error;
-      setReports(prev => prev.filter(r => r.id !== id));
-    } catch (err) {
+      setReports(prev => prev.filter(r => r.id !== deleteConfirmId));
+      setDeleteConfirmId(null);
+    } catch (err: any) {
       console.error('Error deleting report:', err);
+      setAlertConfig({ title: 'Delete Error', message: err.message || JSON.stringify(err), type: 'error' });
     }
   };
 
@@ -329,7 +336,7 @@ export function ConditionReports() {
                         {r.status}
                       </span>
                       <button 
-                        onClick={(e) => handleDeleteReport(r.id, e)}
+                        onClick={(e) => handleDeleteClick(r.id, e)}
                         className="text-[#a9927d] hover:text-red-600 p-1 hover:bg-[#f2f4f3] rounded transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -527,6 +534,46 @@ export function ConditionReports() {
               >
                 Okay
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmId && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white border border-[#e6e8e7] rounded-[12px] shadow-2xl w-full max-w-sm overflow-hidden p-6 text-center space-y-4"
+            >
+              <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-red-50">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-[#22333b] font-display">Delete Report?</h3>
+                <p className="text-xs text-[#5e503f] leading-relaxed">Are you sure you want to delete this condition report? This action cannot be undone.</p>
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 py-2.5 bg-[#f2f4f3] text-[#5e503f] hover:bg-[#eaeceb] text-xs font-bold rounded-[8px] transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteReport}
+                  className="flex-1 bg-red-600 text-white py-2.5 rounded-[8px] text-xs font-bold hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

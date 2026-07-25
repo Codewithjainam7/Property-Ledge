@@ -310,21 +310,27 @@ export function ConditionReportWizard() {
     doc.text(report.inspection_date || "N/A", 60, 79);
     doc.text(report.inspector_name || "N/A", 60, 86);
 
-    let currentY = 100;
-
     // Loop Rooms
     rooms.forEach((room) => {
-      // Check space needed for title + table header + sample row
-      if (currentY > 230) {
-        doc.addPage();
-        currentY = 20;
-      }
+      // Start every room/place on a brand new page
+      doc.addPage();
+      let currentY = 20;
 
+      // Room Header Title Banner Bar
+      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.rect(15, currentY, 180, 9, 'F');
+      
+      // Vertical gold accent bar on the left
+      doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.rect(15, currentY, 3, 9, 'F');
+
+      // Title Text inside the banner
+      doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(room.name, 15, currentY);
-      currentY += 4;
+      doc.setFontSize(9);
+      doc.text(room.name.toUpperCase(), 22, currentY + 6);
+      
+      currentY += 15;
 
       // Table of items mapping single rating to Clean, Undamaged, Working columns
       const roomItems = items.filter(i => i.room_id === room.id);
