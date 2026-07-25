@@ -352,11 +352,24 @@ export function ConditionReportWizard() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       doc.text(room.name.toUpperCase(), 22, currentY + 6);
+
+      // Room checklist data matching
+      const roomItems = items.filter(i => i.room_id === room.id);
+      const roomDefects = defects.filter(d => d.room_id === room.id);
       
-      currentY += 15;
+      const totalCount = roomItems.length;
+      const cleanCount = roomItems.filter(i => i.rating === "Excellent" || i.rating === "Good").length;
+      const defectCount = roomDefects.length;
+
+      // Draw Room Metadata Subtitle
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(94, 80, 63); // Warm tan
+      doc.text(`${totalCount} Items Checked   |   Clean & Working: ${cleanCount}   |   Logged Issues: ${defectCount}`, 15, currentY + 14);
+      
+      currentY += 19;
 
       // Table of items mapping single rating to Clean, Undamaged, Working columns
-      const roomItems = items.filter(i => i.room_id === room.id);
       const tableData = roomItems.map(item => {
         let clean = "Yes";
         let undamaged = "Yes";
@@ -402,13 +415,26 @@ export function ConditionReportWizard() {
           4: { cellWidth: 'auto' }
         },
         margin: { left: 15, right: 15 },
+        didParseCell: (data) => {
+          if (data.section === 'body') {
+            const cellVal = data.cell.text[0];
+            if (cellVal === 'No') {
+              data.cell.styles.textColor = [190, 40, 40];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (cellVal === 'Yes') {
+              data.cell.styles.textColor = [30, 130, 70];
+            } else if (cellVal === 'Not Inspected') {
+              data.cell.styles.textColor = [160, 110, 40];
+              data.cell.styles.fontStyle = 'italic';
+            }
+          }
+        },
         didDrawPage: (data) => {
           currentY = data.cursor?.y ? data.cursor.y + 6 : currentY + 15;
         }
       });
 
       // Defect checklist log summary
-      const roomDefects = defects.filter(d => d.room_id === room.id);
       if (roomDefects.length > 0) {
         if (currentY > 260) {
           doc.addPage();

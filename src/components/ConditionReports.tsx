@@ -272,6 +272,10 @@ export function ConditionReports() {
     r.type?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalReports = reports.length;
+  const draftReports = reports.filter(r => r.status === 'Draft').length;
+  const completedReports = reports.filter(r => r.status === 'Completed').length;
+
   return (
     <DashboardLayout>
       <div className="relative overflow-hidden min-h-screen pb-20">
@@ -291,6 +295,48 @@ export function ConditionReports() {
             <Plus className="w-4 h-4" /> Start New Report
           </button>
         </header>
+
+        {/* Stats Dashboard Grid */}
+        <div className="px-6 md:px-10 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <motion.div 
+            whileHover={{ y: -2 }}
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+          >
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Total Reports</span>
+              <h2 className="text-2xl font-black text-[#22333b]">{totalReports}</h2>
+            </div>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#f8faf9] text-[#22333b]">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+          </motion.div>
+
+          <motion.div 
+            whileHover={{ y: -2 }}
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+          >
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Draft Inspections</span>
+              <h2 className="text-2xl font-black text-[#22333b]">{draftReports}</h2>
+            </div>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50 text-amber-600">
+              <Settings className="w-5 h-5" />
+            </div>
+          </motion.div>
+
+          <motion.div 
+            whileHover={{ y: -2 }}
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+          >
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Completed & Locked</span>
+              <h2 className="text-2xl font-black text-[#22333b]">{completedReports}</h2>
+            </div>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600">
+              <Check className="w-5 h-5" />
+            </div>
+          </motion.div>
+        </div>
 
         {/* Filters and List */}
         <div className="px-6 md:px-10">
