@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Check, X, Camera, AlertTriangle, ArrowLeft, Upload, FileText, CheckCircle2, Menu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Camera, AlertTriangle, ArrowLeft, Upload, FileText, CheckCircle2, Menu, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
@@ -47,6 +47,7 @@ export function ConditionReportWizard() {
   const [items, setItems] = useState<Item[]>([]);
   const [defects, setDefects] = useState<Defect[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' | 'info'; action?: () => void } | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -245,8 +246,12 @@ export function ConditionReportWizard() {
         completed_at: new Date().toISOString()
       }));
 
-      alert('Report finalized and locked successfully!');
-      navigate('/dashboard/condition-reports');
+      setAlertConfig({
+        title: 'Report Finalized',
+        message: 'The condition report has been finalized and locked successfully.',
+        type: 'success',
+        action: () => navigate('/dashboard/condition-reports')
+      });
     } catch (err) {
       console.error('Failed finalizing report:', err);
     } finally {
@@ -910,6 +915,42 @@ export function ConditionReportWizard() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Custom Alert Modal */}
+      <AnimatePresence>
+        {alertConfig && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white border border-[#e6e8e7] rounded-[12px] shadow-2xl w-full max-w-sm overflow-hidden p-6 text-center space-y-4"
+            >
+              <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-[#f8faf9]">
+                {alertConfig.type === 'success' && <Check className="w-6 h-6 text-emerald-600" />}
+                {alertConfig.type === 'error' && <X className="w-6 h-6 text-red-600" />}
+                {alertConfig.type === 'info' && <ShieldAlert className="w-6 h-6 text-[#a9927d]" />}
+              </div>
+              
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-[#22333b] font-display">{alertConfig.title}</h3>
+                <p className="text-xs text-[#5e503f] leading-relaxed">{alertConfig.message}</p>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  if (alertConfig.action) alertConfig.action();
+                  setAlertConfig(null);
+                }}
+                className="w-full bg-[#22333b] text-white py-2.5 rounded-[8px] text-xs font-bold hover:bg-[#111a1e] transition-colors cursor-pointer"
+              >
+                Okay
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

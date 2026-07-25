@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Plus, Building, Search, Home, Calendar, User, Eye, Trash2, ShieldAlert, ArrowLeft, ArrowRight, Settings, ChevronDown, Check } from 'lucide-react';
+import { ClipboardList, Plus, Building, Search, Home, Calendar, User, Eye, Trash2, ShieldAlert, ArrowLeft, ArrowRight, Settings, ChevronDown, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
@@ -78,6 +78,7 @@ export function ConditionReports() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // New Report Form State
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
@@ -118,7 +119,7 @@ export function ConditionReports() {
       setReports(data || []);
     } catch (err: any) {
       console.error('Error fetching reports:', err);
-      alert('Error fetching reports: ' + (err.message || err.details || JSON.stringify(err)));
+      setAlertConfig({ title: 'Database Fetch Error', message: err.message || err.details || JSON.stringify(err), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -229,7 +230,7 @@ export function ConditionReports() {
       navigate(`/dashboard/condition-report-wizard/${newReport.id}`);
     } catch (err: any) {
       console.error('Error creating condition report:', err);
-      alert('Error creating report: ' + (err.message || err.details || JSON.stringify(err)));
+      setAlertConfig({ title: 'Report Creation Error', message: err.message || err.details || JSON.stringify(err), type: 'error' });
     }
   };
 
@@ -497,6 +498,39 @@ export function ConditionReports() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Custom Alert Modal */}
+      <AnimatePresence>
+        {alertConfig && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white border border-[#e6e8e7] rounded-[12px] shadow-2xl w-full max-w-sm overflow-hidden p-6 text-center space-y-4"
+            >
+              <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-[#f8faf9]">
+                {alertConfig.type === 'success' && <Check className="w-6 h-6 text-emerald-600" />}
+                {alertConfig.type === 'error' && <X className="w-6 h-6 text-red-600" />}
+                {alertConfig.type === 'info' && <ShieldAlert className="w-6 h-6 text-[#a9927d]" />}
+              </div>
+              
+              <div className="space-y-1">
+                <h3 className="text-base font-black text-[#22333b] font-display">{alertConfig.title}</h3>
+                <p className="text-xs text-[#5e503f] leading-relaxed">{alertConfig.message}</p>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => setAlertConfig(null)}
+                className="w-full bg-[#22333b] text-white py-2.5 rounded-[8px] text-xs font-bold hover:bg-[#111a1e] transition-colors cursor-pointer"
+              >
+                Okay
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }
