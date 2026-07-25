@@ -246,9 +246,12 @@ export function ConditionReportWizard() {
         completed_at: new Date().toISOString()
       }));
 
+      // Immediately trigger PDF download on success
+      generatePDFReport();
+
       setAlertConfig({
         title: 'Report Finalized',
-        message: 'The condition report has been finalized and locked successfully.',
+        message: 'The condition report has been finalized and locked. Your PDF has been downloaded successfully.',
         type: 'success',
         action: () => navigate('/dashboard/condition-reports')
       });
