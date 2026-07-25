@@ -297,43 +297,43 @@ export function ConditionReports() {
         </header>
 
         {/* Stats Dashboard Grid */}
-        <div className="px-6 md:px-10 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="px-6 md:px-10 mb-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
           <motion.div 
-            whileHover={{ y: -2 }}
-            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            whileHover={{ y: -3, boxShadow: '0 12px 20px -8px rgba(34, 51, 59, 0.08)' }}
+            className="bg-gradient-to-br from-[#22333b]/[0.02] to-white border-y border-r border-[#e6e8e7] border-l-4 border-l-[#22333b] rounded-[10px] p-6 flex items-center justify-between shadow-sm transition-all"
           >
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Total Reports</span>
-              <h2 className="text-2xl font-black text-[#22333b]">{totalReports}</h2>
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-[#5e503f]/70 uppercase tracking-widest block">Total Reports</span>
+              <h2 className="text-3xl font-black text-[#22333b] font-display leading-none">{totalReports}</h2>
             </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#f8faf9] text-[#22333b]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#22333b]/5 text-[#22333b] ring-8 ring-[#22333b]/[0.02]">
               <ClipboardList className="w-5 h-5" />
             </div>
           </motion.div>
 
           <motion.div 
-            whileHover={{ y: -2 }}
-            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            whileHover={{ y: -3, boxShadow: '0 12px 20px -8px rgba(169, 146, 125, 0.12)' }}
+            className="bg-gradient-to-br from-[#a9927d]/[0.04] to-white border-y border-r border-[#e6e8e7] border-l-4 border-l-[#a9927d] rounded-[10px] p-6 flex items-center justify-between shadow-sm transition-all"
           >
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Draft Inspections</span>
-              <h2 className="text-2xl font-black text-[#22333b]">{draftReports}</h2>
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-[#5e503f]/70 uppercase tracking-widest block">Draft Inspections</span>
+              <h2 className="text-3xl font-black text-[#22333b] font-display leading-none">{draftReports}</h2>
             </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50 text-amber-600">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#a9927d]/10 text-[#a9927d] ring-8 ring-[#a9927d]/5 animate-pulse">
               <Settings className="w-5 h-5" />
             </div>
           </motion.div>
 
           <motion.div 
-            whileHover={{ y: -2 }}
-            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            whileHover={{ y: -3, boxShadow: '0 12px 20px -8px rgba(16, 185, 129, 0.08)' }}
+            className="bg-gradient-to-br from-emerald-50/[0.2] to-white border-y border-r border-[#e6e8e7] border-l-4 border-l-emerald-600 rounded-[10px] p-6 flex items-center justify-between shadow-sm transition-all"
           >
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Completed & Locked</span>
-              <h2 className="text-2xl font-black text-[#22333b]">{completedReports}</h2>
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-[#5e503f]/70 uppercase tracking-widest block">Completed & Locked</span>
+              <h2 className="text-3xl font-black text-[#22333b] font-display leading-none">{completedReports}</h2>
             </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600">
-              <Check className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600 ring-8 ring-emerald-50/50">
+              <Check className="w-5 h-5 font-bold" />
             </div>
           </motion.div>
         </div>
