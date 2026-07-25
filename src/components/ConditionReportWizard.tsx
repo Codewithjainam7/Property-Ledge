@@ -903,21 +903,12 @@ export function ConditionReportWizard() {
                   </button>
 
                   <button
-                    onClick={saveSignatures}
-                    disabled={isSubmitting || !signatureManager}
+                    onClick={report.status === 'Completed' ? generatePDFReport : saveSignatures}
+                    disabled={isSubmitting || (!signatureManager && report.status !== 'Completed')}
                     className="flex-1 bg-[#22333b] text-white py-3.5 rounded-[8px] text-sm font-bold hover:bg-[#111a1e] transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                   >
-                    {isSubmitting ? 'Saving...' : 'Finalize & Save'}
+                    {isSubmitting ? 'Saving...' : report.status === 'Completed' ? 'Download PDF' : 'Finalize & Download'}
                   </button>
-
-                  {report.status === 'Completed' && (
-                    <button
-                      onClick={generatePDFReport}
-                      className="flex-1 bg-emerald-600 text-white py-3.5 rounded-[8px] text-sm font-bold hover:bg-emerald-700 transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
-                    >
-                      <FileText className="w-4 h-4" /> Download PDF
-                    </button>
-                  )}
                 </div>
               </motion.div>
             )}
