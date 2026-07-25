@@ -1,10 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Plus, Building, Search, Home, Calendar, User, Eye, Trash2, ShieldAlert, ArrowLeft, ArrowRight, Settings } from 'lucide-react';
+import { ClipboardList, Plus, Building, Search, Home, Calendar, User, Eye, Trash2, ShieldAlert, ArrowLeft, ArrowRight, Settings, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from './DashboardLayout';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+
+function CustomDropdown({ value, options, onChange, icon, className = '' }: { value: string, options: {value: string, label: string}[], onChange: (val: string) => void, icon?: React.ReactNode, className?: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const selected = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className={`relative ${className}`} ref={ref}>
+      <button 
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-2 appearance-none bg-[#f8faf9] border border-[#e6e8e7] rounded-[8px] px-3.5 py-2.5 text-[13px] font-semibold text-[#22333b] hover:border-[#a9927d] transition-all text-left"
+      >
+        <div className="flex items-center gap-2 overflow-hidden">
+          {icon && <span className="text-[#a9927d] shrink-0">{icon}</span>}
+          <span className="truncate">{selected?.label || 'Select...'}</span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-[#a9927d] shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 bg-white border border-[#e6e8e7] rounded-[8px] shadow-xl z-[100] min-w-full overflow-hidden p-1 max-h-60 overflow-y-auto">
+          {options.map(o => (
+            <button 
+              type="button"
+              key={o.value}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-xs font-bold rounded-[4px] transition-colors flex items-center justify-between ${value === o.value ? 'bg-[#22333b] text-white' : 'text-[#22333b] hover:bg-[#f2f4f3]'}`}
+            >
+              <span className="truncate">{o.label}</span>
+              {value === o.value && <Check className="w-4 h-4 ml-2 shrink-0 text-white" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Report {
   id: string;
@@ -321,48 +368,48 @@ export function ConditionReports() {
                   {/* Select Property */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-[#a9927d] uppercase tracking-widest">Select Property</label>
-                    <select
-                      required
+                    <CustomDropdown
                       value={selectedPropertyId}
-                      onChange={e => setSelectedPropertyId(e.target.value)}
-                      className="w-full bg-[#f8faf9] border border-[#e6e8e7] rounded-[8px] px-3 py-2 text-[13px] font-semibold text-[#22333b] focus:ring-2 focus:ring-[#22333b]/20 focus:border-[#22333b] outline-none cursor-pointer hover:border-[#a9927d] transition-all"
-                    >
-                      <option value="">-- Choose Property --</option>
-                      {properties.map(p => (
-                        <option key={p.id} value={p.id}>{p.address}</option>
-                      ))}
-                    </select>
+                      onChange={val => setSelectedPropertyId(val)}
+                      options={[
+                        { value: '', label: '-- Choose Property --' },
+                        ...properties.map(p => ({ value: p.id, label: p.address }))
+                      ]}
+                      icon={<Building className="w-3.5 h-3.5" />}
+                    />
                   </div>
 
                   {/* Auto-selected Lease */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-[#a9927d] uppercase tracking-widest">Lease Reference</label>
-                    <select
+                    <CustomDropdown
                       value={selectedLeaseId}
-                      onChange={e => setSelectedLeaseId(e.target.value)}
-                      className="w-full bg-[#f8faf9] border border-[#e6e8e7] rounded-[8px] px-3 py-2 text-[13px] font-semibold text-[#22333b] focus:ring-2 focus:ring-[#22333b]/20 focus:border-[#22333b] outline-none cursor-pointer hover:border-[#a9927d] transition-all"
-                    >
-                      <option value="">-- No Active Lease / Historic --</option>
-                      {leases.filter(l => l.property_id === selectedPropertyId).map(l => (
-                        <option key={l.id} value={l.id}>{l.status} — {l.start_date} → {l.end_date || 'Ongoing'}</option>
-                      ))}
-                    </select>
+                      onChange={val => setSelectedLeaseId(val)}
+                      options={[
+                        { value: '', label: '-- No Active Lease / Historic --' },
+                        ...leases.filter(l => l.property_id === selectedPropertyId).map(l => ({
+                          value: l.id,
+                          label: `${l.status} — ${l.start_date} → ${l.end_date || 'Ongoing'}`
+                        }))
+                      ]}
+                      icon={<ClipboardList className="w-3.5 h-3.5" />}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     {/* Inspection Type */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] font-bold text-[#a9927d] uppercase tracking-widest">Inspection Type</label>
-                      <select
+                      <CustomDropdown
                         value={inspectionType}
-                        onChange={e => setInspectionType(e.target.value as any)}
-                        className="w-full bg-[#f8faf9] border border-[#e6e8e7] rounded-[8px] px-3 py-2 text-[13px] font-semibold text-[#22333b] focus:ring-2 focus:ring-[#22333b]/20 focus:border-[#22333b] outline-none cursor-pointer hover:border-[#a9927d] transition-all"
-                      >
-                        <option value="Move In">Move-In Inspection</option>
-                        <option value="Routine">Routine Inspection</option>
-                        <option value="Move Out">Move-Out Inspection</option>
-                        <option value="Custom">Custom Inspection</option>
-                      </select>
+                        onChange={val => setInspectionType(val as any)}
+                        options={[
+                          { value: 'Move In', label: 'Move-In Inspection' },
+                          { value: 'Routine', label: 'Routine Inspection' },
+                          { value: 'Move Out', label: 'Move-Out Inspection' },
+                          { value: 'Custom', label: 'Custom Inspection' }
+                        ]}
+                      />
                     </div>
 
                     {/* Date */}
