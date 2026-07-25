@@ -261,93 +261,257 @@ export function ConditionReportWizard() {
     const primaryColor = [34, 51, 59]; // #22333b
     const secondaryColor = [169, 146, 125]; // #a9927d
 
-    // Title / Cover
+    // Title / Cover Banner
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.rect(0, 0, 210, 40, 'F');
+    doc.rect(0, 0, 210, 38, 'F');
+    
+    // Gold Accent Bar
+    doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.rect(0, 38, 210, 3, 'F');
+
+    // Title Text
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.text('NSW TENANCY CONDITION REPORT', 15, 26);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text('NSW RESIDENTIAL TENANCY CONDITION REPORT', 15, 24);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(220, 220, 220);
+    doc.text('PropertyLedge Enterprise Portfolio Inspection System', 15, 31);
 
-    doc.setTextColor(50, 50, 50);
+    // Metadata Grid Card
+    doc.setFillColor(248, 250, 249);
+    doc.setDrawColor(230, 232, 231);
+    doc.roundedRect(15, 48, 180, 42, 3, 3, 'FD');
+
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(`PROPERTY: ${report.properties?.address}`, 15, 55);
-    doc.text(`INSPECTION TYPE: ${report.type}`, 15, 62);
-    doc.text(`DATE: ${report.inspection_date}`, 15, 69);
-    doc.text(`INSPECTOR: ${report.inspector_name}`, 15, 76);
+    doc.text("INSPECTION DETAILS & METADATA", 22, 56);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(94, 80, 63);
+    doc.text("Property Address:", 22, 65);
+    doc.text("Inspection Type:", 22, 72);
+    doc.text("Date of Inspection:", 22, 79);
+    doc.text("Inspector / PM:", 22, 86);
 
-    let currentY = 90;
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text(report.properties?.address || "N/A", 60, 65);
+    doc.text(report.type || "N/A", 60, 72);
+    doc.text(report.inspection_date || "N/A", 60, 79);
+    doc.text(report.inspector_name || "N/A", 60, 86);
+
+    let currentY = 100;
 
     // Loop Rooms
     rooms.forEach((room) => {
-      if (currentY > 240) {
+      // Check space needed for title + table header + sample row
+      if (currentY > 230) {
         doc.addPage();
         currentY = 20;
       }
 
-      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.text(room.name, 15, currentY);
-      currentY += 5;
+      currentY += 4;
 
-      // Table of items
+      // Table of items mapping single rating to Clean, Undamaged, Working columns
       const roomItems = items.filter(i => i.room_id === room.id);
-      const tableData = roomItems.map(item => [
-        item.name,
-        item.rating || 'Not Inspected'
-      ]);
+      const tableData = roomItems.map(item => {
+        let clean = "Yes";
+        let undamaged = "Yes";
+        let working = "Yes";
+        let comments = "—";
+
+        if (item.rating === "Excellent" || item.rating === "Good") {
+          // Keep defaults
+        } else if (item.rating === "Fair") {
+          comments = "Minor wear & tear";
+        } else if (item.rating === "Needs Repair") {
+          working = "No";
+          comments = "Needs maintenance";
+        } else if (item.rating === "Damaged") {
+          undamaged = "No";
+          comments = "Damaged / Broken";
+        } else if (item.rating === "Not Applicable") {
+          clean = "—";
+          undamaged = "—";
+          working = "—";
+          comments = "N/A";
+        } else if (!item.rating) {
+          clean = "—";
+          undamaged = "—";
+          working = "—";
+          comments = "Not Inspected";
+        }
+        return [item.name, clean, undamaged, working, comments];
+      });
 
       autoTable(doc, {
         startY: currentY,
-        head: [['Item Name', 'Condition']],
+        head: [['Item Description', 'Clean', 'Undamaged', 'Working', 'Comments / Defects']],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillColor: primaryColor as any },
+        headStyles: { fillColor: primaryColor as any, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8, textColor: [50, 50, 50] },
+        columnStyles: {
+          0: { cellWidth: 50, fontStyle: 'bold' },
+          1: { cellWidth: 20, halign: 'center' },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 'auto' }
+        },
         margin: { left: 15, right: 15 },
         didDrawPage: (data) => {
-          currentY = data.cursor?.y ? data.cursor.y + 10 : currentY + 15;
+          currentY = data.cursor?.y ? data.cursor.y + 6 : currentY + 15;
         }
       });
 
-      // Defect checklist for this room
+      // Defect checklist log summary
       const roomDefects = defects.filter(d => d.room_id === room.id);
       if (roomDefects.length > 0) {
         if (currentY > 260) {
           doc.addPage();
           currentY = 20;
         }
-        doc.setFontSize(10);
-        doc.setTextColor(150, 50, 50);
-        doc.text('Recorded Defects:', 15, currentY);
-        currentY += 5;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(180, 50, 50);
+        doc.text('Logged Issues & Repairs Required:', 15, currentY);
+        currentY += 4;
 
         roomDefects.forEach(defect => {
-          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
           doc.setTextColor(80, 80, 80);
-          doc.text(`- [${defect.severity}] ${defect.notes}`, 20, currentY);
-          currentY += 5;
+          doc.text(`• [${defect.severity}] ${defect.notes}`, 20, currentY);
+          currentY += 4;
         });
-        currentY += 5;
+        currentY += 2;
+      }
+
+      // Render Visual Proof Photos
+      const roomPhotos = photos.filter(p => p.room_id === room.id);
+      if (roomPhotos.length > 0) {
+        if (currentY > 210) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text("Room Proof Photos:", 15, currentY);
+        currentY += 6;
+
+        const imgW = 82;
+        const imgH = 55;
+
+        for (let i = 0; i < roomPhotos.length; i += 2) {
+          if (currentY > 230) {
+            doc.addPage();
+            currentY = 20;
+          }
+
+          // Left Image
+          try {
+            doc.addImage(roomPhotos[i].photo_url, 'JPEG', 15, currentY, imgW, imgH);
+          } catch (e) {
+            console.error("Failed to render photo index", i, e);
+          }
+
+          // Right Image
+          if (i + 1 < roomPhotos.length) {
+            try {
+              doc.addImage(roomPhotos[i + 1].photo_url, 'JPEG', 110, currentY, imgW, imgH);
+            } catch (e) {
+              console.error("Failed to render photo index", i + 1, e);
+            }
+          }
+
+          currentY += imgH + 8;
+        }
+        currentY += 4;
       }
     });
 
-    // Signatures page
+    // Signatures Page
     doc.addPage();
-    doc.setFontSize(14);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text('Digital Signatures & Finalization', 15, 30);
+    
+    // Header banner on Signatures page
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 20, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("SIGNATURES, CONFIRMATION & ACKNOWLEDGMENT", 15, 13);
+    
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("This document is a true residential condition report. Signatures below declare consent to the report.", 15, 30);
 
+    // Inspector signature container
+    doc.setFillColor(248, 250, 249);
+    doc.setDrawColor(230, 232, 231);
+    doc.roundedRect(15, 40, 85, 60, 2, 2, 'FD');
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("INSPECTOR SIGN-OFF", 20, 48);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Name: ${report.inspector_name}`, 20, 54);
+    doc.text(`Date: ${report.completed_at ? new Date(report.completed_at).toLocaleDateString() : new Date().toLocaleDateString()}`, 20, 60);
+    
     if (signatureManager) {
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text('Inspector / Manager Signature:', 15, 50);
-      try { doc.addImage(signatureManager, 'PNG', 15, 55, 60, 25); } catch {}
+      try {
+        doc.addImage(signatureManager, 'PNG', 20, 65, 75, 28);
+      } catch (e) {
+        console.error("Failed loading manager signature", e);
+      }
+    } else {
+      doc.text("[Signature Pending]", 20, 75);
     }
 
+    // Tenant signature container
+    doc.roundedRect(110, 40, 85, 60, 2, 2, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.text("TENANT ACKNOWLEDGMENT", 115, 48);
+    doc.setFont("helvetica", "normal");
+    doc.text("Name: Representative Tenant", 115, 54);
+    doc.text(`Date: ${report.completed_at ? new Date(report.completed_at).toLocaleDateString() : new Date().toLocaleDateString()}`, 115, 60);
+
     if (signatureTenant) {
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text('Tenant Signature:', 110, 50);
-      try { doc.addImage(signatureTenant, 'PNG', 110, 55, 60, 25); } catch {}
+      try {
+        doc.addImage(signatureTenant, 'PNG', 115, 65, 75, 28);
+      } catch (e) {
+        console.error("Failed loading tenant signature", e);
+      }
+    } else {
+      doc.text("[Signature Pending]", 115, 75);
+    }
+
+    // Build Footers & Page Numbers on all pages
+    const pageCount = (doc.internal as any).getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      
+      // Footer divider line
+      doc.setDrawColor(230, 232, 231);
+      doc.line(15, 284, 195, 284);
+      
+      // Footer text
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text("PropertyLedge.com.au — Official Tenancy Condition Report", 15, 289);
+      doc.text(`Page ${i} of ${pageCount}`, 195, 289, { align: 'right' });
     }
 
     doc.save(`Condition_Report_${report.properties?.address.replace(/\s+/g, '_')}.pdf`);
