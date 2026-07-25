@@ -70,13 +70,18 @@ interface RoomTemplate {
   count: number;
 }
 
+// In-memory cache to preserve report state across tab transitions without database delays
+let cachedReports: Report[] | null = null;
+let cachedProperties: any[] | null = null;
+let cachedLeases: any[] | null = null;
+
 export function ConditionReports() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [reports, setReports] = useState<Report[]>([]);
-  const [properties, setProperties] = useState<any[]>([]);
-  const [leases, setLeases] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reports, setReports] = useState<Report[]>(cachedReports || []);
+  const [properties, setProperties] = useState<any[]>(cachedProperties || []);
+  const [leases, setLeases] = useState<any[]>(cachedLeases || []);
+  const [loading, setLoading] = useState(!cachedReports);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -110,7 +115,9 @@ export function ConditionReports() {
   }, [user]);
 
   const fetchReports = async () => {
-    setLoading(true);
+    if (!cachedReports) {
+      setLoading(true);
+    }
     try {
       const { data, error } = await supabase
         .from('condition_reports')
@@ -119,6 +126,7 @@ export function ConditionReports() {
 
       if (error) throw error;
       setReports(data || []);
+      cachedReports = data;
     } catch (err: any) {
       console.error('Error fetching reports:', err);
       setAlertConfig({ title: 'Database Fetch Error', message: err.message || err.details || JSON.stringify(err), type: 'error' });
@@ -135,6 +143,8 @@ export function ConditionReports() {
       ]);
       setProperties(pData || []);
       setLeases(lData || []);
+      cachedProperties = pData;
+      cachedLeases = lData;
       
       // Prefill inspector name
       const profile = (await supabase.auth.getUser()).data.user;
@@ -227,7 +237,8 @@ export function ConditionReports() {
 
       if (itemsErr) throw itemsErr;
 
-      // Close modal and navigate to wizard
+      // Reset cache to force fresh reload
+      cachedReports = null;
       setIsAddModalOpen(false);
       navigate(`/dashboard/condition-report-wizard/${newReport.id}`);
     } catch (err: any) {
@@ -246,6 +257,7 @@ export function ConditionReports() {
     try {
       const { error } = await supabase.from('condition_reports').delete().eq('id', deleteConfirmId);
       if (error) throw error;
+      cachedReports = null;
       setReports(prev => prev.filter(r => r.id !== deleteConfirmId));
       setDeleteConfirmId(null);
     } catch (err: any) {
