@@ -20,6 +20,8 @@ import { AcceptInvite } from './components/AcceptInvite';
 import { ManagerDashboard } from './components/ManagerDashboard';
 import { useAuth } from './contexts/AuthContext';
 import { CompleteProfile } from './components/CompleteProfile';
+import { ConditionReports } from './components/ConditionReports';
+import { ConditionReportWizard } from './components/ConditionReportWizard';
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -1421,6 +1423,8 @@ function AppRoutes() {
       <Route path="/dashboard/leases" element={<Leases />} />
       <Route path="/dashboard/tenants" element={<Tenants />} />
       <Route path="/dashboard/accounting" element={<Accounting />} />
+      <Route path="/dashboard/condition-reports" element={<ConditionReports />} />
+      <Route path="/dashboard/condition-report-wizard/:id" element={<ConditionReportWizard />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

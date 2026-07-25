@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Building, LogOut, PieChart, Wallet, Users, Home, Search, Bell, Menu, X, FileText, HelpCircle, UserPlus, Settings, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Building, LogOut, PieChart, Wallet, Users, Home, Search, Bell, Menu, X, FileText, HelpCircle, UserPlus, Settings, User, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -184,6 +184,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     toolsLinks = [
       { name: 'Invoices', icon: FileText, to: '/dashboard/invoices', exact: false },
       { name: 'Accounting', icon: Wallet, to: '/dashboard/accounting', exact: false },
+      { name: 'Condition Reports', icon: ClipboardList, to: '/dashboard/condition-reports', exact: false },
       { name: 'Team Access', icon: UserPlus, to: '/dashboard/team', exact: false },
     ];
   }
