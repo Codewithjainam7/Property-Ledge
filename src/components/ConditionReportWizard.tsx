@@ -61,6 +61,26 @@ export function ConditionReportWizard() {
   const [defectNotes, setDefectNotes] = useState('');
   const [defectSeverity, setDefectSeverity] = useState<'Minor' | 'Moderate' | 'Major' | 'Urgent'>('Minor');
 
+  const getRatingStyles = (rate: string, isSelected: boolean) => {
+    if (!isSelected) return 'text-[#5e503f] hover:bg-[#f2f4f3] hover:text-[#22333b]';
+    switch (rate) {
+      case 'Excellent':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Good':
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'Fair':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Needs Repair':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Damaged':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'Not Applicable':
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+      default:
+        return '';
+    }
+  };
+
   useEffect(() => {
     if (reportId) {
       loadReportData();
@@ -677,12 +697,12 @@ export function ConditionReportWizard() {
                       <span className="text-xs font-bold text-[#22333b]">{item.name}</span>
                       
                       {/* Segmented rating controls */}
-                      <div className="flex bg-[#f8faf9] border border-[#e6e8e7] p-0.5 rounded-[6px] overflow-x-auto hide-scrollbar self-start sm:self-auto max-w-full">
+                      <div className="flex bg-[#f8faf9] border border-[#e6e8e7] p-0.5 rounded-[8px] overflow-x-auto hide-scrollbar self-start sm:self-auto max-w-full">
                         {(['Excellent', 'Good', 'Fair', 'Needs Repair', 'Damaged', 'Not Applicable'] as const).map(rate => (
                           <button
                             key={rate}
                             onClick={() => { saveItemRating(item.id, rate); updateRoomStatus(activeRoom.id, 'Completed'); }}
-                            className={`px-3 py-1.5 rounded-[4px] text-[10px] font-black transition-all whitespace-nowrap cursor-pointer ${item.rating === rate ? 'bg-[#22333b] text-white' : 'text-[#5e503f] hover:text-[#22333b]'}`}
+                            className={`px-3 py-1.5 rounded-[6px] text-[10px] font-black transition-all whitespace-nowrap cursor-pointer border border-transparent ${getRatingStyles(rate, item.rating === rate)}`}
                           >
                             {rate === 'Not Applicable' ? 'N/A' : rate === 'Needs Repair' ? 'Repair' : rate}
                           </button>
