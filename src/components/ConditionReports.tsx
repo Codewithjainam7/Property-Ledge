@@ -309,45 +309,50 @@ export function ConditionReports() {
         </header>
 
         {/* Stats Dashboard Grid */}
-        <div className="px-6 md:px-10 mb-8 flex overflow-x-auto snap-x snap-mandatory gap-4 pb-2 sm:grid sm:grid-cols-3 hide-scrollbar">
+        <div className="px-6 md:px-10 mb-8 grid grid-cols-3 gap-3 sm:gap-6">
+          
           <motion.div 
             whileHover={{ y: -2 }}
-            className="snap-start min-w-[240px] sm:min-w-0 bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:justify-between shadow-sm gap-1.5 sm:gap-0"
           >
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Total Reports</span>
-              <h2 className="text-2xl font-black text-[#22333b]">{totalReports}</h2>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-[#f8faf9] text-[#22333b] order-first sm:order-last shrink-0">
+              <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#f8faf9] text-[#22333b]">
-              <ClipboardList className="w-5 h-5" />
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left w-full">
+              <span className="text-[9px] sm:text-xs font-bold text-[#a9927d] uppercase tracking-wider sm:mb-1 hidden sm:block">Total Reports</span>
+              <span className="text-[9px] sm:text-xs font-bold text-[#a9927d] uppercase tracking-wider mb-0.5 sm:hidden">Total</span>
+              <h2 className="text-xl sm:text-2xl font-black text-[#22333b] leading-none">{totalReports}</h2>
             </div>
           </motion.div>
 
           <motion.div 
             whileHover={{ y: -2 }}
-            className="snap-start min-w-[240px] sm:min-w-0 bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:justify-between shadow-sm gap-1.5 sm:gap-0"
           >
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Draft Inspections</span>
-              <h2 className="text-2xl font-black text-[#22333b]">{draftReports}</h2>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-amber-50 text-amber-600 order-first sm:order-last shrink-0">
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50 text-amber-600">
-              <Settings className="w-5 h-5" />
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left w-full">
+              <span className="text-[9px] sm:text-xs font-bold text-[#a9927d] uppercase tracking-wider sm:mb-1 hidden sm:block">Draft Inspections</span>
+              <span className="text-[9px] sm:text-xs font-bold text-[#a9927d] uppercase tracking-wider mb-0.5 sm:hidden">Drafts</span>
+              <h2 className="text-xl sm:text-2xl font-black text-[#22333b] leading-none">{draftReports}</h2>
             </div>
           </motion.div>
 
           <motion.div 
             whileHover={{ y: -2 }}
-            className="snap-start min-w-[240px] sm:min-w-0 bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-3 sm:p-5 flex flex-col sm:flex-row items-center sm:justify-between shadow-sm gap-1.5 sm:gap-0"
           >
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Completed & Locked</span>
-              <h2 className="text-2xl font-black text-[#22333b]">{completedReports}</h2>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600 order-first sm:order-last shrink-0">
+              <Check className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600">
-              <Check className="w-5 h-5" />
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left w-full">
+              <span className="text-[9px] sm:text-xs font-bold text-[#a9927d] uppercase tracking-wider sm:mb-1 hidden sm:block">Completed & Locked</span>
+              <span className="text-[9px] sm:text-xs font-bold text-[#a9927d] uppercase tracking-wider mb-0.5 sm:hidden">Locked</span>
+              <h2 className="text-xl sm:text-2xl font-black text-[#22333b] leading-none">{completedReports}</h2>
             </div>
           </motion.div>
+
         </div>
 
         {/* Filters and List */}
