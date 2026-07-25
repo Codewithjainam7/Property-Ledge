@@ -308,48 +308,45 @@ export function ConditionReports() {
           </button>
         </header>
 
-        {/* Sleek Horizontal Mini Stats Deck */}
-        <div className="px-6 md:px-10 mb-8 flex overflow-x-auto snap-x snap-mandatory gap-4 pb-3 hide-scrollbar">
+        {/* Stats Dashboard Grid */}
+        <div className="px-6 md:px-10 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
           <motion.div 
             whileHover={{ y: -2 }}
-            className="snap-start min-w-[160px] sm:min-w-0 sm:flex-1 bg-white border border-[#e6e8e7] rounded-[10px] p-4 flex items-center justify-between shadow-sm relative overflow-hidden group border-t-2 border-t-[#22333b]"
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
           >
-            <div className="space-y-1 z-10">
-              <span className="text-[9px] font-black text-[#5e503f]/70 uppercase tracking-wider block">Total Reports</span>
-              <h2 className="text-xl font-black text-[#22333b]">{totalReports}</h2>
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Total Reports</span>
+              <h2 className="text-2xl font-black text-[#22333b]">{totalReports}</h2>
             </div>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#22333b]/5 text-[#22333b] z-10">
-              <ClipboardList className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#f8faf9] text-[#22333b]">
+              <ClipboardList className="w-5 h-5" />
             </div>
-            <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-[#22333b]/[0.02] rounded-full group-hover:scale-150 transition-transform duration-500" />
           </motion.div>
 
           <motion.div 
             whileHover={{ y: -2 }}
-            className="snap-start min-w-[160px] sm:min-w-0 sm:flex-1 bg-white border border-[#e6e8e7] rounded-[10px] p-4 flex items-center justify-between shadow-sm relative overflow-hidden group border-t-2 border-t-[#a9927d]"
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
           >
-            <div className="space-y-1 z-10">
-              <span className="text-[9px] font-black text-[#5e503f]/70 uppercase tracking-wider block">Draft Inspections</span>
-              <h2 className="text-xl font-black text-[#22333b]">{draftReports}</h2>
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Draft Inspections</span>
+              <h2 className="text-2xl font-black text-[#22333b]">{draftReports}</h2>
             </div>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#a9927d]/10 text-[#a9927d] z-10">
-              <Settings className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50 text-amber-600">
+              <Settings className="w-5 h-5" />
             </div>
-            <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-[#a9927d]/[0.04] rounded-full group-hover:scale-150 transition-transform duration-500" />
           </motion.div>
 
           <motion.div 
             whileHover={{ y: -2 }}
-            className="snap-start min-w-[160px] sm:min-w-0 sm:flex-1 bg-white border border-[#e6e8e7] rounded-[10px] p-4 flex items-center justify-between shadow-sm relative overflow-hidden group border-t-2 border-t-emerald-500"
+            className="bg-white border border-[#e6e8e7] rounded-[10px] p-5 flex items-center justify-between shadow-sm"
           >
-            <div className="space-y-1 z-10">
-              <span className="text-[9px] font-black text-[#5e503f]/70 uppercase tracking-wider block">Completed & Locked</span>
-              <h2 className="text-xl font-black text-[#22333b]">{completedReports}</h2>
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#a9927d] uppercase tracking-wider">Completed & Locked</span>
+              <h2 className="text-2xl font-black text-[#22333b]">{completedReports}</h2>
             </div>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600 z-10">
-              <Check className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600">
+              <Check className="w-5 h-5" />
             </div>
-            <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-emerald-50/20 rounded-full group-hover:scale-150 transition-transform duration-500" />
           </motion.div>
         </div>
 
