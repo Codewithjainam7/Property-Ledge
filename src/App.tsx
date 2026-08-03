@@ -23,7 +23,7 @@ import { CompleteProfile } from './components/CompleteProfile';
 import { ConditionReports } from './components/ConditionReports';
 import { ConditionReportWizard } from './components/ConditionReportWizard';
 
-function Navigation() {
+export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
@@ -45,7 +45,7 @@ function Navigation() {
 
   const links = [
     { name: 'Features', href: '#features' },
-    { name: 'Pricing', href: '#pricing' },
+    { name: 'Pricing', href: '/pricing' },
     { name: 'Testimonials', href: '#testimonials' }
   ];
 
@@ -79,9 +79,9 @@ function Navigation() {
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center bg-surface-container/40 rounded-xl px-1 py-1 gap-0.5 border border-outline-variant/20">
             {links.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
+                to={link.href}
                 onMouseEnter={() => setHoveredLink(link.name)}
                 onMouseLeave={() => setHoveredLink(null)}
                 className="relative px-4 py-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold rounded-lg z-10"
@@ -94,7 +94,7 @@ function Navigation() {
                     transition={{ type: 'spring' as const, stiffness: 400, damping: 32 }}
                   />
                 )}
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -172,22 +172,25 @@ function Navigation() {
 
                 <div className="flex flex-col gap-2">
                   {links.map((link, i) => (
-                    <motion.a
+                    <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                       key={link.name}
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-4 text-lg font-extrabold text-on-surface hover:text-primary transition-all tracking-tight p-3 rounded-2xl bg-white/60 hover:bg-white border border-outline-variant/40 shadow-sm hover:shadow-md hover:border-primary/20 active:scale-95 group"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                        {link.name === 'Features' && <ClipboardList className="w-5 h-5" />}
-                        {link.name === 'Pricing' && <PieChart className="w-5 h-5" />}
-                        {link.name === 'Testimonials' && <Users className="w-5 h-5" />}
-                      </div>
-                      {link.name}
-                    </motion.a>
+                      <Link
+                        to={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-4 text-lg font-extrabold text-on-surface hover:text-primary transition-all tracking-tight p-3 rounded-2xl bg-white/60 hover:bg-white border border-outline-variant/40 shadow-sm hover:shadow-md hover:border-primary/20 active:scale-95 group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          {link.name === 'Features' && <ClipboardList className="w-5 h-5" />}
+                          {link.name === 'Pricing' && <PieChart className="w-5 h-5" />}
+                          {link.name === 'Testimonials' && <Users className="w-5 h-5" />}
+                        </div>
+                        {link.name}
+                      </Link>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -765,132 +768,7 @@ function FeatureRow({ reversed, label, title, desc, bullets, image, floatingBadg
   );
 }
 
-function Pricing() {
-  const [isAnnual, setIsAnnual] = React.useState(true);
 
-  const plans = [
-    { 
-      name: "Starter", price: isAnnual ? "Free" : "Free", period: "", limit: "1 property", 
-      desc: "Perfect for the single-property landlord getting started.", 
-      features: ["1 Property", "Automated Invoicing", "Basic Ledger", "Tenant Portal"],
-      isPopular: false, badge: null, icon: <Home className="w-6 h-6" />
-    },
-    { 
-      name: "Pro", price: isAnnual ? "$24" : "$29", period: "/mo", limit: "Up to 10 properties", 
-      desc: "For growing portfolios needing full automation and reporting.", 
-      features: ["Up to 10 Properties", "Automated Rent Collection", "EOFY Reports", "Digital Lease Signing", "Priority Support"],
-      isPopular: true, badge: "Most Popular", icon: <Zap className="w-6 h-6" />
-    },
-    { 
-      name: "Agency", price: isAnnual ? "$69" : "$79", period: "/mo", limit: "Unlimited + Team", 
-      desc: "Full team access, advanced reporting, and white-label options.", 
-      features: ["Unlimited Properties", "Team & Agent Roles", "Advanced Analytics", "API Access", "White Label"],
-      isPopular: false, badge: "Best Value", icon: <Building className="w-6 h-6" />
-    }
-  ];
-
-  return (
-    <section id="pricing" className="py-24 sm:py-32 px-4 sm:px-6 relative overflow-hidden bg-surface">
-      {/* Dynamic Backgrounds */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-surface to-surface pointer-events-none" />
-      <div className="absolute -left-1/4 top-1/2 w-[800px] h-[800px] rounded-full bg-secondary/5 blur-[120px] pointer-events-none" />
-      <div className="absolute right-0 bottom-0 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[100px] pointer-events-none" />
-      
-      <div className="max-w-6xl mx-auto relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container border border-outline-variant shadow-sm mb-6">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-on-surface bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Flexible Plans</span>
-          </div>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-on-surface mb-6 font-display">Pricing that scales with you.</h2>
-          <p className="text-lg sm:text-xl text-on-surface-variant font-medium max-w-2xl mx-auto mb-10">Start for free, upgrade when you need more power. All plans include a 14-day premium trial.</p>
-          
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <span className={`text-sm font-bold transition-colors ${!isAnnual ? 'text-on-surface' : 'text-on-surface-variant'}`}>Monthly</span>
-            <button 
-              onClick={() => setIsAnnual(!isAnnual)}
-              className="w-16 h-8 rounded-full bg-surface-container-high border border-outline-variant/60 relative flex items-center px-1 transition-all shadow-inner focus:outline-none"
-            >
-              <div className={`w-6 h-6 rounded-full bg-primary shadow-md transition-all duration-300 transform ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`} />
-            </button>
-            <span className={`text-sm font-bold flex items-center gap-2 transition-colors ${isAnnual ? 'text-on-surface' : 'text-on-surface-variant'}`}>
-              Annually <span className="text-[9px] uppercase tracking-widest font-black bg-emerald-500/10 text-emerald-600 py-1 px-2.5 rounded-full border border-emerald-500/20">Save 20%</span>
-            </span>
-          </div>
-        </div>
-        
-        {/* Pricing Cards Grid */}
-        <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-center">
-          {plans.map((plan, i) => (
-            <motion.div 
-              key={i} 
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.6, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={plan.isPopular ? { y: -8, scale: 1.05, transition: { duration: 0.2 } } : { y: -8, transition: { duration: 0.2 } }}
-              className={`relative flex flex-col rounded-[32px] transition-all duration-300
-                ${plan.isPopular 
-                  ? 'bg-primary text-on-primary border border-outline-variant/50 shadow-md lg:scale-105 z-20 py-12 px-8 md:px-10' 
-                  : 'bg-surface border border-outline-variant/50 shadow-sm z-10 py-10 px-8 md:px-10'
-                }
-              `}
-            >
-              {/* Popular Glow Ring */}
-              {plan.isPopular && (
-                <div className="absolute -inset-[1px] rounded-[32px] bg-gradient-to-b from-primary via-secondary to-primary/20 -z-10 opacity-50" />
-              )}
-              
-              {/* Header */}
-              <div className="flex items-center justify-between mb-8">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${plan.isPopular ? 'bg-white/10 text-white' : 'bg-primary/10 text-primary'}`}>
-                  {plan.icon}
-                </div>
-                {plan.badge && (
-                  <div className={`text-[10px] font-black uppercase tracking-widest py-1.5 px-4 rounded-full border ${plan.isPopular ? 'bg-primary/20 text-primary-200 border-primary/30' : 'bg-surface-container text-on-surface-variant border-outline-variant'}`}>
-                    {plan.badge}
-                  </div>
-                )}
-              </div>
-
-              <h3 className={`text-2xl font-black mb-2 ${plan.isPopular ? 'text-white' : 'text-on-surface'}`}>{plan.name}</h3>
-              <p className={`text-sm font-semibold mb-8 h-10 ${plan.isPopular ? 'text-white/60' : 'text-on-surface-variant'}`}>{plan.desc}</p>
-              
-              <div className="flex items-baseline gap-1.5 mb-10 pb-10 border-b border-dashed border-outline-variant/30">
-                <span className={`text-6xl font-black tracking-tighter ${plan.isPopular ? 'text-white' : 'text-on-surface'}`}>{plan.price}</span>
-                {plan.period && <span className={`text-lg font-bold ${plan.isPopular ? 'text-white/40' : 'text-on-surface-variant'}`}>{plan.period}</span>}
-              </div>
-
-              <ul className="space-y-4 mb-10 flex-1">
-                {plan.features.map((f, fi) => (
-                  <li key={fi} className="flex items-start gap-3">
-                    <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.isPopular ? 'bg-primary/20' : 'bg-primary/10'}`}>
-                      <Check className={`w-3 h-3 stroke-[3] ${plan.isPopular ? 'text-primary-300' : 'text-primary'}`} />
-                    </div>
-                    <span className={`text-sm font-bold leading-tight ${plan.isPopular ? 'text-white/90' : 'text-on-surface'}`}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link 
-                to="/signup" 
-                className={`w-full py-4 rounded-2xl font-black text-center text-sm transition-all uppercase tracking-widest flex items-center justify-center gap-2 group
-                  ${plan.isPopular 
-                    ? 'bg-primary text-white hover:bg-primary/90 shadow-[0_8px_30px_rgba(59,34,181,0.4)] hover:shadow-[0_12px_40px_rgba(59,34,181,0.6)]' 
-                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant'
-                  }
-                `}
-              >
-                Get Started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 
 function Testimonials() {
@@ -984,7 +862,7 @@ function Testimonials() {
 }
 
 
-function Footer() {
+export function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -1145,12 +1023,6 @@ function LandingPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (session) {
-      navigate('/dashboard');
-    }
-  }, [session, navigate]);
-
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -1210,7 +1082,6 @@ function LandingPage() {
           floatingBadge={{ title: "Lease Signed", subtitle: "Smith Family • 12 Months", icon: <ShieldCheck className="w-6 h-6" />, colorClass: "bg-primary-fixed-dim text-on-primary-fixed" }}
         />
 
-        <Pricing />
         <Testimonials />
         <FAQ />
       </main>
@@ -1399,12 +1270,14 @@ import { Leases } from './components/Leases';
 import { AcceptTenantInvite } from './components/AcceptTenantInvite';
 import { TenantPortal } from './components/TenantPortal';
 import { TenantInvoices } from './components/TenantInvoices';
+import { Pricing as PricingPage } from './components/Pricing';
 
 function AppRoutes() {
   const { userContext } = useAuth();
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="/login" element={<SupabaseLogin />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/complete-profile" element={<CompleteProfile />} />
