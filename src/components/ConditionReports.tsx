@@ -121,7 +121,7 @@ export function ConditionReports() {
     try {
       const { data, error } = await supabase
         .from('condition_reports')
-        .select('*, properties(address), inspection_rooms(id, status)')
+        .select('*, properties!inner(address), inspection_rooms(id, status)')
         .order('inspection_date', { ascending: false });
 
       if (error) throw error;
