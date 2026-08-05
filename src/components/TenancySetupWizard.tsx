@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Stepper, Step, StepLabel, Button, Typography, 
   TextField, Box, Paper, Select, MenuItem, InputLabel, FormControl,
-  ThemeProvider, createTheme, CssBaseline, LinearProgress, IconButton, Checkbox, FormControlLabel, Modal, Fade, Backdrop
+  ThemeProvider, createTheme, CssBaseline, LinearProgress, IconButton, Checkbox, FormControlLabel, Modal, Fade, Backdrop, CircularProgress
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -531,7 +531,12 @@ export default function TenancySetupWizard({
                         disabled={isSubmitting}
                         sx={{ py: 1.5, px: { xs: 0, sm: 6 }, width: { xs: '100%', sm: 'auto' }, borderRadius: '50px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.875rem', fontWeight: 'bold' }}
                     >
-                        {isSubmitting ? 'Processing...' : activeStep === steps.length - 1 ? 'Setup Tenancy' : 'Proceed to Next'}
+                        {isSubmitting ? (
+                            <>
+                                <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                                Processing...
+                            </>
+                        ) : activeStep === steps.length - 1 ? 'Setup Tenancy' : 'Proceed to Next'}
                     </Button>
                 </Box>
             </Box>
@@ -549,7 +554,7 @@ export default function TenancySetupWizard({
                     transform: 'translate(-50%, -50%)',
                     width: 400,
                     bgcolor: 'background.paper',
-                    borderRadius: 4,
+                    borderRadius: '24px',
                     boxShadow: 24,
                     p: 4,
                     textAlign: 'center'
