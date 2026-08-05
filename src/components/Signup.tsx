@@ -11,7 +11,6 @@ export function Signup() {
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
   const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -80,8 +79,7 @@ export function Signup() {
         data: {
           first_name: fname.trim(),
           last_name: lname.trim(),
-          full_name: `${fname} ${lname}`.trim(),
-          mobile
+          full_name: `${fname} ${lname}`.trim()
         }
       }
     });
@@ -241,14 +239,10 @@ export function Signup() {
                   <input type="text" placeholder="Jenkins" required value={lname} onChange={(e) => setLname(e.target.value)} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm" />
                  </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 gap-5">
                  <div className="space-y-2">
                   <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Email address</label>
                   <input type="email" placeholder="sarah@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm" />
-                 </div>
-                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-[#4a4a5e] uppercase tracking-widest">Mobile number</label>
-                  <input type="tel" placeholder="+61 400 000 000" required value={mobile} onChange={(e) => setMobile(e.target.value)} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[#1c1c28] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-medium placeholder:text-gray-400 text-sm" />
                  </div>
               </div>
               <div className="pt-2 border-t border-gray-100">
