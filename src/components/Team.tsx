@@ -510,43 +510,9 @@ export function Team() {
                             </td>
                             {/* Role */}
                             <td className="px-4 py-3.5">
-                              {member.role === 'Tenant' ? (
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${rc.color} ${rc.bg} ${rc.border}`}>
                                   {displayRoles[member.role] || member.role}
                                 </span>
-                              ) : (
-                                <div className="relative inline-block">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === member.id ? null : member.id); }}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${rc.color} ${rc.bg} ${rc.border} hover:opacity-80`}
-                                  >
-                                    {displayRoles[member.role] || member.role}
-                                    <ChevronDown className={`w-3 h-3 transition-transform ${openDropdownId === member.id ? 'rotate-180' : ''}`} />
-                                  </button>
-                                  <AnimatePresence>
-                                    {openDropdownId === member.id && (
-                                      <>
-                                        <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
-                                        <motion.div
-                                          initial={{ opacity: 0, y: -5, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: 0.95 }} transition={{ duration: 0.12 }}
-                                          className="absolute left-0 top-full mt-1.5 w-44 bg-white rounded-2xl shadow-[0_12px_40px_rgb(0,0,0,0.12)] border border-slate-200 py-1.5 z-50 overflow-hidden"
-                                        >
-                                          {['Manager', 'Strata', 'Agent', 'Tenant'].map(r => {
-                                            const rConf = roleConfig[r] || rc;
-                                            return (
-                                              <button key={r} onClick={() => { changeRole(member, r); setOpenDropdownId(null); }}
-                                                className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors hover:bg-slate-50 ${member.role === r ? rConf.color : 'text-slate-700'}`}
-                                              >
-                                                {displayRoles[r] || r}
-                                              </button>
-                                            );
-                                          })}
-                                        </motion.div>
-                                      </>
-                                    )}
-                                  </AnimatePresence>
-                                </div>
-                              )}
                             </td>
                             {/* Property */}
                             <td className="px-4 py-3.5">
@@ -592,6 +558,14 @@ export function Team() {
                                             <RefreshCw className="w-4 h-4 text-slate-400" /> Resend Invite
                                           </button>
                                         )}
+                                        <div className="px-4 py-2 border-b border-slate-100">
+                                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Change Role To</p>
+                                          {['Manager', 'Strata', 'Agent', 'Tenant'].filter(r => r !== member.role).map(r => (
+                                            <button key={r} onClick={() => { changeRole(member, r); setOpenActionId(null); }} className="w-full text-left py-1.5 text-sm font-semibold text-slate-700 hover:text-primary transition-colors">
+                                              {displayRoles[r] || r}
+                                            </button>
+                                          ))}
+                                        </div>
                                         <button onClick={() => { removeMember(member); setOpenActionId(null); }} className="w-full text-left px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors">
                                           <Trash2 className="w-4 h-4" /> {member.isPending ? 'Revoke Invite' : 'Remove Member'}
                                         </button>
