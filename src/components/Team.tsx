@@ -201,6 +201,40 @@ export function Team() {
 
   const changeRole = async (member: TeamMemberRow, newRole: string) => {
     try {
+      if (member.role === newRole) return;
+
+      if (member.role === 'Tenant' && newRole !== 'Tenant') {
+        if (!window.confirm("Converting a Tenant to a Team Member will remove them from the lease. Proceed?")) return;
+        await supabase.from('tenants').delete().eq('id', member.id);
+        await supabase.from('team_invitations').insert({
+             property_id: member.property_id,
+             invited_by: session?.user?.id,
+             email: member.email,
+             role: newRole,
+             status: 'Pending',
+             permissions: { can_view_property: true, can_view_lease: true, can_create_lease: true, can_edit_lease: true, can_manage_tenants: true, can_renew_lease: true, can_terminate_lease: true }
+        });
+        loadData(session?.user?.id || '');
+        return;
+      }
+      
+      if (member.role !== 'Tenant' && newRole === 'Tenant') {
+        if (!window.confirm("Converting a Team Member to a Tenant will revoke management access. Proceed?")) return;
+        const table = member.isPending ? 'team_invitations' : 'property_team';
+        await supabase.from(table).delete().eq('id', member.id);
+        await supabase.from('tenants').insert([{
+            property_id: member.property_id, 
+            owner_id: session?.user?.id,
+            email: member.email, 
+            first_name: member.first_name || 'Converted',
+            last_name: member.last_name || 'User', 
+            status: 'Invited',
+            access_level: { receives_emails: true, can_login: true }
+        }]);
+        loadData(session?.user?.id || '');
+        return;
+      }
+
       if (member.isPending) { await supabase.from('team_invitations').update({ role: newRole }).eq('id', member.id); }
       else { await supabase.from('property_team').update({ role: newRole }).eq('id', member.id); }
       setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: newRole } : m));
@@ -497,7 +531,7 @@ export function Team() {
                                           initial={{ opacity: 0, y: -5, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -5, scale: 0.95 }} transition={{ duration: 0.12 }}
                                           className="absolute left-0 top-full mt-1.5 w-44 bg-white rounded-2xl shadow-[0_12px_40px_rgb(0,0,0,0.12)] border border-slate-200 py-1.5 z-50 overflow-hidden"
                                         >
-                                          {['Manager', 'Strata', 'Agent'].map(r => {
+                                          {['Manager', 'Strata', 'Agent', 'Tenant'].map(r => {
                                             const rConf = roleConfig[r] || rc;
                                             return (
                                               <button key={r} onClick={() => { changeRole(member, r); setOpenDropdownId(null); }}
